@@ -5,6 +5,7 @@ import { Server } from 'socket.io';
 import { runMigrations } from './db/migrate.js';
 import { createApp } from './app.js';
 import { attachSocket } from './messaging/socket.js';
+import { JWT_SECRET } from './middleware/auth.js';
 
 runMigrations();
 
@@ -19,7 +20,7 @@ io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error('unauthorized'));
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'change-me-in-production');
+    const payload = jwt.verify(token, JWT_SECRET);
     socket.user = { id: payload.sub, email: payload.email };
     next();
   } catch {

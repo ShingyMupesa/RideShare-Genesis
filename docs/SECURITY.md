@@ -7,6 +7,10 @@
 - Sessions are stateless JWTs (`jsonwebtoken`), signed with `JWT_SECRET` and
   expiring per `JWT_EXPIRES_IN` (default 7 days). Rotate `JWT_SECRET` in
   production and keep it out of version control (`.env` is gitignored).
+  There is no hardcoded fallback signing key — the server refuses to start
+  if `JWT_SECRET` is unset (`backend/src/middleware/auth.js`), and
+  `docker-compose.yml` fails the same way rather than silently using an
+  insecure default.
 - All mutating routes require a valid `Authorization: Bearer <token>` header,
   verified server-side on every request (`backend/src/middleware/auth.js`).
 

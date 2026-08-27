@@ -19,12 +19,19 @@ router.post(
   })
 );
 
+function assertMatchParty(match, userId) {
+  if (match.requestJourney.ownerId !== userId && match.offerJourney.ownerId !== userId) {
+    throw Forbidden('You are not a party to this match');
+  }
+}
+
 router.get(
   '/:id',
   requireAuth,
   asyncHandler(async (req, res) => {
     const match = getMatchById(req.params.id);
     if (!match) throw NotFound('Match not found');
+    assertMatchParty(match, req.user.id);
     res.json({ match });
   })
 );
@@ -36,6 +43,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const match = getMatchById(req.params.id);
     if (!match) throw NotFound('Match not found');
+    assertMatchParty(match, req.user.id);
     res.json({
       matchId: match.id,
       score: match.score,

@@ -8,7 +8,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your .env file — see .env.example. No insecure default is provided.}
       JWT_EXPIRES_IN: 7d
       CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:8080}
       DATABASE_FILE: /app/data/rideshare-genesis.sqlite

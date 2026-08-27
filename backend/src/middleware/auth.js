@@ -1,7 +1,15 @@
 import jwt from 'jsonwebtoken';
 import { Unauthorized } from '../utils/errors.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
+// No insecure fallback: a hardcoded default signing key would let anyone who
+// reads this (public) source forge tokens for any user or role against a
+// deployment that forgot to set JWT_SECRET. Fail fast instead.
+export const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error(
+    'JWT_SECRET environment variable must be set (see .env.example). Refusing to start with no signing key.'
+  );
+}
 
 export function signToken(user) {
   return jwt.sign({ sub: user.id, email: user.email, role: user.role }, JWT_SECRET, {

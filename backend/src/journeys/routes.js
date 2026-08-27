@@ -57,9 +57,17 @@ router.get(
 
 router.get(
   '/:id',
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const journey = Journeys.getJourneyById(req.params.id);
     if (!journey) throw NotFound('Journey not found');
+    // `offer` journeys are intentionally public marketplace listings. A
+    // `request` journey carries a rider's private pickup/drop-off intent,
+    // so only its owner may view it — anyone else gets a 403 rather than
+    // silently leaking coordinates to whoever learns the id.
+    if (journey.type === 'request' && journey.ownerId !== req.user?.id) {
+      throw Forbidden('This journey is private to its owner');
+    }
     res.json({ journey });
   })
 );
