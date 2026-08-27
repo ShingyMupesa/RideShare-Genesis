@@ -42,9 +42,13 @@ rideshare-genesis/
 │   ├── src/services/
 │   └── src/styles/
 │
-├── backend/                # Node + Express API
+├── backend/                # Node + Express API (reference impl, local dev / Docker)
 │   ├── src/{users,journeys,matching,bookings,payments,messaging,safety,governance,ai}/
 │   └── tests/
+│
+├── worker/                 # Cloudflare Workers deployment (Hono + D1 + Durable Objects)
+│   ├── src/{routes,lib,durable-objects}/
+│   └── README.md
 │
 ├── database/
 │   ├── schema/

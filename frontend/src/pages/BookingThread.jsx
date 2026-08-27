@@ -18,7 +18,7 @@ export default function BookingThread() {
       .then((res) => setMessages(res.messages))
       .catch((err) => setError(err.message || 'Could not load messages'));
 
-    const socket = getSocket();
+    const socket = getSocket(id);
     if (!socket) return undefined;
 
     socket.emit('booking:join', id);
@@ -38,7 +38,7 @@ export default function BookingThread() {
     const body = input.trim();
     if (!body) return;
     setInput('');
-    const socket = getSocket();
+    const socket = getSocket(id);
     if (socket) {
       socket.emit('message:send', { bookingId: id, body });
     } else {

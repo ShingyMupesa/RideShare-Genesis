@@ -10,3 +10,7 @@ backend/data/*.sqlite
 backend/data/*.sqlite-journal
 *.pid
 .vite/
+.wrangler/
+worker/public/
+worker/.dev.vars
+

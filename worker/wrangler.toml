@@ -1,0 +1,31 @@
+name = "rideshare-genesis"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "rideshare-genesis"
+database_id = "72ff4368-4de1-4df5-b540-e3d576fd1727"
+
+[[durable_objects.bindings]]
+name = "BOOKING_ROOMS"
+class_name = "BookingRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BookingRoom"]
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/ws/*"]
+
+[vars]
+CLIENT_ORIGIN = "*"
+PAYMENTS_MODE = "sandbox"
+JWT_EXPIRES_IN_SECONDS = "604800"
+
+# Secrets (set via `wrangler secret put <NAME>`, never committed here):
+#   JWT_SECRET        - required, no insecure default (see src/lib/auth.js)
+#   ANTHROPIC_API_KEY  - optional, enables AI Gateway enrichment
