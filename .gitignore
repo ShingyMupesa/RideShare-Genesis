@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.env
+*.log
+npm-debug.log*
+.DS_Store
+coverage/
+backend/data/*.sqlite
+backend/data/*.sqlite-journal
+*.pid
+.vite/
