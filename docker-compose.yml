@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - '4000:4000'
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your .env file — see .env.example. No insecure default is provided.}
+      JWT_EXPIRES_IN: 7d
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:8080}
+      DATABASE_FILE: /app/data/rideshare-genesis.sqlite
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      PAYMENTS_MODE: sandbox
+    volumes:
+      - genesis-data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
+        VITE_SOCKET_URL: /
+    ports:
+      - '8080:80'
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  genesis-data:

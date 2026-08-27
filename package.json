@@ -1,0 +1,23 @@
+{
+  "name": "rideshare-genesis",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RideShare Genesis V1 - a human-centred, explainable ridesharing platform",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build:frontend": "npm run build --workspace frontend",
+    "start:backend": "npm run start --workspace backend",
+    "test:backend": "npm test --workspace backend",
+    "test": "npm run test:backend",
+    "lint": "npm run lint --workspace backend && npm run lint --workspace frontend"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
