@@ -19,13 +19,16 @@ new_sqlite_classes = ["BookingRoom"]
 directory = "./public"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/api/*", "/ws/*"]
+run_worker_first = ["/api/*", "/ws/*", "/admin*"]
 
 [vars]
 CLIENT_ORIGIN = "*"
 PAYMENTS_MODE = "sandbox"
 JWT_EXPIRES_IN_SECONDS = "604800"
 
-# Secrets (set via `wrangler secret put <NAME>`, never committed here):
-#   JWT_SECRET        - required, no insecure default (see src/lib/auth.js)
-#   ANTHROPIC_API_KEY  - optional, enables AI Gateway enrichment
+# Secrets (set via `wrangler secret put <NAME>`, or the dashboard's
+# Settings -> Variables and Secrets, never committed here):
+#   JWT_SECRET         - required, no insecure default (see src/lib/auth.js)
+#   ANTHROPIC_API_KEY   - optional, enables AI Gateway enrichment
+#   ADMIN_TOKEN          - required for /admin and /api/tracking/stats (see src/lib/adminAuth.js)
+#   STRIPE_SECRET_KEY     - optional, enables real Stripe payments alongside the sandbox providers

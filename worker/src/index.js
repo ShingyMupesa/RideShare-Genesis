@@ -12,6 +12,8 @@ import { messaging, assertBookingAccess } from './routes/messaging.js';
 import { safety } from './routes/safety.js';
 import { governance } from './routes/governance.js';
 import { ai } from './routes/ai.js';
+import { tracking } from './routes/tracking.js';
+import { admin } from './routes/admin.js';
 
 export { BookingRoom } from './durable-objects/BookingRoom.js';
 
@@ -33,6 +35,8 @@ app.route('/api/messages', messaging);
 app.route('/api/safety', safety);
 app.route('/api/governance', governance);
 app.route('/api/ai', ai);
+app.route('/api/tracking', tracking);
+app.route('/admin', admin);
 
 // Real-time messaging: browsers can't set custom headers on a WebSocket
 // handshake, so the token travels as a query param here instead of an
