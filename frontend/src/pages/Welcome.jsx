@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ShareInstall from '../components/ShareInstall.jsx';
 
 const PRINCIPLES = [
   {
@@ -41,6 +42,7 @@ export default function Welcome() {
             Offer a Journey
           </Link>
         </div>
+        <ShareInstall />
       </section>
 
       <section>
