@@ -25,7 +25,7 @@ export function createJourney(ownerId, input) {
     seats_total: input.seats ?? 1,
     seats_available: input.seats ?? 1,
     price_per_seat: input.pricePerSeat ?? 0,
-    currency: input.currency ?? 'USD',
+    currency: input.currency.toUpperCase(),
     preferences_json: JSON.stringify(input.preferences ?? {}),
     vehicle_type: input.type === 'offer' ? input.vehicleType ?? null : null,
   });

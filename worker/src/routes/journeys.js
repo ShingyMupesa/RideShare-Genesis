@@ -98,6 +98,12 @@ function validateJourneyInput(body) {
   if (pricePerSeat !== undefined && (typeof pricePerSeat !== 'number' || pricePerSeat < 0)) {
     throw BadRequest('pricePerSeat must be a non-negative number');
   }
+  // Currency is mandatory, not defaulted — every financial figure in the
+  // app (journey price, booking total, payment amount) must carry an
+  // explicit currency the user actually chose, never a silent USD fallback.
+  if (!body?.currency || typeof body.currency !== 'string' || !/^[A-Za-z]{3}$/.test(body.currency)) {
+    throw BadRequest('currency is required and must be a 3-letter currency code (e.g. KES, USD)');
+  }
   if (body?.vehicleType !== undefined && body.vehicleType !== null && !VEHICLE_TYPES.includes(body.vehicleType)) {
     throw BadRequest(`vehicleType must be one of: ${VEHICLE_TYPES.join(', ')}`);
   }
@@ -132,7 +138,7 @@ journeys.post('/', requireAuth, async (c) => {
       body.seats ?? 1,
       body.seats ?? 1,
       body.pricePerSeat ?? 0,
-      body.currency ?? 'USD',
+      body.currency.toUpperCase(),
       JSON.stringify(body.preferences ?? {}),
       body.type === 'offer' ? body.vehicleType ?? null : null
     )

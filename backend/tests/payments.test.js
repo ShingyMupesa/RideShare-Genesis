@@ -37,6 +37,7 @@ describe('payment-choice architecture', () => {
         departureTime: new Date(Date.now() + 3600_000).toISOString(),
         seats: 2,
         pricePerSeat: 15,
+        currency: 'USD',
       });
 
     const bookingRes = await request(app)

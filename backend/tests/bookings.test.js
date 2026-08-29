@@ -37,6 +37,7 @@ describe('booking workflow state machine', () => {
         departureTime: new Date(Date.now() + 3600_000).toISOString(),
         seats: 2,
         pricePerSeat: 20,
+        currency: 'USD',
       });
     journeyId = journeyRes.body.journey.id;
   });

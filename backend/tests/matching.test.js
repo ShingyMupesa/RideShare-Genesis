@@ -50,6 +50,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 3,
         pricePerSeat: 10,
+        currency: 'USD',
       });
     assert.equal(res.status, 201);
     assert.equal(res.body.matches.length, 0);
@@ -67,6 +68,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 1,
         pricePerSeat: 12,
+        currency: 'USD',
       });
 
     assert.equal(res.status, 201);
@@ -90,6 +92,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 1,
         pricePerSeat: 12,
+        currency: 'USD',
       });
 
     const matchId = journeyRes.body.matches[0].id;
@@ -113,6 +116,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 1,
         pricePerSeat: 12,
+        currency: 'USD',
       });
     const matchId = journeyRes.body.matches[0].id;
 
@@ -133,6 +137,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 1,
         pricePerSeat: 12,
+        currency: 'USD',
       });
     const matchId = journeyRes.body.matches[0].id;
 
@@ -168,6 +173,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 2,
         pricePerSeat: 5,
+        currency: 'USD',
       });
 
     const res = await request(app).get(`/api/journeys/${offerRes.body.journey.id}`);
@@ -185,6 +191,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 1,
         pricePerSeat: 12,
+        currency: 'USD',
       });
     const journeyId = requestRes.body.journey.id;
 

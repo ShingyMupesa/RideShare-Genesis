@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
+import { CURRENCIES, DEFAULT_CURRENCY } from '../constants/currencies.js';
 
 const PRESETS = [
   { label: 'Downtown Plaza', lat: -1.2921, lng: 36.8219 },
@@ -61,6 +62,7 @@ export default function FindJourney() {
   const [departureTime, setDepartureTime] = useState('');
   const [seats, setSeats] = useState(1);
   const [pricePerSeat, setPricePerSeat] = useState(10);
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -80,6 +82,7 @@ export default function FindJourney() {
         departureTime: new Date(departureTime).toISOString(),
         seats: Number(seats),
         pricePerSeat: Number(pricePerSeat),
+        currency,
       });
       navigate(`/matches/${journey.id}`, { state: { matches, journey } });
     } catch (err) {
@@ -121,15 +124,30 @@ export default function FindJourney() {
           </div>
         </div>
         <div className="form-field">
-          <label htmlFor="pricePerSeat">Your budget per seat (USD)</label>
-          <input
-            id="pricePerSeat"
-            type="number"
-            min="0"
-            step="0.5"
-            value={pricePerSeat}
-            onChange={(e) => setPricePerSeat(e.target.value)}
-          />
+          <label htmlFor="pricePerSeat">Your budget per seat</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <select
+              id="currency"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              style={{ maxWidth: 110, flex: '0 0 auto' }}
+              aria-label="Currency"
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code}
+                </option>
+              ))}
+            </select>
+            <input
+              id="pricePerSeat"
+              type="number"
+              min="0"
+              step="0.5"
+              value={pricePerSeat}
+              onChange={(e) => setPricePerSeat(e.target.value)}
+            />
+          </div>
         </div>
         <button className="btn btn-primary" type="submit" disabled={submitting}>
           {submitting ? 'Searching…' : 'Find matches'}
