@@ -8,14 +8,46 @@ import { recordAuditEvent } from '../lib/audit.js';
 
 export const payments = new Hono();
 
-async function createPayment(db, { bookingId, payerId, method, amount, currency }) {
+// payments predates the commission columns; self-provision them the same
+// way tracking.js does for page_events, so this works against the existing
+// production table without a separate migration step. ADD COLUMN isn't
+// idempotent in SQLite/D1, so a "duplicate column" error means it's already
+// there — anything else is a real failure and should surface.
+let columnsEnsured = false;
+async function ensureCommissionColumns(db) {
+  if (columnsEnsured) return;
+  for (const stmt of [
+    `ALTER TABLE payments ADD COLUMN commission_rate REAL NOT NULL DEFAULT 0`,
+    `ALTER TABLE payments ADD COLUMN commission_amount REAL NOT NULL DEFAULT 0`,
+  ]) {
+    try {
+      await db.exec(stmt);
+    } catch (err) {
+      if (!/duplicate column/i.test(err.message || '')) throw err;
+    }
+  }
+  columnsEnsured = true;
+}
+
+// The rider always pays the full fare; commission is the platform's cut of
+// that fare, deducted from the driver's payout rather than added on top.
+// Defaults to 0% (see wrangler.toml) for the early-bird period — flipping
+// PLATFORM_COMMISSION_PCT later applies only to payments made after the
+// change, since the rate actually charged is stored per-payment.
+function commissionRateFromEnv(env) {
+  const pct = Number(env.PLATFORM_COMMISSION_PCT ?? 0);
+  return Number.isFinite(pct) && pct > 0 ? pct / 100 : 0;
+}
+
+async function createPayment(db, { bookingId, payerId, method, amount, currency, commissionRate }) {
   const id = newId('payment');
+  const commissionAmount = Math.round(amount * commissionRate * 100) / 100;
   await db
     .prepare(
-      `INSERT INTO payments (id, booking_id, payer_id, method, provider, amount, currency, status)
-       VALUES (?, ?, ?, ?, 'genesis_sandbox', ?, ?, 'PENDING')`
+      `INSERT INTO payments (id, booking_id, payer_id, method, provider, amount, currency, status, commission_rate, commission_amount)
+       VALUES (?, ?, ?, ?, 'genesis_sandbox', ?, ?, 'PENDING', ?, ?)`
     )
-    .bind(id, bookingId, payerId, method, amount, currency)
+    .bind(id, bookingId, payerId, method, amount, currency, commissionRate, commissionAmount)
     .run();
   return db.prepare('SELECT * FROM payments WHERE id = ?').bind(id).first();
 }
@@ -43,7 +75,16 @@ payments.post('/', requireAuth, async (c) => {
   if (!booking) throw NotFound('Booking not found');
   if (booking.passengerId !== authUser.id) throw Forbidden('Only the passenger can pay for this booking');
 
-  const payment = await createPayment(db, { bookingId, payerId: authUser.id, method, amount: booking.totalPrice, currency: booking.currency });
+  await ensureCommissionColumns(db);
+  const commissionRate = commissionRateFromEnv(c.env);
+  const payment = await createPayment(db, {
+    bookingId,
+    payerId: authUser.id,
+    method,
+    amount: booking.totalPrice,
+    currency: booking.currency,
+    commissionRate,
+  });
 
   const authResult = await provider.authorize({ amount: booking.totalPrice, currency: booking.currency });
   if (!authResult.success) {

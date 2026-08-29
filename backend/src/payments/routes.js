@@ -8,6 +8,16 @@ import { recordAuditEvent } from '../governance/auditLog.js';
 
 export const router = Router();
 
+// The rider always pays the full fare; commission is the platform's cut of
+// that fare, deducted from the driver's payout rather than added on top.
+// Defaults to 0% (see .env.example) for the early-bird period — flipping
+// PLATFORM_COMMISSION_PCT later applies only to payments made after the
+// change, since the rate actually charged is stored per-payment.
+function commissionRateFromEnv() {
+  const pct = Number(process.env.PLATFORM_COMMISSION_PCT ?? 0);
+  return Number.isFinite(pct) && pct > 0 ? pct / 100 : 0;
+}
+
 router.get('/methods', (req, res) => {
   res.json({ methods: SUPPORTED_METHODS });
 });
@@ -33,6 +43,7 @@ router.post(
       method,
       amount: booking.totalPrice,
       currency: booking.currency,
+      commissionRate: commissionRateFromEnv(),
     });
 
     const authResult = await provider.authorize({ amount: booking.totalPrice, currency: booking.currency });

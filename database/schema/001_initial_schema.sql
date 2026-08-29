@@ -98,6 +98,8 @@ CREATE TABLE IF NOT EXISTS payments (
   currency       TEXT NOT NULL DEFAULT 'USD',
   status         TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | AUTHORIZED | CAPTURED | FAILED | REFUNDED
   reference      TEXT,
+  commission_rate   REAL NOT NULL DEFAULT 0, -- platform's cut, as a fraction (0.10 = 10%); rate at time of payment (added in 0003)
+  commission_amount REAL NOT NULL DEFAULT 0, -- amount * commission_rate, deducted from the driver's payout, not added to the rider's fare
   created_at     TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   updated_at     TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );

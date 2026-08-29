@@ -25,6 +25,10 @@ run_worker_first = ["/api/*", "/ws/*", "/admin*"]
 CLIENT_ORIGIN = "*"
 PAYMENTS_MODE = "sandbox"
 JWT_EXPIRES_IN_SECONDS = "604800"
+# Platform commission, as a percent (e.g. "10" = 10%). Kept at 0 for the
+# early-bird period; the rate actually charged is stored per-payment, so
+# flipping this later only affects payments made after the change.
+PLATFORM_COMMISSION_PCT = "0"
 
 # Secrets (set via `wrangler secret put <NAME>`, or the dashboard's
 # Settings -> Variables and Secrets, never committed here):

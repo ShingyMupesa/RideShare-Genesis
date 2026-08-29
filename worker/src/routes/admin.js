@@ -59,6 +59,12 @@ const PAGE = `<!doctype html>
     </section>
 
     <section>
+      <h2 style="font-size:1rem;">Revenue &amp; commission</h2>
+      <p class="muted" id="revenueNote" style="margin-bottom:10px;"></p>
+      <div class="grid" id="revenueGrid"></div>
+    </section>
+
+    <section>
       <h2 style="font-size:1rem;">Environmental impact (estimated)</h2>
       <p class="muted" id="impactMethodology" style="margin-bottom:10px;"></p>
       <div class="grid" id="impactGrid"></div>
@@ -129,6 +135,15 @@ const PAGE = `<!doctype html>
           return '<tr><td>' + d + '</td><td>' + byDay[d].page_view + '</td><td>' + byDay[d].cta_click + '</td></tr>';
         }).join('')
       : '<tr><td colspan="3" style="color:#9490ab;">No activity yet.</td></tr>';
+
+    const revenue = data.revenue || {};
+    document.getElementById('revenueNote').textContent = revenue.note || '';
+    document.getElementById('revenueGrid').innerHTML = [
+      ['Gross captured', '$' + (revenue.grossCaptured || 0)],
+      ['Commission collected', '$' + (revenue.commissionCollected || 0)],
+    ].map(function (s) {
+      return '<div class="stat"><div class="val">' + s[1] + '</div><div class="lbl">' + s[0] + '</div></div>';
+    }).join('');
 
     const impact = data.environmentalImpact || {};
     document.getElementById('impactMethodology').textContent = impact.methodology || '';

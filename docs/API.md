@@ -103,6 +103,17 @@ in the README.
 | POST   | `/payments`                   | yes  | Pay for a booking: `{ bookingId, method }`         |
 | GET    | `/payments/booking/:bookingId`| yes  | Payment history for a booking                       |
 
+Every captured payment carries `commission_rate` (fraction, e.g. `0.1` = 10%)
+and `commission_amount` — the platform's cut of the fare, computed and stored
+at the moment of payment using the `PLATFORM_COMMISSION_PCT` config value
+*at that time*. The rider always pays the full `amount`; commission is
+deducted from the driver's payout, never added on top. `PLATFORM_COMMISSION_PCT`
+defaults to `0` for the early-bird period — raising it later only affects
+payments made after the change, since each payment's rate is fixed at
+creation, not recomputed from current config. See
+[Monetization & marketplace integrity](../README.md#monetization--marketplace-integrity)
+in the README.
+
 Every method implements the same `authorize` → `capture` provider contract
 (`backend/src/payments/providers.js`), so adding a real processor later means
 adding one provider — no route changes.

@@ -80,7 +80,7 @@ tracking.get('/stats', async (c) => {
   const db = c.env.DB;
   await ensureTable(db);
 
-  const [pageViews, ctaClicks, byLabel, byDay, users, bookings, safetyCases, impact, cleanVehicles] = await Promise.all([
+  const [pageViews, ctaClicks, byLabel, byDay, users, bookings, safetyCases, impact, cleanVehicles, revenue] = await Promise.all([
     db.prepare(`SELECT COUNT(*) AS n FROM page_events WHERE event_type = 'page_view'`).first(),
     db.prepare(`SELECT COUNT(*) AS n FROM page_events WHERE event_type = 'cta_click'`).first(),
     db
@@ -120,6 +120,18 @@ tracking.get('/stats', async (c) => {
          FROM journeys WHERE type = 'offer' AND vehicle_type IS NOT NULL`
       )
       .first(),
+    // commission_rate/commission_amount may not exist yet on a fresh table
+    // that's never taken a payment (see payments.js's ensureCommissionColumns);
+    // tolerate that rather than 500ing the whole dashboard.
+    db
+      .prepare(
+        `SELECT
+           COALESCE(SUM(amount), 0) AS grossCaptured,
+           COALESCE(SUM(commission_amount), 0) AS commissionCollected
+         FROM payments WHERE status = 'CAPTURED'`
+      )
+      .first()
+      .catch(() => ({ grossCaptured: 0, commissionCollected: 0 })),
   ]);
 
   return c.json({
@@ -131,6 +143,11 @@ tracking.get('/stats', async (c) => {
       totalUsers: users?.n || 0,
       totalBookings: bookings?.n || 0,
       totalSafetyCases: safetyCases?.n || 0,
+    },
+    revenue: {
+      grossCaptured: round1(revenue?.grossCaptured),
+      commissionCollected: round1(revenue?.commissionCollected),
+      note: 'Commission rate defaults to 0% during the early-bird period; the rate charged is stored per-payment, so past totals stay accurate if the rate changes.',
     },
     environmentalImpact: {
       sharedJourneysCompleted: impact?.sharedJourneysCompleted || 0,

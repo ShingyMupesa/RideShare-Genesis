@@ -140,6 +140,36 @@ out the fuller Environmental Impact Dashboard (seats utilised, EV/hybrid
 participation trends, avoided vehicle-km over time), is future work once
 there's enough completed-trip volume to measure against.
 
+## Monetization & marketplace integrity
+
+Genesis takes a commission on completed rides. Two things we're deliberate about:
+
+**Getting to launch liquidity first.** `PLATFORM_COMMISSION_PCT` defaults to
+`0` — the plan is an early-bird period (an initial cohort, split between
+drivers and riders, using the platform commission-free) to seed density on
+a route before charging anything. The commission plumbing is already live
+end-to-end (every payment records the rate that applied *at the time*, so
+raising the percentage later never rewrites history) — turning it on is a
+config change, not a rebuild.
+
+**Marketplace leakage.** The hard problem in any two-sided marketplace is
+regulars going off-platform once they've found each other — no rideshare or
+gig platform has ever solved this with enforcement, and we won't try to
+police it. The plan is to make staying on-platform worth more than the
+commission saved by leaving:
+
+- **Ride Passes** — a discounted recurring rate for a driver/passenger pair
+  who repeat the same route, so defecting to cash saves them little.
+- **On-platform-only protections** — Safety Centre (SOS, incident
+  reporting), dispute resolution, and any future insurance/liability cover
+  apply only to trips booked and paid through Genesis.
+- **Win-back, not detection** — a pair whose booking frequency drops off
+  gets proactively offered a Ride Pass, rather than the platform trying to
+  catch them going around it.
+
+None of the above is built yet — it's the natural next step once there's
+real repeat-ride data to design a Ride Pass rate against.
+
 ## Docs
 
 - [`docs/API.md`](docs/API.md) — full endpoint reference
