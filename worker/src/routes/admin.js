@@ -47,6 +47,7 @@ const PAGE = `<!doctype html>
       <button class="refresh" id="refreshBtn">Refresh</button>
     </div>
     <p class="muted" id="generatedAt"></p>
+    <p class="muted" id="autoRefreshNote" style="margin-top:-8px;">Auto-refreshing every 7s</p>
 
     <div class="grid" id="statGrid"></div>
 
@@ -206,6 +207,13 @@ const PAGE = `<!doctype html>
     if (e.key === 'Enter') document.getElementById('loginBtn').click();
   });
   document.getElementById('refreshBtn').addEventListener('click', loadStats);
+
+  // Auto-refresh every 7s (5-10s range) while the dashboard is unlocked and
+  // the tab is actually visible — no point burning requests (and the admin
+  // rate limit) refreshing a backgrounded tab nobody is looking at.
+  setInterval(function () {
+    if (getToken() && document.visibilityState === 'visible') loadStats();
+  }, 7000);
 
   loadStats();
 })();
