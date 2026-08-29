@@ -53,8 +53,16 @@ export const api = {
 
   // Journeys
   createJourney: (payload) => request('/journeys', { method: 'POST', body: payload }),
-  listJourneys: (query = '') => request(`/journeys${query}`, { auth: false }),
-  getJourney: (id) => request(`/journeys/${id}`, { auth: false }),
+  // `mine=true` requires the auth token to resolve the owner filter, and
+  // plain browsing is unaffected either way (no token just means no
+  // Authorization header is attached) — so this always allows auth rather
+  // than hardcoding it off.
+  listJourneys: (query = '') => request(`/journeys${query}`),
+  // A `request`-type journey is private to its owner (see backend), so this
+  // must be allowed to send the token when one exists — otherwise an owner
+  // viewing their own request journey gets a 403 just like an anonymous
+  // visitor would.
+  getJourney: (id) => request(`/journeys/${id}`),
   cancelJourney: (id) => request(`/journeys/${id}/cancel`, { method: 'POST' }),
 
   // Matching
@@ -92,7 +100,9 @@ export const api = {
   trustedContact: () => request('/safety/trusted-contact'),
 
   // AI Gateway
-  askAssistant: (message) => request('/ai/assistant', { method: 'POST', body: { message }, auth: false }),
+  // Sending the token when present lets the assistant enrich its answer
+  // with the user's own Decision DNA weights; it stays optional server-side.
+  askAssistant: (message) => request('/ai/assistant', { method: 'POST', body: { message } }),
   aiStatus: () => request('/ai/status', { auth: false }),
 };
 
