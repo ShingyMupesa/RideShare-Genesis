@@ -5,6 +5,7 @@ import { BadRequest, Forbidden, NotFound } from '../lib/errors.js';
 import { getProvider, SUPPORTED_METHODS } from '../lib/providers.js';
 import { getBookingById } from './bookings.js';
 import { recordAuditEvent } from '../lib/audit.js';
+import { createPaymentIntent, retrievePaymentIntent } from '../lib/stripe.js';
 
 export const payments = new Hono();
 
@@ -60,7 +61,17 @@ async function updatePaymentStatus(db, id, status, reference) {
   return db.prepare('SELECT * FROM payments WHERE id = ?').bind(id).first();
 }
 
-payments.get('/methods', (c) => c.json({ methods: SUPPORTED_METHODS }));
+payments.get('/methods', (c) =>
+  c.json({
+    methods: SUPPORTED_METHODS,
+    // The publishable key is not secret by design (Stripe's own docs say
+    // it's safe to expose client-side) — serving it here means the
+    // frontend never hardcodes it, so rotating it is a config change only.
+    stripe: c.env.STRIPE_SECRET_KEY
+      ? { enabled: true, publishableKey: c.env.STRIPE_PUBLISHABLE_KEY || null }
+      : { enabled: false, publishableKey: null },
+  })
+);
 
 payments.post('/', requireAuth, async (c) => {
   const db = c.env.DB;
@@ -106,6 +117,84 @@ payments.post('/', requireAuth, async (c) => {
   });
 
   return c.json({ payment: captured, message: captureResult.message }, 201);
+});
+
+// Stripe doesn't fit the synchronous authorize/capture contract above — the
+// card is collected client-side via Elements and may need 3D Secure, so
+// this is a deliberately separate two-step flow instead of forcing it into
+// the sandbox providers' shape.
+payments.post('/stripe/intent', requireAuth, async (c) => {
+  const db = c.env.DB;
+  const authUser = c.get('user');
+  const secretKey = c.env.STRIPE_SECRET_KEY;
+  if (!secretKey) throw BadRequest('Stripe is not configured on this server');
+
+  const body = await c.req.json().catch(() => ({}));
+  const { bookingId } = body;
+  if (!bookingId) throw BadRequest('bookingId is required');
+
+  const booking = await getBookingById(db, bookingId);
+  if (!booking) throw NotFound('Booking not found');
+  if (booking.passengerId !== authUser.id) throw Forbidden('Only the passenger can pay for this booking');
+
+  await ensureCommissionColumns(db);
+  const payment = await createPayment(db, {
+    bookingId,
+    payerId: authUser.id,
+    method: 'card_stripe',
+    amount: booking.totalPrice,
+    currency: booking.currency,
+    commissionRate: commissionRateFromEnv(c.env),
+  });
+
+  let intent;
+  try {
+    intent = await createPaymentIntent({ amount: booking.totalPrice, currency: booking.currency, bookingId, secretKey });
+  } catch (err) {
+    await updatePaymentStatus(db, payment.id, 'FAILED', null);
+    throw BadRequest(err.message || 'Could not start the Stripe payment');
+  }
+
+  await updatePaymentStatus(db, payment.id, 'PENDING', intent.id);
+  await recordAuditEvent(db, { actorId: authUser.id, eventType: 'payment.stripe_intent_created', entityType: 'payment', entityId: payment.id, metadata: { bookingId } });
+
+  return c.json({ paymentId: payment.id, clientSecret: intent.client_secret }, 201);
+});
+
+// Called after the frontend has confirmed the card with Stripe directly —
+// this endpoint re-fetches the PaymentIntent from Stripe itself rather
+// than trusting whatever status the client reports, since that report
+// could be spoofed or the tab could close before it ever arrives.
+payments.post('/stripe/:paymentId/confirm', requireAuth, async (c) => {
+  const db = c.env.DB;
+  const authUser = c.get('user');
+  const secretKey = c.env.STRIPE_SECRET_KEY;
+  if (!secretKey) throw BadRequest('Stripe is not configured on this server');
+
+  const payment = await db.prepare('SELECT * FROM payments WHERE id = ?').bind(c.req.param('paymentId')).first();
+  if (!payment) throw NotFound('Payment not found');
+  if (payment.payer_id !== authUser.id) throw Forbidden('You do not have access to this payment');
+  if (!payment.reference) throw BadRequest('This payment was never started with Stripe');
+
+  const intent = await retrievePaymentIntent(payment.reference, { secretKey });
+
+  let nextStatus = payment.status;
+  if (intent.status === 'succeeded') nextStatus = 'CAPTURED';
+  else if (['canceled', 'requires_payment_method'].includes(intent.status)) nextStatus = 'FAILED';
+
+  const updated = nextStatus !== payment.status ? await updatePaymentStatus(db, payment.id, nextStatus, payment.reference) : payment;
+
+  if (nextStatus === 'CAPTURED' && payment.status !== 'CAPTURED') {
+    await recordAuditEvent(db, {
+      actorId: authUser.id,
+      eventType: 'payment.captured',
+      entityType: 'payment',
+      entityId: payment.id,
+      metadata: { bookingId: payment.booking_id, provider: 'stripe' },
+    });
+  }
+
+  return c.json({ payment: updated, stripeStatus: intent.status });
 });
 
 payments.get('/booking/:bookingId', requireAuth, async (c) => {

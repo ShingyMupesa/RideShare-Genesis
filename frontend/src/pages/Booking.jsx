@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
@@ -41,9 +41,14 @@ export default function Booking() {
   const [journey, setJourney] = useState(null);
   const [payments, setPayments] = useState([]);
   const [methods, setMethods] = useState([]);
+  const [stripeConfig, setStripeConfig] = useState({ enabled: false, publishableKey: null });
   const [selectedMethod, setSelectedMethod] = useState('card');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const stripeObjRef = useRef(null);
+  const cardElementRef = useRef(null);
+  const cardMountRef = useRef(null);
 
   const load = useCallback(async () => {
     const res = await api.getBooking(id);
@@ -59,8 +64,30 @@ export default function Booking() {
 
   useEffect(() => {
     load().catch((err) => setError(err.message || 'Could not load booking'));
-    api.paymentMethods().then((res) => setMethods(res.methods));
+    api.paymentMethods().then((res) => {
+      setMethods(res.methods);
+      if (res.stripe?.enabled) setStripeConfig(res.stripe);
+    });
   }, [load]);
+
+  // Mount the Stripe Card Element only once "Card (Stripe)" is selected —
+  // Stripe.js owns that DOM node directly, outside React's render cycle.
+  useEffect(() => {
+    if (selectedMethod !== 'card_stripe' || !stripeConfig.enabled || !cardMountRef.current) return;
+    if (!window.Stripe) {
+      setError('Stripe failed to load — check your connection and reload.');
+      return;
+    }
+    if (!stripeObjRef.current) stripeObjRef.current = window.Stripe(stripeConfig.publishableKey);
+    const elements = stripeObjRef.current.elements();
+    const card = elements.create('card');
+    card.mount(cardMountRef.current);
+    cardElementRef.current = card;
+    return () => {
+      card.unmount();
+      cardElementRef.current = null;
+    };
+  }, [selectedMethod, stripeConfig]);
 
   async function runAction(fn) {
     setBusy(true);
@@ -80,6 +107,28 @@ export default function Booking() {
     setError('');
     try {
       await api.pay({ bookingId: id, method: selectedMethod });
+      await load();
+    } catch (err) {
+      setError(err.message || 'Payment failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleStripePay() {
+    if (!cardElementRef.current || !stripeObjRef.current) return;
+    setBusy(true);
+    setError('');
+    try {
+      const { paymentId, clientSecret } = await api.createStripeIntent(id);
+      const result = await stripeObjRef.current.confirmCardPayment(clientSecret, {
+        payment_method: { card: cardElementRef.current },
+      });
+      if (result.error) {
+        setError(result.error.message || 'Card payment failed');
+        return;
+      }
+      await api.confirmStripePayment(paymentId);
       await load();
     } catch (err) {
       setError(err.message || 'Payment failed');
@@ -174,10 +223,32 @@ export default function Booking() {
                     <div>{METHOD_LABELS[m]?.label || m}</div>
                   </div>
                 ))}
+                {stripeConfig.enabled && (
+                  <div
+                    className={`method-card ${selectedMethod === 'card_stripe' ? 'selected' : ''}`}
+                    onClick={() => setSelectedMethod('card_stripe')}
+                  >
+                    <div style={{ fontSize: '1.4rem' }}>💳</div>
+                    <div>Card (Stripe)</div>
+                  </div>
+                )}
               </div>
-              <button className="btn btn-primary" disabled={busy} onClick={handlePay}>
-                Pay {booking.currency} {booking.totalPrice}
-              </button>
+
+              {selectedMethod === 'card_stripe' ? (
+                <>
+                  <div ref={cardMountRef} className="card" style={{ padding: 12, marginBottom: 12 }} />
+                  <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 12 }}>
+                    Test mode — use card number 4242 4242 4242 4242, any future expiry, any CVC.
+                  </p>
+                  <button className="btn btn-primary" disabled={busy} onClick={handleStripePay}>
+                    Pay {booking.currency} {booking.totalPrice}
+                  </button>
+                </>
+              ) : (
+                <button className="btn btn-primary" disabled={busy} onClick={handlePay}>
+                  Pay {booking.currency} {booking.totalPrice}
+                </button>
+              )}
             </>
           ) : (
             <p className="muted">Waiting on the passenger to pay.</p>

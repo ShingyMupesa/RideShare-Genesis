@@ -29,10 +29,16 @@ JWT_EXPIRES_IN_SECONDS = "604800"
 # early-bird period; the rate actually charged is stored per-payment, so
 # flipping this later only affects payments made after the change.
 PLATFORM_COMMISSION_PCT = "0"
+# Stripe's publishable key is not secret by Stripe's own design — safe to
+# expose client-side, safe to commit. Test-mode key; swap for a pk_live_
+# key (and the matching sk_live_ secret) only when actually taking real
+# payments.
+STRIPE_PUBLISHABLE_KEY = "pk_test_51U3eBgAinwPSkE66HuIIknHlHgDp5qulB9MilDNO6cMSbcw3bZNlpDQBiVmdNrUVhWObJq8qWAOvSS85bLjHXjm600ICmVfmsJ"
 
 # Secrets (set via `wrangler secret put <NAME>`, or the dashboard's
 # Settings -> Variables and Secrets, never committed here):
 #   JWT_SECRET         - required, no insecure default (see src/lib/auth.js)
 #   ANTHROPIC_API_KEY   - optional, enables AI Gateway enrichment
 #   ADMIN_TOKEN          - required for /admin and /api/tracking/stats (see src/lib/adminAuth.js)
-#   STRIPE_SECRET_KEY     - optional, enables real Stripe payments alongside the sandbox providers
+#   STRIPE_SECRET_KEY     - required to enable the "Card (Stripe)" payment option (see src/lib/stripe.js).
+#                           Test-mode key (sk_test_...) pairs with the STRIPE_PUBLISHABLE_KEY above.

@@ -20,7 +20,7 @@ explanation of *why* — instead of a black-box score.
 | Decision DNA & match explanation | Full factor breakdown + human-readable narrative, per match |
 | Journey details | Public journey page with direct booking |
 | Booking workflow | `REQUESTED → MATCHED → BOOKING_REQUESTED → CONFIRMED → IN_PROGRESS → COMPLETED` state machine, cancellable throughout |
-| Payment-choice architecture | Card / mobile money / wallet / cash via a common sandboxed provider contract |
+| Payment-choice architecture | Card / mobile money / wallet / cash via a common sandboxed provider contract, plus a real Stripe (test mode) card option |
 | Messaging | Per-booking threads, real-time via Socket.IO |
 | My Journeys | Dashboard of your bookings and published journeys |
 | Genesis AI assistant | In-app assistant; rule-based by default, optionally enriched by the Anthropic API |

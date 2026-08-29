@@ -5,6 +5,7 @@ import * as Payments from './repository.js';
 import * as Bookings from '../bookings/repository.js';
 import { getProvider, SUPPORTED_METHODS } from './providers.js';
 import { recordAuditEvent } from '../governance/auditLog.js';
+import { createPaymentIntent, retrievePaymentIntent } from './stripe.js';
 
 export const router = Router();
 
@@ -19,7 +20,15 @@ function commissionRateFromEnv() {
 }
 
 router.get('/methods', (req, res) => {
-  res.json({ methods: SUPPORTED_METHODS });
+  res.json({
+    methods: SUPPORTED_METHODS,
+    // The publishable key is not secret by design (Stripe's own docs say
+    // it's safe to expose client-side) — serving it here means the
+    // frontend never hardcodes it, so rotating it is a config change only.
+    stripe: process.env.STRIPE_SECRET_KEY
+      ? { enabled: true, publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || null }
+      : { enabled: false, publishableKey: null },
+  });
 });
 
 // Initiates payment for a booking: authorizes, then immediately captures
@@ -66,6 +75,86 @@ router.post(
     });
 
     res.status(201).json({ payment: captured, message: captureResult.message });
+  })
+);
+
+// Stripe doesn't fit the synchronous authorize/capture contract above — the
+// card is collected client-side via Elements and may need 3D Secure, so
+// this is a deliberately separate two-step flow instead of forcing it into
+// the sandbox providers' shape.
+router.post(
+  '/stripe/intent',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) throw BadRequest('Stripe is not configured on this server');
+
+    const { bookingId } = req.body || {};
+    if (!bookingId) throw BadRequest('bookingId is required');
+
+    const booking = Bookings.getBookingById(bookingId);
+    if (!booking) throw NotFound('Booking not found');
+    if (booking.passengerId !== req.user.id) throw Forbidden('Only the passenger can pay for this booking');
+
+    const payment = Payments.createPayment({
+      bookingId,
+      payerId: req.user.id,
+      method: 'card_stripe',
+      amount: booking.totalPrice,
+      currency: booking.currency,
+      commissionRate: commissionRateFromEnv(),
+    });
+
+    let intent;
+    try {
+      intent = await createPaymentIntent({ amount: booking.totalPrice, currency: booking.currency, bookingId, secretKey });
+    } catch (err) {
+      Payments.updatePaymentStatus(payment.id, 'FAILED', null);
+      throw BadRequest(err.message || 'Could not start the Stripe payment');
+    }
+
+    Payments.updatePaymentStatus(payment.id, 'PENDING', intent.id);
+    recordAuditEvent({ actorId: req.user.id, eventType: 'payment.stripe_intent_created', entityType: 'payment', entityId: payment.id, metadata: { bookingId } });
+
+    res.status(201).json({ paymentId: payment.id, clientSecret: intent.client_secret });
+  })
+);
+
+// Called after the frontend has confirmed the card with Stripe directly —
+// this endpoint re-fetches the PaymentIntent from Stripe itself rather
+// than trusting whatever status the client reports, since that report
+// could be spoofed or the tab could close before it ever arrives.
+router.post(
+  '/stripe/:paymentId/confirm',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) throw BadRequest('Stripe is not configured on this server');
+
+    const payment = Payments.getPaymentById(req.params.paymentId);
+    if (!payment) throw NotFound('Payment not found');
+    if (payment.payer_id !== req.user.id) throw Forbidden('You do not have access to this payment');
+    if (!payment.reference) throw BadRequest('This payment was never started with Stripe');
+
+    const intent = await retrievePaymentIntent(payment.reference, { secretKey });
+
+    let nextStatus = payment.status;
+    if (intent.status === 'succeeded') nextStatus = 'CAPTURED';
+    else if (['canceled', 'requires_payment_method'].includes(intent.status)) nextStatus = 'FAILED';
+
+    const updated = nextStatus !== payment.status ? Payments.updatePaymentStatus(payment.id, nextStatus, payment.reference) : payment;
+
+    if (nextStatus === 'CAPTURED' && payment.status !== 'CAPTURED') {
+      recordAuditEvent({
+        actorId: req.user.id,
+        eventType: 'payment.captured',
+        entityType: 'payment',
+        entityId: payment.id,
+        metadata: { bookingId: payment.booking_id, provider: 'stripe' },
+      });
+    }
+
+    res.json({ payment: updated, stripeStatus: intent.status });
   })
 );
 

@@ -99,9 +99,22 @@ in the README.
 
 | Method | Path                          | Auth | Description                                    |
 |--------|-------------------------------|------|--------------------------------------------------|
-| GET    | `/payments/methods`           | no   | Supported methods: `card`, `mobile_money`, `wallet`, `cash` |
-| POST   | `/payments`                   | yes  | Pay for a booking: `{ bookingId, method }`         |
+| GET    | `/payments/methods`           | no   | Sandbox methods (`card`, `mobile_money`, `wallet`, `cash`), plus `{ stripe: { enabled, publishableKey } }` if Stripe is configured |
+| POST   | `/payments`                   | yes  | Pay for a booking via a sandbox method: `{ bookingId, method }` |
 | GET    | `/payments/booking/:bookingId`| yes  | Payment history for a booking                       |
+| POST   | `/payments/stripe/intent`     | yes  | Start a real Stripe payment: `{ bookingId }` → `{ paymentId, clientSecret }` |
+| POST   | `/payments/stripe/:paymentId/confirm` | yes | After the frontend confirms the card with Stripe directly, re-verifies the PaymentIntent server-side and captures |
+
+Stripe doesn't fit the synchronous authorize/capture contract the sandbox
+providers share — the card is collected client-side via Stripe Elements
+(never touches our servers) and may require 3D Secure — so it's a
+deliberately separate two-step flow: `POST /payments/stripe/intent` creates
+a PaymentIntent and a local `PENDING` payment row; the frontend calls
+Stripe's `confirmCardPayment` directly with the returned `clientSecret`;
+then `POST /payments/stripe/:paymentId/confirm` re-fetches the PaymentIntent
+from Stripe itself (never trusting the client's own report of success) and
+marks the payment `CAPTURED`. `method` on the resulting payment row is
+`card_stripe`, distinguishing it from the sandbox `card` provider.
 
 Every captured payment carries `commission_rate` (fraction, e.g. `0.1` = 10%)
 and `commission_amount` — the platform's cut of the fare, computed and stored

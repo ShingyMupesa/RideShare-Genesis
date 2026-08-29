@@ -74,6 +74,8 @@ export const api = {
   paymentMethods: () => request('/payments/methods', { auth: false }),
   pay: (payload) => request('/payments', { method: 'POST', body: payload }),
   paymentsForBooking: (bookingId) => request(`/payments/booking/${bookingId}`),
+  createStripeIntent: (bookingId) => request('/payments/stripe/intent', { method: 'POST', body: { bookingId } }),
+  confirmStripePayment: (paymentId) => request(`/payments/stripe/${paymentId}/confirm`, { method: 'POST' }),
 
   // Messaging
   listMessages: (bookingId) => request(`/messages/booking/${bookingId}`),
