@@ -3,6 +3,7 @@ import { optionalAuth } from '../lib/auth.js';
 import { BadRequest } from '../lib/errors.js';
 import { answerAssistantQuestion } from '../lib/assistant.js';
 import { isAnthropicConfigured } from '../lib/anthropicClient.js';
+import { assistantLimiter } from '../lib/rateLimit.js';
 
 export const ai = new Hono();
 
@@ -11,7 +12,7 @@ ai.get('/status', (c) => {
   return c.json({ enriched, mode: enriched ? 'anthropic+rules' : 'rules-only' });
 });
 
-ai.post('/assistant', optionalAuth, async (c) => {
+ai.post('/assistant', assistantLimiter, optionalAuth, async (c) => {
   const authUser = c.get('user');
   const body = await c.req.json().catch(() => ({}));
   const { message } = body;

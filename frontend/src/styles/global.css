@@ -404,6 +404,28 @@ textarea:focus {
   background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
   color: white;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-close-btn {
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  line-height: 1;
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .panel-close-btn:hover {
+    background: rgba(255, 255, 255, 0.32);
+  }
 }
 
 .assistant-panel__messages {
@@ -479,6 +501,9 @@ textarea:focus {
   background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
   color: white;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .feedback-panel__body {

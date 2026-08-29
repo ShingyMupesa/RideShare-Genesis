@@ -6,6 +6,7 @@ import { recordAuditEvent } from '../governance/auditLog.js';
 import * as Users from './repository.js';
 import { generateResetToken, hashResetToken } from './resetToken.js';
 import { sendEmail, resetPasswordEmailHtml } from '../email/resend.js';
+import { loginLimiter, registerLimiter, forgotPasswordLimiter } from '../middleware/rateLimit.js';
 
 export const router = Router();
 
@@ -13,6 +14,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.post(
   '/register',
+  registerLimiter,
   asyncHandler(async (req, res) => {
     const { email, password, fullName, phone } = req.body || {};
     if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');
@@ -46,6 +48,7 @@ router.post(
 
 router.post(
   '/login',
+  loginLimiter,
   asyncHandler(async (req, res) => {
     const { email, password } = req.body || {};
     if (!email || !password) throw BadRequest('Email and password are required');
@@ -67,6 +70,7 @@ router.post(
 // which emails have accounts on Genesis.
 router.post(
   '/forgot-password',
+  forgotPasswordLimiter,
   asyncHandler(async (req, res) => {
     const { email } = req.body || {};
     if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');

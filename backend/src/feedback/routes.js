@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
 import { asyncHandler, BadRequest, Forbidden } from '../utils/errors.js';
 import * as Feedback from './repository.js';
+import { feedbackLimiter } from '../middleware/rateLimit.js';
 
 export const router = Router();
 
@@ -11,6 +12,7 @@ export const router = Router();
 // a valid token happens to be present, but never requires one.
 router.post(
   '/',
+  feedbackLimiter,
   optionalAuth,
   asyncHandler(async (req, res) => {
     const { message, email, page } = req.body || {};

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api.js';
 
@@ -12,6 +12,25 @@ export default function GenesisAssistant() {
   const [messages, setMessages] = useState([WELCOME]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(e) {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+    }
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
 
   async function send(e) {
     e.preventDefault();
@@ -36,10 +55,20 @@ export default function GenesisAssistant() {
   }
 
   return (
-    <>
+    <div ref={rootRef}>
       {open && (
         <div className="assistant-panel" role="dialog" aria-label="Genesis assistant">
-          <div className="assistant-panel__header">Genesis Assistant</div>
+          <div className="assistant-panel__header">
+            <span>Genesis Assistant</span>
+            <button
+              type="button"
+              className="panel-close-btn"
+              onClick={() => setOpen(false)}
+              aria-label="Close Genesis assistant"
+            >
+              ✕
+            </button>
+          </div>
           <div className="assistant-panel__messages">
             {messages.map((m, i) => (
               <div key={i} className={`assistant-msg ${m.role === 'user' ? 'user' : 'bot'}`}>
@@ -80,6 +109,6 @@ export default function GenesisAssistant() {
       >
         {open ? '✕' : '✦'}
       </button>
-    </>
+    </div>
   );
 }

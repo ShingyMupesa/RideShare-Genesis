@@ -3,6 +3,7 @@ import { newId } from '../lib/ids.js';
 import { optionalAuth } from '../lib/auth.js';
 import { requireAdmin } from '../lib/adminAuth.js';
 import { BadRequest } from '../lib/errors.js';
+import { feedbackLimiter } from '../lib/rateLimit.js';
 
 export const feedback = new Hono();
 
@@ -21,7 +22,7 @@ async function ensureTable(db) {
 // someone who just installed the PWA) needs to be able to leave feedback
 // before ever creating an account. optionalAuth attaches user_id when a
 // valid token happens to be present, but never requires one.
-feedback.post('/', optionalAuth, async (c) => {
+feedback.post('/', feedbackLimiter, optionalAuth, async (c) => {
   const db = c.env.DB;
   const body = await c.req.json().catch(() => ({}));
   const message = (body.message || '').trim();

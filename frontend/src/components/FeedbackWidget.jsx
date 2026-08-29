@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
 
@@ -10,6 +10,25 @@ export default function FeedbackWidget() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(e) {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+    }
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -33,10 +52,20 @@ export default function FeedbackWidget() {
   }
 
   return (
-    <>
+    <div ref={rootRef}>
       {open && (
         <div className="feedback-panel" role="dialog" aria-label="Send feedback">
-          <div className="feedback-panel__header">Feedback</div>
+          <div className="feedback-panel__header">
+            <span>Feedback</span>
+            <button
+              type="button"
+              className="panel-close-btn"
+              onClick={() => setOpen(false)}
+              aria-label="Close feedback"
+            >
+              ✕
+            </button>
+          </div>
           <div className="feedback-panel__body">
             {sent ? (
               <p className="muted">Thanks — we read every one of these.</p>
@@ -73,6 +102,6 @@ export default function FeedbackWidget() {
       >
         {open ? '✕' : '💬'}
       </button>
-    </>
+    </div>
   );
 }

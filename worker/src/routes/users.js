@@ -6,6 +6,7 @@ import { BadRequest, Conflict, NotFound, Unauthorized } from '../lib/errors.js';
 import { recordAuditEvent } from '../lib/audit.js';
 import { generateResetToken, hashResetToken } from '../lib/resetToken.js';
 import { sendEmail, resetPasswordEmailHtml } from '../lib/resend.js';
+import { loginLimiter, registerLimiter, forgotPasswordLimiter } from '../lib/rateLimit.js';
 
 export const users = new Hono();
 
@@ -54,7 +55,7 @@ function publicUser(user, profile) {
   };
 }
 
-users.post('/register', async (c) => {
+users.post('/register', registerLimiter, async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { email, password, fullName, phone } = body;
   if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');
@@ -86,7 +87,7 @@ users.post('/register', async (c) => {
   return c.json({ token, user: publicUser(user, profile) }, 201);
 });
 
-users.post('/login', async (c) => {
+users.post('/login', loginLimiter, async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { email, password } = body;
   if (!email || !password) throw BadRequest('Email and password are required');
@@ -118,7 +119,7 @@ async function ensurePasswordResetsTable(db) {
 // Always responds with the same generic message whether or not the email
 // matches an account — otherwise this endpoint would let anyone check
 // which emails have accounts on Genesis.
-users.post('/forgot-password', async (c) => {
+users.post('/forgot-password', forgotPasswordLimiter, async (c) => {
   const db = c.env.DB;
   const body = await c.req.json().catch(() => ({}));
   const { email } = body;
