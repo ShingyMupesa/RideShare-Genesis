@@ -9,6 +9,7 @@ import { router as messagingRouter } from './messaging/routes.js';
 import { router as safetyRouter } from './safety/routes.js';
 import { router as governanceRouter } from './governance/routes.js';
 import { router as aiRouter } from './ai/routes.js';
+import { router as feedbackRouter } from './feedback/routes.js';
 import { ApiError } from './utils/errors.js';
 
 export function createApp() {
@@ -34,6 +35,7 @@ export function createApp() {
   app.use('/api/safety', safetyRouter);
   app.use('/api/governance', governanceRouter);
   app.use('/api/ai', aiRouter);
+  app.use('/api/feedback', feedbackRouter);
 
   app.use((req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: `No route for ${req.method} ${req.path}` } });

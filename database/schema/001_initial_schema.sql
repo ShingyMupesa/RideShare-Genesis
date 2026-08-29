@@ -154,3 +154,15 @@ CREATE TABLE IF NOT EXISTS password_resets (
 );
 CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id);
 CREATE INDEX IF NOT EXISTS idx_password_resets_token_hash ON password_resets(token_hash);
+
+-- Added in 0005. Public, unauthenticated feedback (distinct from the
+-- Safety Centre's login-required "General feedback" report category).
+CREATE TABLE IF NOT EXISTS feedback (
+  id         TEXT PRIMARY KEY,
+  message    TEXT NOT NULL,
+  email      TEXT,
+  page       TEXT,
+  user_id    TEXT,
+  created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+);
+CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);

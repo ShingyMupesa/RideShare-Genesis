@@ -24,6 +24,7 @@ explanation of *why* — instead of a black-box score.
 | Messaging | Per-booking threads, real-time via Socket.IO |
 | My Journeys | Dashboard of your bookings and published journeys |
 | Genesis AI assistant | In-app assistant; rule-based by default, optionally enriched by the Anthropic API |
+| Feedback widget | No-login-required feedback form on every page, feeding the admin dashboard — separate from the Safety Centre's login-gated incident reports |
 | Safety Centre | One-tap SOS, incident reporting, trusted contact, case history |
 | Governance | Full audit trail (`audit_events`) behind every sensitive state change |
 | Environmental impact | Vehicle-occupancy-and-fuel-type factor in Decision DNA, an estimated CO2e/fuel/vehicle-km figure on every completed booking, and a platform-wide impact tile in the admin dashboard — always labelled as an estimate |

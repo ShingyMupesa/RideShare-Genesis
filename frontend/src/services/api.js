@@ -45,6 +45,7 @@ export const api = {
   register: (payload) => request('/users/register', { method: 'POST', body: payload, auth: false }),
   login: (payload) => request('/users/login', { method: 'POST', body: payload, auth: false }),
   me: () => request('/users/me'),
+  sendFeedback: (payload) => request('/feedback', { method: 'POST', body: payload }),
   forgotPassword: (email) => request('/users/forgot-password', { method: 'POST', body: { email }, auth: false }),
   resetPassword: (token, newPassword) =>
     request('/users/reset-password', { method: 'POST', body: { token, newPassword }, auth: false }),

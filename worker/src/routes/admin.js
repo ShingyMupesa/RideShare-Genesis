@@ -71,6 +71,11 @@ const PAGE = `<!doctype html>
       <p class="muted" id="impactMethodology" style="margin-bottom:10px;"></p>
       <div class="grid" id="impactGrid"></div>
     </section>
+
+    <section>
+      <h2 style="font-size:1rem;">Feedback</h2>
+      <table id="feedbackTable"><thead><tr><th>When</th><th>Message</th><th>Email</th><th>Page</th></tr></thead><tbody></tbody></table>
+    </section>
   </div>
 
 <script>
@@ -84,6 +89,12 @@ const PAGE = `<!doctype html>
   function setToken(t) { sessionStorage.setItem('genesis_admin_token', t); }
   function clearToken() { sessionStorage.removeItem('genesis_admin_token'); }
 
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
   async function loadStats() {
     const token = getToken();
     if (!token) { showGate(''); return; }
@@ -94,8 +105,26 @@ const PAGE = `<!doctype html>
       renderStats(data);
       gate.style.display = 'none';
       app.style.display = 'block';
+      loadFeedback(token);
     } catch (err) {
       showGate('Could not reach the API: ' + err.message);
+    }
+  }
+
+  async function loadFeedback(token) {
+    try {
+      const res = await fetch('/api/feedback/list', { headers: { 'x-admin-token': token } });
+      if (!res.ok) return;
+      const data = await res.json();
+      const body = document.querySelector('#feedbackTable tbody');
+      body.innerHTML = data.feedback.length
+        ? data.feedback.map(function (f) {
+            return '<tr><td>' + new Date(f.created_at).toLocaleString() + '</td><td>' + escapeHtml(f.message) +
+              '</td><td>' + escapeHtml(f.email || '—') + '</td><td>' + escapeHtml(f.page || '—') + '</td></tr>';
+          }).join('')
+        : '<tr><td colspan="4" style="color:#9490ab;">No feedback yet.</td></tr>';
+    } catch {
+      // non-fatal — the rest of the dashboard still works
     }
   }
 

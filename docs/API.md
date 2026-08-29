@@ -160,6 +160,18 @@ Real-time delivery uses Socket.IO (`booking:join`, `message:send`,
 |--------|----------------------------|-------------|-----------------------------------------|
 | GET    | `/governance/audit-events` | yes (admin) | Query the platform's audit trail          |
 
+## Feedback
+
+| Method | Path              | Auth              | Description                                                        |
+|--------|--------------------|--------------------|------------------------------------------------------------------------|
+| POST   | `/feedback`         | no (optional)      | `{ message, email?, page? }` → `201`. Unauthenticated by design — a pitch reader or someone who just installed the PWA needs to be able to leave feedback before ever creating an account. If a valid token is present, the submission is tagged with that user automatically. |
+| GET    | `/feedback`         | yes (admin)*        | Recent submissions, newest first. Distinct from Safety Centre's login-gated `feedback` report category (`/safety/reports`), which is for account-holders reporting through the incident-report flow. |
+
+\* On the Workers deployment this is `GET /feedback/list` gated by the same
+`ADMIN_TOKEN` as the rest of `/admin` (see `worker/src/lib/adminAuth.js`);
+on the Node backend it's `GET /feedback` gated by `role === 'admin'` on the
+authenticated user (see `governance/audit-events` for the same pattern).
+
 ## AI Gateway (Genesis Assistant)
 
 | Method | Path             | Auth | Description                                                        |

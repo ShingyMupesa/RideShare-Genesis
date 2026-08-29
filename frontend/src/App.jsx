@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import GenesisAssistant from './components/GenesisAssistant.jsx';
+import FeedbackWidget from './components/FeedbackWidget.jsx';
 
 import Welcome from './pages/Welcome.jsx';
 import Login from './pages/Login.jsx';
@@ -84,6 +85,7 @@ export default function App() {
         </a>
       </footer>
       <GenesisAssistant />
+      <FeedbackWidget />
     </div>
   );
 }
