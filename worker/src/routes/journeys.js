@@ -153,6 +153,18 @@ journeys.post('/', requireAuth, async (c) => {
   return c.json({ journey, matches }, 201);
 });
 
+// A `request` journey carries a rider's private pickup/drop-off intent
+// (exact coordinates). Browsing the general list (not `mine=true`) must
+// never leak that — same rule GET /:id already enforces for a single
+// journey — so anything that isn't the viewer's own request gets reduced
+// to route labels and trip terms only: enough for a free driver to gauge
+// demand, nothing that identifies the requester or their exact location.
+function redactIfPrivateRequest(journey, viewerId) {
+  if (journey.type !== 'request' || journey.ownerId === viewerId) return journey;
+  const { ownerId, origin, destination, ...rest } = journey;
+  return { ...rest, origin: { label: origin.label }, destination: { label: destination.label } };
+}
+
 journeys.get('/', optionalAuth, async (c) => {
   const authUser = c.get('user');
   const type = c.req.query('type');
@@ -163,7 +175,7 @@ journeys.get('/', optionalAuth, async (c) => {
   const ownerId = mine === 'true' ? authUser.id : undefined;
 
   const results = await listJourneys(c.env.DB, { type, status, ownerId });
-  return c.json({ journeys: results });
+  return c.json({ journeys: results.map((j) => redactIfPrivateRequest(j, authUser?.id)) });
 });
 
 journeys.get('/:id', optionalAuth, async (c) => {

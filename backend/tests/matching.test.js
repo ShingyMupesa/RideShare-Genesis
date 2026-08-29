@@ -204,4 +204,44 @@ describe('journeys + matching + Decision DNA', () => {
     const ownerRes = await request(app).get(`/api/journeys/${journeyId}`).set('Authorization', `Bearer ${riderToken}`);
     assert.equal(ownerRes.status, 200);
   });
+
+  test('the journeys list redacts exact coordinates and owner id for other people\'s request journeys', async () => {
+    const requestRes = await request(app)
+      .post('/api/journeys')
+      .set('Authorization', `Bearer ${riderToken}`)
+      .send({
+        type: 'request',
+        origin: { label: 'List Redaction Origin', lat: -1.301, lng: 36.801 },
+        destination: { label: 'List Redaction Destination', lat: -1.321, lng: 36.931 },
+        departureTime: departure,
+        seats: 1,
+        pricePerSeat: 12,
+        currency: 'USD',
+      });
+    const journeyId = requestRes.body.journey.id;
+
+    const strangerListRes = await request(app)
+      .get('/api/journeys?type=request&status=active')
+      .set('Authorization', `Bearer ${strangerToken}`);
+    assert.equal(strangerListRes.status, 200);
+    const seenByStranger = strangerListRes.body.journeys.find((j) => j.id === journeyId);
+    assert.ok(seenByStranger, 'the request journey should still be listed');
+    assert.equal(seenByStranger.ownerId, undefined);
+    assert.equal(seenByStranger.origin.lat, undefined);
+    assert.equal(seenByStranger.origin.lng, undefined);
+    assert.equal(seenByStranger.destination.lat, undefined);
+    assert.equal(seenByStranger.origin.label, 'List Redaction Origin');
+
+    const anonListRes = await request(app).get('/api/journeys?type=request&status=active');
+    const seenByAnon = anonListRes.body.journeys.find((j) => j.id === journeyId);
+    assert.equal(seenByAnon.ownerId, undefined);
+    assert.equal(seenByAnon.origin.lat, undefined);
+
+    const ownerListRes = await request(app)
+      .get('/api/journeys?type=request&status=active&mine=true')
+      .set('Authorization', `Bearer ${riderToken}`);
+    const seenByOwner = ownerListRes.body.journeys.find((j) => j.id === journeyId);
+    assert.equal(seenByOwner.origin.lat, -1.301);
+    assert.equal(seenByOwner.ownerId, requestRes.body.journey.ownerId);
+  });
 });

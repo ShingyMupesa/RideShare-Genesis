@@ -25,7 +25,7 @@ All authenticated routes expect `Authorization: Bearer <token>`, issued by
 | Method | Path                     | Auth  | Description                                             |
 |--------|--------------------------|-------|-----------------------------------------------------------|
 | POST   | `/journeys`              | yes   | Create an `offer` or `request` journey. Requests trigger matching and return `{ journey, matches }`. **`currency` is required** — a 3-letter code (e.g. `KES`, `USD`), never defaulted server-side, so every price is always shown with an explicit currency rather than an assumed one. Offers may set `vehicleType` (`electric`\|`hybrid`\|`petrol`\|`diesel`\|`other`) — optional, used for the matching engine's environmental factor and for estimating impact once a booking completes. |
-| GET    | `/journeys`              | no*   | List journeys. Query: `type`, `status`, `mine=true` (requires auth) |
+| GET    | `/journeys`              | no*   | List journeys. Query: `type`, `status`, `mine=true` (requires auth). Without `mine=true`, any `request` journey that isn't the caller's own is redacted to route labels and trip terms only — `origin`/`destination` lose `lat`/`lng` and `ownerId` is stripped — the same privacy boundary `GET /journeys/:id` enforces, applied per-item here so the browse view (`/browse` in the frontend) can safely show open requests to any driver without leaking exact pickup coordinates. |
 | GET    | `/journeys/:id`          | no    | Get a single journey                                     |
 | POST   | `/journeys/:id/cancel`   | yes   | Cancel a journey you own                                  |
 

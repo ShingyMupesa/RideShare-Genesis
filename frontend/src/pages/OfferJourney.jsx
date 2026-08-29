@@ -1,8 +1,16 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../constants/currencies.js';
+
+// datetime-local wants "YYYY-MM-DDTHH:mm" in local time, not an ISO string.
+function toDatetimeLocalValue(isoString) {
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 const PRESETS = [
   { label: 'Downtown Plaza', lat: -1.2921, lng: 36.8219 },
@@ -57,9 +65,13 @@ function LocationField({ label, value, onChange }) {
 export default function OfferJourney() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [origin, setOrigin] = useState({ label: '', lat: '', lng: '' });
-  const [destination, setDestination] = useState({ label: '', lat: '', lng: '' });
-  const [departureTime, setDepartureTime] = useState('');
+  const [searchParams] = useSearchParams();
+  const prefillOriginLabel = searchParams.get('originLabel') || '';
+  const prefillDestLabel = searchParams.get('destLabel') || '';
+  const prefillDeparture = searchParams.get('departureTime');
+  const [origin, setOrigin] = useState({ label: prefillOriginLabel, lat: '', lng: '' });
+  const [destination, setDestination] = useState({ label: prefillDestLabel, lat: '', lng: '' });
+  const [departureTime, setDepartureTime] = useState(prefillDeparture ? toDatetimeLocalValue(prefillDeparture) : '');
   const [seats, setSeats] = useState(3);
   const [pricePerSeat, setPricePerSeat] = useState(10);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
@@ -103,6 +115,11 @@ export default function OfferJourney() {
       <p className="eyebrow">Offer a Journey</p>
       <h1>Share your ride</h1>
       <p className="muted">Publish your route so Genesis can match you with riders heading your way.</p>
+      {(prefillOriginLabel || prefillDestLabel) && (
+        <p className="muted">
+          Carried over from an open request — fill in exact coordinates for {prefillOriginLabel || 'your start'} and {prefillDestLabel || 'your destination'} below.
+        </p>
+      )}
 
       {error && <div className="alert alert-error">{error}</div>}
       {success && (

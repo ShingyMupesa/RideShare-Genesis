@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const links = [
+  { to: '/browse', label: 'Browse' },
   { to: '/find', label: 'Find a Journey' },
   { to: '/offer', label: 'Offer a Journey' },
   { to: '/my-journeys', label: 'My Journeys' },

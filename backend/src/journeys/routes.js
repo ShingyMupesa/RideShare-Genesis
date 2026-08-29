@@ -53,6 +53,18 @@ router.post(
   })
 );
 
+// A `request` journey carries a rider's private pickup/drop-off intent
+// (exact coordinates). Browsing the general list (not `mine=true`) must
+// never leak that — same rule GET /:id already enforces for a single
+// journey — so anything that isn't the viewer's own request gets reduced
+// to route labels and trip terms only: enough for a free driver to gauge
+// demand, nothing that identifies the requester or their exact location.
+function redactIfPrivateRequest(journey, viewerId) {
+  if (journey.type !== 'request' || journey.ownerId === viewerId) return journey;
+  const { ownerId, origin, destination, ...rest } = journey;
+  return { ...rest, origin: { label: origin.label }, destination: { label: destination.label } };
+}
+
 router.get(
   '/',
   optionalAuth,
@@ -60,7 +72,7 @@ router.get(
     const { type, status, mine } = req.query;
     const ownerId = mine === 'true' ? req.user?.id : undefined;
     if (mine === 'true' && !req.user) throw Forbidden('Sign in to view your own journeys');
-    const journeys = Journeys.listJourneys({ type, status, ownerId });
+    const journeys = Journeys.listJourneys({ type, status, ownerId }).map((j) => redactIfPrivateRequest(j, req.user?.id));
     res.json({ journeys });
   })
 );

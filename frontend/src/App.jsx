@@ -12,6 +12,7 @@ import ResetPassword from './pages/ResetPassword.jsx';
 import Profile from './pages/Profile.jsx';
 import FindJourney from './pages/FindJourney.jsx';
 import OfferJourney from './pages/OfferJourney.jsx';
+import BrowseJourneys from './pages/BrowseJourneys.jsx';
 import MatchResults from './pages/MatchResults.jsx';
 import JourneyDetails from './pages/JourneyDetails.jsx';
 import Booking from './pages/Booking.jsx';
@@ -39,6 +40,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/browse" element={<BrowseJourneys />} />
           <Route path="/find" element={<FindJourney />} />
           <Route path="/offer" element={<OfferJourney />} />
           <Route
