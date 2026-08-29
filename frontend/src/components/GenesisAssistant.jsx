@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api.js';
 
 const WELCOME = {
@@ -23,7 +24,7 @@ export default function GenesisAssistant() {
 
     try {
       const res = await api.askAssistant(text);
-      setMessages((prev) => [...prev, { role: 'bot', text: res.reply }]);
+      setMessages((prev) => [...prev, { role: 'bot', text: res.reply, link: res.link }]);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -43,6 +44,18 @@ export default function GenesisAssistant() {
             {messages.map((m, i) => (
               <div key={i} className={`assistant-msg ${m.role === 'user' ? 'user' : 'bot'}`}>
                 {m.text}
+                {m.link && (
+                  <div style={{ marginTop: 8 }}>
+                    <Link
+                      to={m.link.href}
+                      className="pill pill-primary"
+                      style={{ textDecoration: 'none' }}
+                      onClick={() => setOpen(false)}
+                    >
+                      {m.link.label} →
+                    </Link>
+                  </div>
+                )}
               </div>
             ))}
             {sending && <div className="assistant-msg bot">Thinking…</div>}

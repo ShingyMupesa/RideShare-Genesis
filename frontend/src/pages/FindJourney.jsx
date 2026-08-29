@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../constants/currencies.js';
@@ -57,7 +57,9 @@ function LocationField({ label, value, onChange }) {
 export default function FindJourney() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [origin, setOrigin] = useState({ label: '', lat: '', lng: '' });
+  const [searchParams] = useSearchParams();
+  const prefillQuery = searchParams.get('q') || '';
+  const [origin, setOrigin] = useState({ label: prefillQuery, lat: '', lng: '' });
   const [destination, setDestination] = useState({ label: '', lat: '', lng: '' });
   const [departureTime, setDepartureTime] = useState('');
   const [seats, setSeats] = useState(1);
@@ -99,6 +101,11 @@ export default function FindJourney() {
       <p className="muted">
         Tell Genesis your route and budget — we'll match you against active offers and show exactly why.
       </p>
+      {prefillQuery && (
+        <p className="muted">
+          Carried over from your Genesis search: <strong>"{prefillQuery}"</strong> — refine the pick-up below and set exact coordinates.
+        </p>
+      )}
 
       {error && <div className="alert alert-error">{error}</div>}
 

@@ -44,6 +44,19 @@ const INTENTS = [
     reply: () =>
       'Set your ride preferences (chattiness, music, smoking, pets, luggage) in your Profile. Genesis uses them, alongside your Decision DNA weights, to prioritise matches that actually fit how you like to travel.',
   },
+  {
+    name: 'offer_ride',
+    test: /\b(offer|post|list|give)\b.*\b(ride|journey|lift|seat)/i,
+    reply: () => "I'll take you to the Offer a Journey page — enter your route, seats, and price and riders will be able to find and book you.",
+    link: () => ({ href: '/offer', label: 'Offer a journey' }),
+  },
+  {
+    name: 'journey_search',
+    test: /\b(find|search|look(ing)? for|need|want|book)\b.*\b(ride|journey|lift|trip)\b|\bride (from|to)\b|\bany (rides?|journeys?) (to|from|available)/i,
+    reply: (context) =>
+      `Here's the search I'd run for "${context.query}" — tell me your pick-up, drop-off, and departure time and Genesis will match you against active offers with a full Decision DNA explanation.`,
+    link: (context) => ({ href: `/find?q=${encodeURIComponent(context.query || '')}`, label: 'Open Find a Journey' }),
+  },
 ];
 
 export async function answerAssistantQuestion(env, message, context = {}) {
@@ -53,17 +66,19 @@ export async function answerAssistantQuestion(env, message, context = {}) {
   }
 
   const intent = INTENTS.find((i) => i.test.test(trimmed));
-  const deterministicReply = intent ? intent.reply(context) : defaultReply();
+  const intentContext = { ...context, query: trimmed };
+  const deterministicReply = intent ? intent.reply(intentContext) : defaultReply();
+  const link = intent?.link ? intent.link(intentContext) : undefined;
 
   if (isAnthropicConfigured(env)) {
     const contextNote = context.decisionDna ? `\n\nRelevant Decision DNA for this conversation: ${JSON.stringify(context.decisionDna)}` : '';
     const enriched = await askClaude(env, SYSTEM_PROMPT, `${trimmed}${contextNote}`);
     if (enriched) {
-      return { source: 'anthropic', reply: enriched.trim(), intent: intent?.name || 'general' };
+      return { source: 'anthropic', reply: enriched.trim(), intent: intent?.name || 'general', link };
     }
   }
 
-  return { source: 'genesis-rules', reply: deterministicReply, intent: intent?.name || 'general' };
+  return { source: 'genesis-rules', reply: deterministicReply, intent: intent?.name || 'general', link };
 }
 
 function defaultReply() {
