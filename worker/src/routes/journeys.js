@@ -3,6 +3,7 @@ import { requireAuth, optionalAuth } from '../lib/auth.js';
 import { newId } from '../lib/ids.js';
 import { BadRequest, Forbidden, NotFound } from '../lib/errors.js';
 import { generateMatchesForJourney } from '../lib/matching.js';
+import { VEHICLE_TYPES } from '../lib/impact.js';
 
 export const journeys = new Hono();
 
@@ -20,6 +21,7 @@ function deserialize(row) {
     pricePerSeat: row.price_per_seat,
     currency: row.currency,
     preferences: JSON.parse(row.preferences_json),
+    vehicleType: row.vehicle_type,
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -96,6 +98,9 @@ function validateJourneyInput(body) {
   if (pricePerSeat !== undefined && (typeof pricePerSeat !== 'number' || pricePerSeat < 0)) {
     throw BadRequest('pricePerSeat must be a non-negative number');
   }
+  if (body?.vehicleType !== undefined && body.vehicleType !== null && !VEHICLE_TYPES.includes(body.vehicleType)) {
+    throw BadRequest(`vehicleType must be one of: ${VEHICLE_TYPES.join(', ')}`);
+  }
 }
 
 journeys.post('/', requireAuth, async (c) => {
@@ -110,8 +115,8 @@ journeys.post('/', requireAuth, async (c) => {
       `INSERT INTO journeys (
         id, owner_id, type, origin_label, origin_lat, origin_lng,
         destination_label, destination_lat, destination_lng, departure_time,
-        seats_total, seats_available, price_per_seat, currency, preferences_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        seats_total, seats_available, price_per_seat, currency, preferences_json, vehicle_type
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id,
@@ -128,7 +133,8 @@ journeys.post('/', requireAuth, async (c) => {
       body.seats ?? 1,
       body.pricePerSeat ?? 0,
       body.currency ?? 'USD',
-      JSON.stringify(body.preferences ?? {})
+      JSON.stringify(body.preferences ?? {}),
+      body.type === 'offer' ? body.vehicleType ?? null : null
     )
     .run();
 

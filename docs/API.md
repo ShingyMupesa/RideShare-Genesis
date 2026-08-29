@@ -22,7 +22,7 @@ All authenticated routes expect `Authorization: Bearer <token>`, issued by
 
 | Method | Path                     | Auth  | Description                                             |
 |--------|--------------------------|-------|-----------------------------------------------------------|
-| POST   | `/journeys`              | yes   | Create an `offer` or `request` journey. Requests trigger matching and return `{ journey, matches }`. |
+| POST   | `/journeys`              | yes   | Create an `offer` or `request` journey. Requests trigger matching and return `{ journey, matches }`. Offers may set `vehicleType` (`electric`\|`hybrid`\|`petrol`\|`diesel`\|`other`) — optional, used for the matching engine's environmental factor and for estimating impact once a booking completes. |
 | GET    | `/journeys`              | no*   | List journeys. Query: `type`, `status`, `mine=true` (requires auth) |
 | GET    | `/journeys/:id`          | no    | Get a single journey                                     |
 | POST   | `/journeys/:id/cancel`   | yes   | Cancel a journey you own                                  |
@@ -47,11 +47,14 @@ Every match carries a `decisionDna` object:
     "timing": { "score": 1, "weight": 0.3, "detail": "0 min apart on departure time" },
     "price": { "score": 1, "weight": 0.15, "detail": "..." },
     "preferences": { "score": 0.7, "weight": 0.15, "detail": "..." },
-    "reliability": { "score": 0.8, "weight": 0.05, "detail": "..." }
+    "reliability": { "score": 0.8, "weight": 0.05, "detail": "..." },
+    "environmental": { "score": 0.72, "weight": 0.08, "detail": "Would fill 75% of a hybrid vehicle's seats" }
   },
   "narrative": "Genesis rated this match 94/100. ..."
 }
 ```
+
+`environmental` scores how much of the offer vehicle's spare capacity the match would use, plus a bonus for lower-emission `vehicleType`s — it informs ranking only, and is separate from the estimated CO2e/fuel figures below (see [Environmental impact](#environmental-impact-estimated)).
 
 ## Bookings (state machine)
 
@@ -68,6 +71,29 @@ Every match carries a `decisionDna` object:
 | POST   | `/bookings/:id/start`      | yes  | Trip begins (→ `IN_PROGRESS`)                              |
 | POST   | `/bookings/:id/complete`   | yes  | Trip ends (→ `COMPLETED`)                                   |
 | POST   | `/bookings/:id/cancel`     | yes  | Cancel from any non-terminal state, restores seats          |
+
+### Environmental impact (estimated)
+
+Completing a booking (`/bookings/:id/complete`) computes and stores an `impact` object on it:
+
+```json
+{
+  "distanceKm": 14.2,
+  "seats": 2,
+  "vehicleType": "hybrid",
+  "vehicleKmAvoided": 28.4,
+  "co2eKgAvoided": 3.44,
+  "fuelLitersAvoided": 1.28,
+  "methodology": "Estimate only: straight-line origin-to-destination distance x 1.3 routing factor x seats booked, multiplied by published average per-km emission/fuel factors by vehicle type. Represents avoided duplicate solo trips for this booking, not a measured outcome."
+}
+```
+
+This is always an estimate, computed in `backend/src/utils/impact.js` (and its
+worker equivalent) from a fixed per-vehicle-type emissions table — never a
+measured outcome. Genesis states its environmental ambition and builds the
+capability to measure it, rather than asserting an unverified reduction
+figure. See [Environmental philosophy](../README.md#environmental-philosophy)
+in the README.
 
 ## Payments (payment-choice architecture)
 

@@ -6,6 +6,7 @@ import { assertTransition } from '../lib/stateMachine.js';
 import { getMatchById } from '../lib/matching.js';
 import { getJourneyById, decrementSeats, restoreSeats } from './journeys.js';
 import { recordAuditEvent } from '../lib/audit.js';
+import { estimateBookingImpact } from '../lib/impact.js';
 
 export const bookings = new Hono();
 
@@ -21,6 +22,7 @@ function deserialize(row) {
     currency: row.currency,
     status: row.status,
     statusHistory: JSON.parse(row.status_history_json),
+    impact: JSON.parse(row.impact_json || '{}'),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -143,6 +145,17 @@ function transitionRoute(nextStatus, { requireOwner = false, requirePassenger = 
     if (seatEffect === 'decrement') await decrementSeats(db, journey.id, booking.seats);
     if (seatEffect === 'restore' && ['BOOKING_REQUESTED', 'CONFIRMED', 'IN_PROGRESS'].includes(booking.status)) {
       await restoreSeats(db, journey.id, booking.seats);
+    }
+
+    if (nextStatus === 'COMPLETED') {
+      const impact = estimateBookingImpact({
+        origin: journey.origin,
+        destination: journey.destination,
+        seats: booking.seats,
+        vehicleType: journey.vehicleType,
+      });
+      await db.prepare('UPDATE bookings SET impact_json = ? WHERE id = ?').bind(JSON.stringify(impact), booking.id).run();
+      updated = await getBookingById(db, booking.id);
     }
 
     await recordAuditEvent(db, {

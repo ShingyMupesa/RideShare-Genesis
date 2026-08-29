@@ -5,6 +5,7 @@ import * as Bookings from './repository.js';
 import * as Journeys from '../journeys/repository.js';
 import { getMatchById } from '../matching/engine.js';
 import { recordAuditEvent } from '../governance/auditLog.js';
+import { estimateBookingImpact } from '../utils/impact.js';
 
 export const router = Router();
 
@@ -100,6 +101,16 @@ function transitionHandler(nextStatus, { requireOwner = false, requirePassenger 
     if (seatEffect === 'decrement') Journeys.decrementSeats(journey.id, booking.seats);
     if (seatEffect === 'restore' && ['BOOKING_REQUESTED', 'CONFIRMED', 'IN_PROGRESS'].includes(booking.status)) {
       Journeys.restoreSeats(journey.id, booking.seats);
+    }
+
+    if (nextStatus === 'COMPLETED') {
+      const impact = estimateBookingImpact({
+        origin: journey.origin,
+        destination: journey.destination,
+        seats: booking.seats,
+        vehicleType: journey.vehicleType,
+      });
+      updated = Bookings.setBookingImpact(booking.id, impact);
     }
 
     recordAuditEvent({

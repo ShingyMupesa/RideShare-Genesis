@@ -61,6 +61,7 @@ export default function OfferJourney() {
   const [departureTime, setDepartureTime] = useState('');
   const [seats, setSeats] = useState(3);
   const [pricePerSeat, setPricePerSeat] = useState(10);
+  const [vehicleType, setVehicleType] = useState('');
   const [preferences, setPreferences] = useState({ chattiness: 'flexible', smoking: false, pets_ok: true });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
@@ -84,6 +85,7 @@ export default function OfferJourney() {
         seats: Number(seats),
         pricePerSeat: Number(pricePerSeat),
         preferences,
+        vehicleType: vehicleType || null,
       });
       setSuccess(journey);
     } catch (err) {
@@ -131,16 +133,32 @@ export default function OfferJourney() {
             <input id="seats" type="number" min="1" value={seats} onChange={(e) => setSeats(e.target.value)} />
           </div>
         </div>
-        <div className="form-field">
-          <label htmlFor="pricePerSeat">Price per seat (USD)</label>
-          <input
-            id="pricePerSeat"
-            type="number"
-            min="0"
-            step="0.5"
-            value={pricePerSeat}
-            onChange={(e) => setPricePerSeat(e.target.value)}
-          />
+        <div className="grid-2">
+          <div className="form-field">
+            <label htmlFor="pricePerSeat">Price per seat (USD)</label>
+            <input
+              id="pricePerSeat"
+              type="number"
+              min="0"
+              step="0.5"
+              value={pricePerSeat}
+              onChange={(e) => setPricePerSeat(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="vehicleType">Vehicle type</label>
+            <select id="vehicleType" value={vehicleType} onChange={(e) => setVehicleType(e.target.value)}>
+              <option value="">Prefer not to say</option>
+              <option value="electric">Electric</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="petrol">Petrol</option>
+              <option value="diesel">Diesel</option>
+              <option value="other">Other</option>
+            </select>
+            <p className="muted" style={{ fontSize: '0.8rem', marginTop: 4 }}>
+              Helps Genesis estimate this journey's environmental impact — never affects your visibility to riders beyond the Decision DNA match score.
+            </p>
+          </div>
         </div>
 
         <h3>Journey preferences</h3>

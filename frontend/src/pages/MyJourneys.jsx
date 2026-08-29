@@ -25,6 +25,16 @@ export default function MyJourneys() {
   const [bookings, setBookings] = useState([]);
   const [error, setError] = useState('');
 
+  const completedImpact = bookings
+    .filter((b) => b.status === 'COMPLETED' && b.impact?.co2eKgAvoided)
+    .reduce(
+      (totals, b) => ({
+        co2eKg: totals.co2eKg + b.impact.co2eKgAvoided,
+        fuelL: totals.fuelL + (b.impact.fuelLitersAvoided || 0),
+      }),
+      { co2eKg: 0, fuelL: 0 }
+    );
+
   useEffect(() => {
     Promise.all([api.listJourneys('?mine=true&status='), api.myBookings()])
       .then(([journeyRes, bookingRes]) => {
@@ -40,6 +50,14 @@ export default function MyJourneys() {
       <h1>Everything you're part of</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
+
+      {completedImpact.co2eKg > 0 && (
+        <p className="muted" style={{ marginBottom: 12 }}>
+          🌍 Across your completed trips, Genesis estimates you've avoided about{' '}
+          <strong>{Math.round(completedImpact.co2eKg * 10) / 10} kg CO2e</strong> and{' '}
+          <strong>{Math.round(completedImpact.fuelL * 10) / 10} L of fuel</strong> — an estimate, not a measurement.
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         <button className={`btn btn-sm ${tab === 'bookings' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('bookings')}>

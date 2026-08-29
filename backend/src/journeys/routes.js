@@ -3,6 +3,7 @@ import { requireAuth, optionalAuth } from '../middleware/auth.js';
 import { asyncHandler, BadRequest, Forbidden, NotFound } from '../utils/errors.js';
 import * as Journeys from './repository.js';
 import { generateMatchesForJourney } from '../matching/engine.js';
+import { VEHICLE_TYPES } from '../utils/impact.js';
 
 export const router = Router();
 
@@ -23,6 +24,9 @@ function validateJourneyInput(body) {
   }
   if (pricePerSeat !== undefined && (typeof pricePerSeat !== 'number' || pricePerSeat < 0)) {
     throw BadRequest('pricePerSeat must be a non-negative number');
+  }
+  if (body?.vehicleType !== undefined && body.vehicleType !== null && !VEHICLE_TYPES.includes(body.vehicleType)) {
+    throw BadRequest(`vehicleType must be one of: ${VEHICLE_TYPES.join(', ')}`);
   }
 }
 

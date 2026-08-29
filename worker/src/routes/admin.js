@@ -57,6 +57,12 @@ const PAGE = `<!doctype html>
       <h2 style="font-size:1rem;">Last 14 days</h2>
       <table id="dailyTable"><thead><tr><th>Day</th><th>Page views</th><th>CTA clicks</th></tr></thead><tbody></tbody></table>
     </section>
+
+    <section>
+      <h2 style="font-size:1rem;">Environmental impact (estimated)</h2>
+      <p class="muted" id="impactMethodology" style="margin-bottom:10px;"></p>
+      <div class="grid" id="impactGrid"></div>
+    </section>
   </div>
 
 <script>
@@ -123,6 +129,20 @@ const PAGE = `<!doctype html>
           return '<tr><td>' + d + '</td><td>' + byDay[d].page_view + '</td><td>' + byDay[d].cta_click + '</td></tr>';
         }).join('')
       : '<tr><td colspan="3" style="color:#9490ab;">No activity yet.</td></tr>';
+
+    const impact = data.environmentalImpact || {};
+    document.getElementById('impactMethodology').textContent = impact.methodology || '';
+    const impactStats = [
+      ['Shared journeys completed', impact.sharedJourneysCompleted || 0],
+      ['Passenger seats utilised', impact.seatsUtilised || 0],
+      ['Est. vehicle-km avoided', impact.vehicleKmAvoided || 0],
+      ['Est. CO2e avoided (kg)', impact.co2eKgAvoided || 0],
+      ['Est. fuel avoided (L)', impact.fuelLitersAvoided || 0],
+      ['EV/hybrid offers', impact.cleanVehiclePct === null || impact.cleanVehiclePct === undefined ? 'n/a' : impact.cleanVehiclePct + '%'],
+    ];
+    document.getElementById('impactGrid').innerHTML = impactStats.map(function (s) {
+      return '<div class="stat"><div class="val">' + s[1] + '</div><div class="lbl">' + s[0] + '</div></div>';
+    }).join('');
   }
 
   document.getElementById('loginBtn').addEventListener('click', function () {

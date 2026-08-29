@@ -7,10 +7,10 @@ export function createJourney(ownerId, input) {
     `INSERT INTO journeys (
       id, owner_id, type, origin_label, origin_lat, origin_lng,
       destination_label, destination_lat, destination_lng, departure_time,
-      seats_total, seats_available, price_per_seat, currency, preferences_json
+      seats_total, seats_available, price_per_seat, currency, preferences_json, vehicle_type
     ) VALUES (@id, @owner_id, @type, @origin_label, @origin_lat, @origin_lng,
       @destination_label, @destination_lat, @destination_lng, @departure_time,
-      @seats_total, @seats_available, @price_per_seat, @currency, @preferences_json)`
+      @seats_total, @seats_available, @price_per_seat, @currency, @preferences_json, @vehicle_type)`
   ).run({
     id,
     owner_id: ownerId,
@@ -27,6 +27,7 @@ export function createJourney(ownerId, input) {
     price_per_seat: input.pricePerSeat ?? 0,
     currency: input.currency ?? 'USD',
     preferences_json: JSON.stringify(input.preferences ?? {}),
+    vehicle_type: input.type === 'offer' ? input.vehicleType ?? null : null,
   });
   return getJourneyById(id);
 }
@@ -98,6 +99,7 @@ function deserialize(row) {
     pricePerSeat: row.price_per_seat,
     currency: row.currency,
     preferences: JSON.parse(row.preferences_json),
+    vehicleType: row.vehicle_type,
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

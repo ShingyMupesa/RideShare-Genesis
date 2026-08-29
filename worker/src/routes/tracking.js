@@ -80,7 +80,7 @@ tracking.get('/stats', async (c) => {
   const db = c.env.DB;
   await ensureTable(db);
 
-  const [pageViews, ctaClicks, byLabel, byDay, users, bookings, safetyCases] = await Promise.all([
+  const [pageViews, ctaClicks, byLabel, byDay, users, bookings, safetyCases, impact, cleanVehicles] = await Promise.all([
     db.prepare(`SELECT COUNT(*) AS n FROM page_events WHERE event_type = 'page_view'`).first(),
     db.prepare(`SELECT COUNT(*) AS n FROM page_events WHERE event_type = 'cta_click'`).first(),
     db
@@ -100,6 +100,26 @@ tracking.get('/stats', async (c) => {
     db.prepare(`SELECT COUNT(*) AS n FROM users`).first(),
     db.prepare(`SELECT COUNT(*) AS n FROM bookings`).first(),
     db.prepare(`SELECT COUNT(*) AS n FROM safety_cases`).first(),
+    // Estimated, not measured — see src/lib/impact.js for methodology.
+    db
+      .prepare(
+        `SELECT
+           COUNT(*) AS sharedJourneysCompleted,
+           COALESCE(SUM(seats), 0) AS seatsUtilised,
+           COALESCE(SUM(json_extract(impact_json, '$.vehicleKmAvoided')), 0) AS vehicleKmAvoided,
+           COALESCE(SUM(json_extract(impact_json, '$.co2eKgAvoided')), 0) AS co2eKgAvoided,
+           COALESCE(SUM(json_extract(impact_json, '$.fuelLitersAvoided')), 0) AS fuelLitersAvoided
+         FROM bookings WHERE status = 'COMPLETED'`
+      )
+      .first(),
+    db
+      .prepare(
+        `SELECT
+           COUNT(*) AS withVehicleType,
+           SUM(CASE WHEN vehicle_type IN ('electric', 'hybrid') THEN 1 ELSE 0 END) AS clean
+         FROM journeys WHERE type = 'offer' AND vehicle_type IS NOT NULL`
+      )
+      .first(),
   ]);
 
   return c.json({
@@ -112,6 +132,21 @@ tracking.get('/stats', async (c) => {
       totalBookings: bookings?.n || 0,
       totalSafetyCases: safetyCases?.n || 0,
     },
+    environmentalImpact: {
+      sharedJourneysCompleted: impact?.sharedJourneysCompleted || 0,
+      seatsUtilised: impact?.seatsUtilised || 0,
+      vehicleKmAvoided: round1(impact?.vehicleKmAvoided),
+      co2eKgAvoided: round1(impact?.co2eKgAvoided),
+      fuelLitersAvoided: round1(impact?.fuelLitersAvoided),
+      cleanVehiclePct: cleanVehicles?.withVehicleType
+        ? Math.round((cleanVehicles.clean / cleanVehicles.withVehicleType) * 100)
+        : null,
+      methodology: 'Estimated, not measured — see the platform methodology note for how these figures are derived.',
+    },
     generatedAt: new Date().toISOString(),
   });
 });
+
+function round1(n) {
+  return Math.round((n || 0) * 10) / 10;
+}

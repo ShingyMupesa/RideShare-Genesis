@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS journeys (
   currency         TEXT NOT NULL DEFAULT 'USD',
   preferences_json TEXT NOT NULL DEFAULT '{}', -- journey-specific overrides of profile preferences
   status           TEXT NOT NULL DEFAULT 'active', -- active | full | cancelled | completed
+  vehicle_type     TEXT, -- electric | hybrid | petrol | diesel | other (offer journeys only; added in 0002)
   created_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   updated_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
@@ -79,6 +80,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   -- REQUESTED -> MATCHED -> BOOKING_REQUESTED -> CONFIRMED -> IN_PROGRESS -> COMPLETED
   -- any state may transition to CANCELLED
   status_history_json TEXT NOT NULL DEFAULT '[]',
+  impact_json      TEXT NOT NULL DEFAULT '{}', -- estimated environmental impact, set on completion (added in 0002)
   created_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   updated_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );

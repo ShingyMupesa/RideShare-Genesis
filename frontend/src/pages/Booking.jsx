@@ -109,6 +109,19 @@ export default function Booking() {
       <StatusStepper status={booking.status} />
       {error && <div className="alert alert-error">{error}</div>}
 
+      {booking.status === 'COMPLETED' && booking.impact?.co2eKgAvoided > 0 && (
+        <div className="card" style={{ marginBottom: 16, borderColor: 'var(--color-success, #2f9e5b)' }}>
+          <h3>🌍 Estimated environmental impact</h3>
+          <p>
+            This shared trip is estimated to have avoided about{' '}
+            <strong>{booking.impact.co2eKgAvoided} kg CO2e</strong>,{' '}
+            <strong>{booking.impact.fuelLitersAvoided} L of fuel</strong>, and{' '}
+            <strong>{booking.impact.vehicleKmAvoided} vehicle-km</strong> compared to traveling separately.
+          </p>
+          <p className="muted" style={{ fontSize: '0.8rem' }}>{booking.impact.methodology}</p>
+        </div>
+      )}
+
       <div className="grid-2">
         <div className="card">
           <h3>Actions</h3>
