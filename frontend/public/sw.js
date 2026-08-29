@@ -1,12 +1,18 @@
-// Minimal service worker: exists to make the app installable and to let
-// the shell (HTML/JS/CSS) load instantly on repeat visits. Deliberately
-// does NOT cache /api/* or /ws/* — booking, matching, and messaging data
-// must always come from the network, never a stale cache.
-const CACHE = 'genesis-shell-v1';
-const SHELL_PATHS = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
+// Minimal service worker: exists only to satisfy Chrome/Android's PWA
+// installability requirement (a registered SW with a fetch handler) and to
+// give the app shell an offline fallback. Deliberately intervenes on
+// nothing but top-level navigations — every JS/CSS/image/font/API request
+// passes straight through untouched. An earlier version also intercepted
+// those asset requests with a cache-then-network-fallback strategy; on a
+// flaky connection, a failed JS/CSS fetch fell back to the cached
+// index.html, which the browser then tried to parse as that script —
+// silently breaking React entirely while the already-painted page kept
+// its CSS :hover/:active styling, so taps looked like they registered but
+// did nothing. Never repeat that: only ever touch navigation requests.
+const CACHE = 'genesis-shell-v2';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL_PATHS)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.add('/')).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
@@ -19,19 +25,15 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-  if (event.request.method !== 'GET' || url.origin !== location.origin) return;
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/ws/') || url.pathname.startsWith('/admin')) return;
+  if (event.request.mode !== 'navigate') return; // let every other request hit the network untouched
 
-  // Network-first for the shell so a fresh deploy is picked up quickly;
-  // cache is just the offline/slow-connection fallback.
   event.respondWith(
     fetch(event.request)
       .then((res) => {
         const copy = res.clone();
-        caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+        caches.open(CACHE).then((cache) => cache.put('/', copy));
         return res;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/')))
+      .catch(() => caches.match('/'))
   );
 });

@@ -73,7 +73,12 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <footer className="footer-note">RideShare Genesis V1 — built human-centred, explained end-to-end.</footer>
+      <footer className="footer-note">
+        RideShare Genesis V1 — built human-centred, explained end-to-end. ·{' '}
+        <a href="https://wa.me/447449494405?text=Hi%21%20I%20have%20feedback%20on%20RideShare%20Genesis." target="_blank" rel="noopener">
+          💬 Send feedback on WhatsApp
+        </a>
+      </footer>
       <GenesisAssistant />
     </div>
   );
