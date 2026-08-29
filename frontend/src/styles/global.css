@@ -99,10 +99,18 @@ a {
   padding: 6px 4px;
 }
 
-.navbar__links a.active,
-.navbar__links a:hover,
-.navbar__links button:hover {
+.navbar__links a.active {
   color: var(--color-primary);
+}
+
+/* Gated behind (hover: hover) so touch devices never see :hover styles —
+   without this, iOS/Android treat the first tap as "hover" and the second
+   as the actual click, so links/buttons need two taps to register. */
+@media (hover: hover) and (pointer: fine) {
+  .navbar__links a:hover,
+  .navbar__links button:hover {
+    color: var(--color-primary);
+  }
 }
 
 .card {
@@ -203,8 +211,10 @@ textarea:focus {
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-dark);
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+  }
 }
 
 .btn-secondary {

@@ -16,7 +16,9 @@ const PAGE = `<!doctype html>
   .gate { max-width: 360px; margin: 80px auto; text-align: center; }
   .gate input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #3a3750; background: #1a1826; color: #eceaf5; margin: 12px 0; font-size: 0.95rem; }
   .gate button, .refresh { padding: 10px 18px; border-radius: 8px; border: none; background: #7c6fef; color: white; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
-  .gate button:hover, .refresh:hover { background: #8f83ff; }
+  @media (hover: hover) and (pointer: fine) {
+    .gate button:hover, .refresh:hover { background: #8f83ff; }
+  }
   .error { color: #ff8080; font-size: 0.85rem; min-height: 1.2em; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin: 24px 0; }
   .stat { background: #1a1826; border: 1px solid #2c2940; border-radius: 10px; padding: 16px 18px; }
