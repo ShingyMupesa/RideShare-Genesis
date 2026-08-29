@@ -19,6 +19,7 @@ const DEFAULT_PREFERENCES = {
   pets_ok: true,
   luggage: 'medium',
   gender_pref: 'no_preference',
+  payment_method: 'card', // card | mobile_money | wallet | cash — shown to the other party once a booking exists
 };
 
 const DEFAULT_DECISION_DNA = {

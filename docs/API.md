@@ -67,7 +67,7 @@ Every match carries a `decisionDna` object:
 |--------|----------------------------|------|--------------------------------------------------------|
 | POST   | `/bookings`                | yes  | Create a booking against an `offer` journey             |
 | GET    | `/bookings/mine`           | yes  | Bookings where you're the passenger or journey owner    |
-| GET    | `/bookings/:id`            | yes  | Booking + journey detail                                |
+| GET    | `/bookings/:id`            | yes  | Booking + journey detail, plus each party's preferred payment method (`driverPaymentMethod`, `passengerPaymentMethod`, from their profile preferences) so both sides can coordinate how they'll settle up |
 | POST   | `/bookings/:id/request`    | yes  | Passenger reserves seats (→ `BOOKING_REQUESTED`)         |
 | POST   | `/bookings/:id/confirm`    | yes  | Journey owner confirms (→ `CONFIRMED`)                    |
 | POST   | `/bookings/:id/start`      | yes  | Trip begins (→ `IN_PROGRESS`)                              |

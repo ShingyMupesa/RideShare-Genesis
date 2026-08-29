@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler, BadRequest, Forbidden, NotFound, Conflict } from '../utils/errors.js';
 import * as Bookings from './repository.js';
 import * as Journeys from '../journeys/repository.js';
+import { getProfile } from '../users/repository.js';
 import { getMatchById } from '../matching/engine.js';
 import { recordAuditEvent } from '../governance/auditLog.js';
 import { estimateBookingImpact } from '../utils/impact.js';
@@ -71,7 +72,18 @@ router.get(
     if (booking.passengerId !== req.user.id && journey.ownerId !== req.user.id) {
       throw Forbidden('You do not have access to this booking');
     }
-    res.json({ booking, journey });
+    // Once a booking exists, both parties are past the point of matching and
+    // into actually settling up — showing each other's preferred payment
+    // method here lets them coordinate (e.g. know upfront a driver is
+    // cash-only) instead of discovering it mid-trip.
+    const driverProfile = getProfile(journey.ownerId);
+    const passengerProfile = getProfile(booking.passengerId);
+    res.json({
+      booking,
+      journey,
+      driverPaymentMethod: driverProfile?.preferences?.payment_method || null,
+      passengerPaymentMethod: passengerProfile?.preferences?.payment_method || null,
+    });
   })
 );
 

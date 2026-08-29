@@ -39,6 +39,8 @@ export default function Booking() {
   const { user } = useAuth();
   const [booking, setBooking] = useState(null);
   const [journey, setJourney] = useState(null);
+  const [driverPaymentMethod, setDriverPaymentMethod] = useState(null);
+  const [passengerPaymentMethod, setPassengerPaymentMethod] = useState(null);
   const [payments, setPayments] = useState([]);
   const [methods, setMethods] = useState([]);
   const [stripeConfig, setStripeConfig] = useState({ enabled: false, publishableKey: null });
@@ -54,6 +56,8 @@ export default function Booking() {
     const res = await api.getBooking(id);
     setBooking(res.booking);
     setJourney(res.journey);
+    setDriverPaymentMethod(res.driverPaymentMethod);
+    setPassengerPaymentMethod(res.passengerPaymentMethod);
     try {
       const payRes = await api.paymentsForBooking(id);
       setPayments(payRes.payments);
@@ -208,6 +212,13 @@ export default function Booking() {
 
         <div className="card">
           <h3>Payment</h3>
+          {(isPassenger ? driverPaymentMethod : isOwner ? passengerPaymentMethod : null) && (
+            <p className="muted" style={{ marginBottom: 12 }}>
+              {METHOD_LABELS[isPassenger ? driverPaymentMethod : passengerPaymentMethod]?.icon || '💰'}{' '}
+              {isPassenger ? 'Driver' : 'Passenger'} prefers{' '}
+              <strong>{METHOD_LABELS[isPassenger ? driverPaymentMethod : passengerPaymentMethod]?.label || (isPassenger ? driverPaymentMethod : passengerPaymentMethod)}</strong>.
+            </p>
+          )}
           {hasCaptured ? (
             <div className="alert alert-success">Payment captured.</div>
           ) : isPassenger ? (

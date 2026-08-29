@@ -7,6 +7,7 @@ import { getMatchById } from '../lib/matching.js';
 import { getJourneyById, decrementSeats, restoreSeats } from './journeys.js';
 import { recordAuditEvent } from '../lib/audit.js';
 import { estimateBookingImpact } from '../lib/impact.js';
+import { getProfile } from './users.js';
 
 export const bookings = new Hono();
 
@@ -114,7 +115,18 @@ bookings.get('/:id', requireAuth, async (c) => {
   if (booking.passengerId !== authUser.id && journey.ownerId !== authUser.id) {
     throw Forbidden('You do not have access to this booking');
   }
-  return c.json({ booking, journey });
+  // Once a booking exists, both parties are past the point of matching and
+  // into actually settling up — showing each other's preferred payment
+  // method here lets them coordinate (e.g. know upfront a driver is
+  // cash-only) instead of discovering it mid-trip.
+  const driverProfile = await getProfile(db, journey.ownerId);
+  const passengerProfile = await getProfile(db, booking.passengerId);
+  return c.json({
+    booking,
+    journey,
+    driverPaymentMethod: driverProfile?.preferences?.payment_method || null,
+    passengerPaymentMethod: passengerProfile?.preferences?.payment_method || null,
+  });
 });
 
 function transitionRoute(nextStatus, { requireOwner = false, requirePassenger = false, seatEffect = null } = {}) {
