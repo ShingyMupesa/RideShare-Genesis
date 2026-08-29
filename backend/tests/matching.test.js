@@ -17,6 +17,7 @@ describe('journeys + matching + Decision DNA', () => {
       email: 'driver@example.com',
       password: 'supersecret1',
       fullName: 'Diana Driver',
+      acceptedTerms: true,
     });
     driverToken = driver.body.token;
 
@@ -24,6 +25,7 @@ describe('journeys + matching + Decision DNA', () => {
       email: 'rider@example.com',
       password: 'supersecret1',
       fullName: 'Ravi Rider',
+      acceptedTerms: true,
     });
     riderToken = rider.body.token;
 
@@ -31,6 +33,7 @@ describe('journeys + matching + Decision DNA', () => {
       email: 'stranger@example.com',
       password: 'supersecret1',
       fullName: 'Sam Stranger',
+      acceptedTerms: true,
     });
     strangerToken = stranger.body.token;
   });

@@ -16,10 +16,11 @@ router.post(
   '/register',
   registerLimiter,
   asyncHandler(async (req, res) => {
-    const { email, password, fullName, phone } = req.body || {};
+    const { email, password, fullName, phone, acceptedTerms } = req.body || {};
     if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');
     if (!password || password.length < 8) throw BadRequest('Password must be at least 8 characters');
     if (!fullName || !fullName.trim()) throw BadRequest('Full name is required');
+    if (acceptedTerms !== true) throw BadRequest('You must accept the Terms & Conditions to create an account');
 
     if (Users.findUserByEmail(email.toLowerCase())) {
       throw Conflict('An account with this email already exists');

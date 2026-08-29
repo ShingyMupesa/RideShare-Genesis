@@ -56,14 +56,32 @@ function publicUser(user, profile) {
   };
 }
 
+// accepted_terms_at predates this route in existing production databases;
+// self-provision the column the same way tracking.js self-provisions new
+// tables, so this works without waiting on a manual `wrangler d1
+// migrations apply` — D1/SQLite has no `ADD COLUMN IF NOT EXISTS`, so a
+// second call's "duplicate column name" error is simply swallowed.
+let termsColumnEnsured = false;
+async function ensureTermsColumn(db) {
+  if (termsColumnEnsured) return;
+  try {
+    await db.exec('ALTER TABLE users ADD COLUMN accepted_terms_at TEXT');
+  } catch (err) {
+    if (!/duplicate column/i.test(err.message || '')) throw err;
+  }
+  termsColumnEnsured = true;
+}
+
 users.post('/register', registerLimiter, async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  const { email, password, fullName, phone } = body;
+  const { email, password, fullName, phone, acceptedTerms } = body;
   if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');
   if (!password || password.length < 8) throw BadRequest('Password must be at least 8 characters');
   if (!fullName || !fullName.trim()) throw BadRequest('Full name is required');
+  if (acceptedTerms !== true) throw BadRequest('You must accept the Terms & Conditions to create an account');
 
   const db = c.env.DB;
+  await ensureTermsColumn(db);
   const normalizedEmail = email.toLowerCase();
   const existing = await db.prepare('SELECT id FROM users WHERE email = ?').bind(normalizedEmail).first();
   if (existing) throw Conflict('An account with this email already exists');
@@ -71,7 +89,7 @@ users.post('/register', registerLimiter, async (c) => {
   const passwordHash = await bcrypt.hash(password, 10);
   const id = newId('user');
   await db
-    .prepare('INSERT INTO users (id, email, password_hash, full_name, phone) VALUES (?, ?, ?, ?, ?)')
+    .prepare('INSERT INTO users (id, email, password_hash, full_name, phone, accepted_terms_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
     .bind(id, normalizedEmail, passwordHash, fullName.trim(), phone || null)
     .run();
   await db

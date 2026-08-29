@@ -26,7 +26,7 @@ const DEFAULT_DECISION_DNA = {
 export function createUser({ email, passwordHash, fullName, phone }) {
   const id = newId('user');
   db.prepare(
-    `INSERT INTO users (id, email, password_hash, full_name, phone) VALUES (?, ?, ?, ?, ?)`
+    `INSERT INTO users (id, email, password_hash, full_name, phone, accepted_terms_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).run(id, email, passwordHash, fullName, phone || null);
 
   db.prepare(

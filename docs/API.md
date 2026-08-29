@@ -13,7 +13,7 @@ All authenticated routes expect `Authorization: Bearer <token>`, issued by
 
 | Method | Path                  | Auth | Description                                   |
 |--------|-----------------------|------|------------------------------------------------|
-| POST   | `/users/register`     | no   | Create an account, returns `{ token, user }`   |
+| POST   | `/users/register`     | no   | Create an account, returns `{ token, user }`. **`acceptedTerms` must be `true`** — registration is rejected otherwise. The user's `accepted_terms_at` timestamp is set server-side at that moment, so acceptance is auditable rather than merely implied. |
 | POST   | `/users/login`        | no   | Log in, returns `{ token, user }`              |
 | GET    | `/users/me`           | yes  | Current user + profile                         |
 | PATCH  | `/users/me/profile`   | yes  | Update bio, preferences, Decision DNA weights  |

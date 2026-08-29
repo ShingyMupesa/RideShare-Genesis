@@ -17,6 +17,7 @@ describe('booking workflow state machine', () => {
       email: 'bdriver@example.com',
       password: 'supersecret1',
       fullName: 'Bea Driver',
+      acceptedTerms: true,
     });
     driverToken = driver.body.token;
 
@@ -24,6 +25,7 @@ describe('booking workflow state machine', () => {
       email: 'brider@example.com',
       password: 'supersecret1',
       fullName: 'Ben Rider',
+      acceptedTerms: true,
     });
     riderToken = rider.body.token;
 

@@ -17,6 +17,7 @@ describe('payment-choice architecture', () => {
       email: 'pdriver@example.com',
       password: 'supersecret1',
       fullName: 'Pia Driver',
+      acceptedTerms: true,
     });
     driverToken = driver.body.token;
 
@@ -24,6 +25,7 @@ describe('payment-choice architecture', () => {
       email: 'prider@example.com',
       password: 'supersecret1',
       fullName: 'Paul Rider',
+      acceptedTerms: true,
     });
     riderToken = rider.body.token;
 
