@@ -17,6 +17,8 @@ All authenticated routes expect `Authorization: Bearer <token>`, issued by
 | POST   | `/users/login`        | no   | Log in, returns `{ token, user }`              |
 | GET    | `/users/me`           | yes  | Current user + profile                         |
 | PATCH  | `/users/me/profile`   | yes  | Update bio, preferences, Decision DNA weights  |
+| POST   | `/users/forgot-password` | no | `{ email }` → generic message regardless of whether the account exists (avoids leaking which emails are registered). Emails a reset link via Resend if `RESEND_API_KEY` is configured; otherwise the link is only logged server-side. |
+| POST   | `/users/reset-password`  | no | `{ token, newPassword }` → `{ token, user }` on success. The token is single-use, expires after 30 minutes, and only its SHA-256 hash is ever stored. |
 
 ## Journeys (Find / Offer)
 

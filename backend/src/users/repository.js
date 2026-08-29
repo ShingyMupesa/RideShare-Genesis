@@ -78,6 +78,30 @@ export function updateProfile(userId, { bio, homeCity, preferences, decisionDnaW
   return getProfile(userId);
 }
 
+export function updatePasswordHash(userId, passwordHash) {
+  db.prepare(`UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(passwordHash, userId);
+}
+
+export function createPasswordReset(userId, tokenHash, expiresAt) {
+  const id = newId('reset');
+  db.prepare(
+    `INSERT INTO password_resets (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)`
+  ).run(id, userId, tokenHash, expiresAt);
+  return id;
+}
+
+export function findValidPasswordReset(tokenHash) {
+  return db
+    .prepare(
+      `SELECT * FROM password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP`
+    )
+    .get(tokenHash);
+}
+
+export function markPasswordResetUsed(id) {
+  db.prepare(`UPDATE password_resets SET used_at = CURRENT_TIMESTAMP WHERE id = ?`).run(id);
+}
+
 export function publicUser(user, profile) {
   return {
     id: user.id,

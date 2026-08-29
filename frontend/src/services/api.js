@@ -45,6 +45,9 @@ export const api = {
   register: (payload) => request('/users/register', { method: 'POST', body: payload, auth: false }),
   login: (payload) => request('/users/login', { method: 'POST', body: payload, auth: false }),
   me: () => request('/users/me'),
+  forgotPassword: (email) => request('/users/forgot-password', { method: 'POST', body: { email }, auth: false }),
+  resetPassword: (token, newPassword) =>
+    request('/users/reset-password', { method: 'POST', body: { token, newPassword }, auth: false }),
   updateProfile: (payload) => request('/users/me/profile', { method: 'PATCH', body: payload }),
 
   // Journeys

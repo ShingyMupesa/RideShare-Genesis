@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { db, schemaDir } from './connection.js';
 
-const MIGRATIONS = ['0001_init.sql', '0002_environmental_impact.sql', '0003_commission.sql'];
+const MIGRATIONS = ['0001_init.sql', '0002_environmental_impact.sql', '0003_commission.sql', '0004_password_resets.sql'];
 
 export function runMigrations() {
   db.exec(`

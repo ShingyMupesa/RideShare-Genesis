@@ -7,6 +7,7 @@ const PREFIXES = {
   message: 'msg',
   safety: 'sfy',
   audit: 'adt',
+  reset: 'rst',
 };
 
 export function newId(kind) {

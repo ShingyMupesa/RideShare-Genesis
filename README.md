@@ -12,7 +12,7 @@ explanation of *why* — instead of a black-box score.
 | Area | What's implemented |
 |------|----------------------|
 | Genesis welcome experience | Landing page with human-centred principles and a guided "how it works" |
-| Authentication | Register / login (JWT + bcrypt), protected routes |
+| Authentication | Register / login (JWT + bcrypt), protected routes, self-service password reset via email (Resend), show/hide password toggle |
 | Profile | Bio, ride preferences, tunable **Decision DNA** weights, trusted emergency contact |
 | Find a Journey | Request a ride, scored against active offers in real time |
 | Offer a Journey | Publish a ride with seats, price, and journey-level preferences |

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import PasswordField from '../components/PasswordField.jsx';
 
 export default function Register() {
   const { register } = useAuth();
@@ -52,17 +53,15 @@ export default function Register() {
           <label htmlFor="phone">Phone (optional)</label>
           <input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         </div>
-        <div className="form-field">
-          <label htmlFor="password">Password (min 8 characters)</label>
-          <input
-            id="password"
-            type="password"
-            required
-            minLength={8}
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-          />
-        </div>
+        <PasswordField
+          id="password"
+          label="Password (min 8 characters)"
+          required
+          minLength={8}
+          autoComplete="new-password"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+        />
         <button className="btn btn-primary" type="submit" disabled={submitting} style={{ width: '100%' }}>
           {submitting ? 'Creating…' : 'Create account'}
         </button>

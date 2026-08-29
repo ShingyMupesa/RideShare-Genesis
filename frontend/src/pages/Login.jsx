@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import PasswordField from '../components/PasswordField.jsx';
 
 export default function Login() {
   const { login } = useAuth();
@@ -40,16 +41,19 @@ export default function Login() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
         </div>
-        <div className="form-field">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            required
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-          />
-        </div>
+        <PasswordField
+          id="password"
+          label="Password"
+          required
+          autoComplete="current-password"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+        />
+        <p style={{ marginTop: -6, marginBottom: 14, textAlign: 'right' }}>
+          <Link to="/forgot-password" style={{ fontSize: '0.85rem' }}>
+            Forgot password?
+          </Link>
+        </p>
         <button className="btn btn-primary" type="submit" disabled={submitting} style={{ width: '100%' }}>
           {submitting ? 'Logging in…' : 'Log in'}
         </button>

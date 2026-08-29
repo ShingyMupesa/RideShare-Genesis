@@ -4,6 +4,8 @@ import { requireAuth, signToken } from '../lib/auth.js';
 import { newId } from '../lib/ids.js';
 import { BadRequest, Conflict, NotFound, Unauthorized } from '../lib/errors.js';
 import { recordAuditEvent } from '../lib/audit.js';
+import { generateResetToken, hashResetToken } from '../lib/resetToken.js';
+import { sendEmail, resetPasswordEmailHtml } from '../lib/resend.js';
 
 export const users = new Hono();
 
@@ -99,6 +101,90 @@ users.post('/login', async (c) => {
   const profile = await getProfile(db, user.id);
   const token = await signToken(c.env, user);
   return c.json({ token, user: publicUser(user, profile) });
+});
+
+// password_resets predates this route; self-provision it the same way
+// tracking.js does for page_events, so this works against the existing
+// production database without a separate migration step.
+let passwordResetsEnsured = false;
+async function ensurePasswordResetsTable(db) {
+  if (passwordResetsEnsured) return;
+  await db.exec(
+    `CREATE TABLE IF NOT EXISTS password_resets (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, used_at TEXT, created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP))`
+  );
+  passwordResetsEnsured = true;
+}
+
+// Always responds with the same generic message whether or not the email
+// matches an account — otherwise this endpoint would let anyone check
+// which emails have accounts on Genesis.
+users.post('/forgot-password', async (c) => {
+  const db = c.env.DB;
+  const body = await c.req.json().catch(() => ({}));
+  const { email } = body;
+  if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');
+
+  await ensurePasswordResetsTable(db);
+  const genericResponse = { message: "If an account exists for that email, we've sent a reset link." };
+  const user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email.toLowerCase()).first();
+  if (!user) return c.json(genericResponse);
+
+  const token = generateResetToken();
+  const tokenHash = await hashResetToken(token);
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+  await db
+    .prepare('INSERT INTO password_resets (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)')
+    .bind(newId('reset'), user.id, tokenHash, expiresAt)
+    .run();
+
+  const origin = new URL(c.req.url).origin;
+  const resetUrl = `${origin}/reset-password?token=${token}`;
+
+  if (c.env.RESEND_API_KEY) {
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Reset your RideShare Genesis password',
+        html: resetPasswordEmailHtml({ resetUrl, fullName: user.full_name }),
+        apiKey: c.env.RESEND_API_KEY,
+        from: c.env.EMAIL_FROM || 'RideShare Genesis <onboarding@resend.dev>',
+      });
+    } catch (err) {
+      console.error('[forgot-password] failed to send email:', err.message);
+    }
+  } else {
+    console.warn('[forgot-password] RESEND_API_KEY not configured — no email sent. Reset link:', resetUrl);
+  }
+
+  await recordAuditEvent(db, { actorId: user.id, eventType: 'user.password_reset_requested', entityType: 'user', entityId: user.id });
+  return c.json(genericResponse);
+});
+
+users.post('/reset-password', async (c) => {
+  const db = c.env.DB;
+  const body = await c.req.json().catch(() => ({}));
+  const { token, newPassword } = body;
+  if (!token) throw BadRequest('token is required');
+  if (!newPassword || newPassword.length < 8) throw BadRequest('Password must be at least 8 characters');
+
+  await ensurePasswordResetsTable(db);
+  const tokenHash = await hashResetToken(token);
+  const reset = await db
+    .prepare(`SELECT * FROM password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP`)
+    .bind(tokenHash)
+    .first();
+  if (!reset) throw BadRequest('This reset link is invalid or has expired');
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await db.prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(passwordHash, reset.user_id).run();
+  await db.prepare('UPDATE password_resets SET used_at = CURRENT_TIMESTAMP WHERE id = ?').bind(reset.id).run();
+
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(reset.user_id).first();
+  const profile = await getProfile(db, user.id);
+  await recordAuditEvent(db, { actorId: user.id, eventType: 'user.password_reset', entityType: 'user', entityId: user.id });
+
+  const authToken = await signToken(c.env, user);
+  return c.json({ token: authToken, user: publicUser(user, profile) });
 });
 
 users.get('/me', requireAuth, async (c) => {

@@ -34,6 +34,10 @@ PLATFORM_COMMISSION_PCT = "0"
 # key (and the matching sk_live_ secret) only when actually taking real
 # payments.
 STRIPE_PUBLISHABLE_KEY = "pk_test_51U3eBgAinwPSkE66HuIIknHlHgDp5qulB9MilDNO6cMSbcw3bZNlpDQBiVmdNrUVhWObJq8qWAOvSS85bLjHXjm600ICmVfmsJ"
+# Resend's shared onboarding@resend.dev sender works without verifying a
+# domain, but delivery is more restricted than a verified sender — verify
+# your own domain in Resend for reliable delivery to real users.
+EMAIL_FROM = "RideShare Genesis <onboarding@resend.dev>"
 
 # Secrets (set via `wrangler secret put <NAME>`, or the dashboard's
 # Settings -> Variables and Secrets, never committed here):
@@ -42,3 +46,6 @@ STRIPE_PUBLISHABLE_KEY = "pk_test_51U3eBgAinwPSkE66HuIIknHlHgDp5qulB9MilDNO6cMSb
 #   ADMIN_TOKEN          - required for /admin and /api/tracking/stats (see src/lib/adminAuth.js)
 #   STRIPE_SECRET_KEY     - required to enable the "Card (Stripe)" payment option (see src/lib/stripe.js).
 #                           Test-mode key (sk_test_...) pairs with the STRIPE_PUBLISHABLE_KEY above.
+#   RESEND_API_KEY         - required to actually send "forgot password" emails (see src/lib/resend.js).
+#                            Without it, a reset link is generated but only logged server-side —
+#                            nothing breaks, "forgot password" just isn't self-service yet.
