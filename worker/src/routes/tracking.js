@@ -122,16 +122,21 @@ tracking.get('/stats', async (c) => {
       .first(),
     // commission_rate/commission_amount may not exist yet on a fresh table
     // that's never taken a payment (see payments.js's ensureCommissionColumns);
-    // tolerate that rather than 500ing the whole dashboard.
+    // tolerate that rather than 500ing the whole dashboard. Grouped by
+    // currency — journeys can be posted in any 3-letter currency, so a
+    // single summed total would silently mix KES and USD amounts together.
     db
       .prepare(
         `SELECT
+           currency,
            COALESCE(SUM(amount), 0) AS grossCaptured,
            COALESCE(SUM(commission_amount), 0) AS commissionCollected
-         FROM payments WHERE status = 'CAPTURED'`
+         FROM payments WHERE status = 'CAPTURED'
+         GROUP BY currency
+         ORDER BY grossCaptured DESC`
       )
-      .first()
-      .catch(() => ({ grossCaptured: 0, commissionCollected: 0 })),
+      .all()
+      .catch(() => ({ results: [] })),
   ]);
 
   return c.json({
@@ -145,9 +150,12 @@ tracking.get('/stats', async (c) => {
       totalSafetyCases: safetyCases?.n || 0,
     },
     revenue: {
-      grossCaptured: round1(revenue?.grossCaptured),
-      commissionCollected: round1(revenue?.commissionCollected),
-      note: 'Commission rate defaults to 0% during the early-bird period; the rate charged is stored per-payment, so past totals stay accurate if the rate changes.',
+      byCurrency: (revenue?.results || []).map((r) => ({
+        currency: r.currency,
+        grossCaptured: round1(r.grossCaptured),
+        commissionCollected: round1(r.commissionCollected),
+      })),
+      note: 'Commission rate defaults to 0% during the early-bird period; the rate charged is stored per-payment, so past totals stay accurate if the rate changes. Broken down by currency — journeys can be posted in any currency, so totals are never mixed together.',
     },
     environmentalImpact: {
       sharedJourneysCompleted: impact?.sharedJourneysCompleted || 0,

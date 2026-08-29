@@ -169,12 +169,17 @@ const PAGE = `<!doctype html>
 
     const revenue = data.revenue || {};
     document.getElementById('revenueNote').textContent = revenue.note || '';
-    document.getElementById('revenueGrid').innerHTML = [
-      ['Gross captured', '$' + (revenue.grossCaptured || 0)],
-      ['Commission collected', '$' + (revenue.commissionCollected || 0)],
-    ].map(function (s) {
-      return '<div class="stat"><div class="val">' + s[1] + '</div><div class="lbl">' + s[0] + '</div></div>';
-    }).join('');
+    const byCurrency = revenue.byCurrency || [];
+    // Journeys can be posted in any currency, so gross/commission are never
+    // summed across currencies into one figure — one stat pair per currency.
+    document.getElementById('revenueGrid').innerHTML = byCurrency.length
+      ? byCurrency.map(function (r) {
+          return (
+            '<div class="stat"><div class="val">' + escapeHtml(r.currency) + ' ' + r.grossCaptured + '</div><div class="lbl">Gross captured (' + escapeHtml(r.currency) + ')</div></div>' +
+            '<div class="stat"><div class="val">' + escapeHtml(r.currency) + ' ' + r.commissionCollected + '</div><div class="lbl">Commission collected (' + escapeHtml(r.currency) + ')</div></div>'
+          );
+        }).join('')
+      : '<div class="stat"><div class="val">—</div><div class="lbl">No captured payments yet</div></div>';
 
     const impact = data.environmentalImpact || {};
     document.getElementById('impactMethodology').textContent = impact.methodology || '';
