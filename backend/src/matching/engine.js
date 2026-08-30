@@ -42,7 +42,7 @@ export function scoreMatch(requestJourney, offerJourney, weights = DEFAULT_WEIGH
 
   const preferenceScore = comparePreferences(requestJourney.preferences, offerJourney.preferences);
 
-  const reliabilityScore = 0.8; // placeholder until trip-history-based reliability ships
+  const reliability = getDriverReliability(offerJourney.ownerId);
 
   const environmental = scoreEnvironmentalImpact(requestJourney, offerJourney);
 
@@ -51,7 +51,7 @@ export function scoreMatch(requestJourney, offerJourney, weights = DEFAULT_WEIGH
     timing: { score: round(timingScore), weight: weights.timing, detail: `${Math.round(timeGapMin)} min apart on departure time` },
     price: { score: round(priceScore), weight: weights.price, detail: `Offer priced at ${offerJourney.currency} ${offerJourney.pricePerSeat} vs. your ${requestBudget}` },
     preferences: { score: round(preferenceScore), weight: weights.preferences, detail: describePreferenceMatch(requestJourney.preferences, offerJourney.preferences) },
-    reliability: { score: round(reliabilityScore), weight: weights.reliability, detail: 'Based on driver trip-completion history' },
+    reliability: { score: round(reliability.score), weight: weights.reliability, detail: reliability.detail },
     environmental: { score: round(environmental.score), weight: weights.environmental ?? 0.08, detail: environmental.detail },
   };
 
@@ -64,6 +64,22 @@ export function scoreMatch(requestJourney, offerJourney, weights = DEFAULT_WEIGH
     factors,
     narrative: buildNarrative(factors, score),
   };
+}
+
+// A real, queried signal rather than an asserted one — Decision DNA never
+// shows a number it can't back up. New drivers start at a neutral baseline
+// (not penalized for having no history yet); each completed trip nudges the
+// score up, capping once a driver has a solid track record on the platform.
+function getDriverReliability(ownerId) {
+  const row = db
+    .prepare(`SELECT COUNT(*) AS n FROM bookings b JOIN journeys j ON b.journey_id = j.id WHERE j.owner_id = ? AND b.status = 'COMPLETED'`)
+    .get(ownerId);
+  const completedTrips = row?.n || 0;
+  const score = clamp01(0.6 + completedTrips * 0.05);
+  const detail = completedTrips > 0
+    ? `${completedTrips} completed trip${completedTrips === 1 ? '' : 's'} on Genesis`
+    : 'No completed trips on Genesis yet — starts at a neutral baseline';
+  return { score, detail };
 }
 
 function comparePreferences(a = {}, b = {}) {

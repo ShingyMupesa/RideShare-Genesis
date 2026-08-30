@@ -8,7 +8,7 @@ const MAX_TIME_WINDOW_MIN = 90;
 const CLEAN_VEHICLE_BONUS = { electric: 1, hybrid: 0.7, petrol: 0.4, diesel: 0.4, other: 0.4 };
 const VEHICLE_TYPE_LABELS = { electric: 'an electric', hybrid: 'a hybrid', petrol: 'a petrol', diesel: 'a diesel', other: 'an unspecified-fuel' };
 
-export function scoreMatch(requestJourney, offerJourney, weights = DEFAULT_WEIGHTS) {
+export async function scoreMatch(db, requestJourney, offerJourney, weights = DEFAULT_WEIGHTS) {
   const originGapKm = haversineKm(requestJourney.origin, offerJourney.origin);
   const destGapKm = haversineKm(requestJourney.destination, offerJourney.destination);
   const avgGapKm = (originGapKm + destGapKm) / 2;
@@ -22,7 +22,7 @@ export function scoreMatch(requestJourney, offerJourney, weights = DEFAULT_WEIGH
   const priceScore = clamp01(1 - Math.max(0, priceDiff) / Math.max(requestBudget, 1));
 
   const preferenceScore = comparePreferences(requestJourney.preferences, offerJourney.preferences);
-  const reliabilityScore = 0.8;
+  const reliability = await getDriverReliability(db, offerJourney.ownerId);
   const environmental = scoreEnvironmentalImpact(requestJourney, offerJourney);
 
   const factors = {
@@ -30,7 +30,7 @@ export function scoreMatch(requestJourney, offerJourney, weights = DEFAULT_WEIGH
     timing: { score: round(timingScore), weight: weights.timing, detail: `${Math.round(timeGapMin)} min apart on departure time` },
     price: { score: round(priceScore), weight: weights.price, detail: `Offer priced at ${offerJourney.currency} ${offerJourney.pricePerSeat} vs. your ${requestBudget}` },
     preferences: { score: round(preferenceScore), weight: weights.preferences, detail: describePreferenceMatch(requestJourney.preferences, offerJourney.preferences) },
-    reliability: { score: round(reliabilityScore), weight: weights.reliability, detail: 'Based on driver trip-completion history' },
+    reliability: { score: round(reliability.score), weight: weights.reliability, detail: reliability.detail },
     environmental: { score: round(environmental.score), weight: weights.environmental ?? 0.08, detail: environmental.detail },
   };
 
@@ -39,6 +39,23 @@ export function scoreMatch(requestJourney, offerJourney, weights = DEFAULT_WEIGH
   const score = clamp01(weightedSum / totalWeight);
 
   return { score: round(score), factors, narrative: buildNarrative(factors, score) };
+}
+
+// A real, queried signal rather than an asserted one — Decision DNA never
+// shows a number it can't back up. New drivers start at a neutral baseline
+// (not penalized for having no history yet); each completed trip nudges the
+// score up, capping once a driver has a solid track record on the platform.
+async function getDriverReliability(db, ownerId) {
+  const row = await db
+    .prepare(`SELECT COUNT(*) AS n FROM bookings b JOIN journeys j ON b.journey_id = j.id WHERE j.owner_id = ? AND b.status = 'COMPLETED'`)
+    .bind(ownerId)
+    .first();
+  const completedTrips = row?.n || 0;
+  const score = clamp01(0.6 + completedTrips * 0.05);
+  const detail = completedTrips > 0
+    ? `${completedTrips} completed trip${completedTrips === 1 ? '' : 's'} on Genesis`
+    : 'No completed trips on Genesis yet — starts at a neutral baseline';
+  return { score, detail };
 }
 
 function comparePreferences(a = {}, b = {}) {
@@ -119,8 +136,10 @@ export async function generateMatchesForJourney(db, requestJourney, { limit = 5 
     (offer) => offer.ownerId !== requestJourney.ownerId && offer.seatsAvailable > 0
   );
 
-  const scored = candidates
-    .map((offer) => ({ offer, result: scoreMatch(requestJourney, offer, weights) }))
+  const scoredAll = await Promise.all(
+    candidates.map(async (offer) => ({ offer, result: await scoreMatch(db, requestJourney, offer, weights) }))
+  );
+  const scored = scoredAll
     .filter(({ result }) => result.score > 0.15)
     .sort((a, b) => b.result.score - a.result.score)
     .slice(0, limit);

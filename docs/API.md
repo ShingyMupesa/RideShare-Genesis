@@ -45,11 +45,11 @@ Every match carries a `decisionDna` object:
 {
   "score": 0.94,
   "factors": {
-    "proximity": { "score": 0.98, "weight": 0.35, "detail": "0.2 km average origin/destination gap" },
-    "timing": { "score": 1, "weight": 0.3, "detail": "0 min apart on departure time" },
-    "price": { "score": 1, "weight": 0.15, "detail": "..." },
-    "preferences": { "score": 0.7, "weight": 0.15, "detail": "..." },
-    "reliability": { "score": 0.8, "weight": 0.05, "detail": "..." },
+    "proximity": { "score": 0.98, "weight": 0.32, "detail": "0.2 km average origin/destination gap" },
+    "timing": { "score": 1, "weight": 0.28, "detail": "0 min apart on departure time" },
+    "price": { "score": 1, "weight": 0.13, "detail": "..." },
+    "preferences": { "score": 0.7, "weight": 0.13, "detail": "..." },
+    "reliability": { "score": 0.65, "weight": 0.06, "detail": "1 completed trip on Genesis" },
     "environmental": { "score": 0.72, "weight": 0.08, "detail": "Would fill 75% of a hybrid vehicle's seats" }
   },
   "narrative": "Genesis rated this match 94/100. ..."
@@ -57,6 +57,8 @@ Every match carries a `decisionDna` object:
 ```
 
 `environmental` scores how much of the offer vehicle's spare capacity the match would use, plus a bonus for lower-emission `vehicleType`s — it informs ranking only, and is separate from the estimated CO2e/fuel figures below (see [Environmental impact](#environmental-impact-estimated)).
+
+`reliability` is a real queried value, not an asserted one: it starts at a neutral 0.6 baseline for a driver with no completed trips yet (never penalized for having no history), and rises by 0.05 per completed trip on the platform, capped at 1.0. The `detail` string always states the actual completed-trip count behind the number.
 
 ## Bookings (state machine)
 

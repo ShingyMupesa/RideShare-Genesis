@@ -247,4 +247,71 @@ describe('journeys + matching + Decision DNA', () => {
     assert.equal(seenByOwner.origin.lat, -1.301);
     assert.equal(seenByOwner.ownerId, requestRes.body.journey.ownerId);
   });
+
+  test('reliability factor is a real, queried signal — not a hardcoded constant', async () => {
+    // A driver with no completed trips yet starts at the neutral baseline.
+    const freshOfferRes = await request(app)
+      .post('/api/journeys')
+      .set('Authorization', `Bearer ${driverToken}`)
+      .send({
+        type: 'offer',
+        origin: { label: 'Reliability Origin', lat: -1.29, lng: 36.82 },
+        destination: { label: 'Reliability Destination', lat: -1.31, lng: 36.92 },
+        departureTime: departure,
+        seats: 3,
+        pricePerSeat: 10,
+        currency: 'USD',
+      });
+
+    const baselineRequestRes = await request(app)
+      .post('/api/journeys')
+      .set('Authorization', `Bearer ${strangerToken}`)
+      .send({
+        type: 'request',
+        origin: { label: 'Reliability Origin', lat: -1.29, lng: 36.82 },
+        destination: { label: 'Reliability Destination', lat: -1.31, lng: 36.92 },
+        departureTime: departure,
+        seats: 1,
+        pricePerSeat: 12,
+        currency: 'USD',
+      });
+    const baselineMatch = baselineRequestRes.body.matches.find((m) => m.offerJourney.id === freshOfferRes.body.journey.id);
+    assert.ok(baselineMatch, 'expected a match against the fresh offer');
+    assert.equal(baselineMatch.decisionDna.factors.reliability.score, 0.6);
+    assert.match(baselineMatch.decisionDna.factors.reliability.detail, /no completed trips/i);
+
+    // Drive one booking against the driver's fresh offer all the way to
+    // COMPLETED, then check the driver's reliability score reflects it.
+    const bookingRes = await request(app)
+      .post('/api/bookings')
+      .set('Authorization', `Bearer ${strangerToken}`)
+      .send({ journeyId: freshOfferRes.body.journey.id, seats: 1 });
+    assert.equal(bookingRes.status, 201);
+    const bookingId = bookingRes.body.booking.id;
+
+    await request(app).post(`/api/bookings/${bookingId}/request`).set('Authorization', `Bearer ${strangerToken}`);
+    await request(app).post(`/api/bookings/${bookingId}/confirm`).set('Authorization', `Bearer ${driverToken}`);
+    await request(app).post(`/api/bookings/${bookingId}/start`).set('Authorization', `Bearer ${driverToken}`);
+    const completeRes = await request(app).post(`/api/bookings/${bookingId}/complete`).set('Authorization', `Bearer ${driverToken}`);
+    assert.equal(completeRes.status, 200);
+
+    // A fresh match against the same driver should now score higher and
+    // say so explicitly.
+    const afterRequestRes = await request(app)
+      .post('/api/journeys')
+      .set('Authorization', `Bearer ${strangerToken}`)
+      .send({
+        type: 'request',
+        origin: { label: 'Reliability Origin', lat: -1.29, lng: 36.82 },
+        destination: { label: 'Reliability Destination', lat: -1.31, lng: 36.92 },
+        departureTime: departure,
+        seats: 1,
+        pricePerSeat: 12,
+        currency: 'USD',
+      });
+    const afterMatch = afterRequestRes.body.matches.find((m) => m.offerJourney.id === freshOfferRes.body.journey.id);
+    assert.ok(afterMatch, 'expected a match against the now-experienced driver');
+    assert.equal(afterMatch.decisionDna.factors.reliability.score, 0.65);
+    assert.match(afterMatch.decisionDna.factors.reliability.detail, /1 completed trip on Genesis/);
+  });
 });
