@@ -3,56 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../constants/currencies.js';
-
-const PRESETS = [
-  { label: 'Downtown Plaza', lat: -1.2921, lng: 36.8219 },
-  { label: 'Airport Terminal', lat: -1.3192, lng: 36.9278 },
-  { label: 'University Campus', lat: -1.2635, lng: 36.8121 },
-  { label: 'Tech Park', lat: -1.2167, lng: 36.8956 },
-];
-
-function LocationField({ label, value, onChange }) {
-  return (
-    <div className="form-field">
-      <label>{label}</label>
-      <input
-        placeholder="Place name"
-        value={value.label}
-        onChange={(e) => onChange({ ...value, label: e.target.value })}
-        style={{ marginBottom: 6 }}
-      />
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input
-          type="number"
-          step="any"
-          placeholder="Latitude"
-          value={value.lat}
-          onChange={(e) => onChange({ ...value, lat: Number(e.target.value) })}
-        />
-        <input
-          type="number"
-          step="any"
-          placeholder="Longitude"
-          value={value.lng}
-          onChange={(e) => onChange({ ...value, lng: Number(e.target.value) })}
-        />
-      </div>
-      <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-        {PRESETS.map((p) => (
-          <button
-            key={p.label}
-            type="button"
-            className="pill"
-            style={{ cursor: 'pointer', border: 'none' }}
-            onClick={() => onChange(p)}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+import LocationField from '../components/LocationField.jsx';
 
 export default function FindJourney() {
   const { user } = useAuth();
