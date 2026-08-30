@@ -45,6 +45,13 @@ const INTENTS = [
       'Set your ride preferences (chattiness, music, smoking, pets, luggage) in your Profile. Genesis uses them, alongside your Decision DNA weights, to prioritise matches that actually fit how you like to travel.',
   },
   {
+    name: 'share_app',
+    test: /\bshare\b|\binvite\b|\breferral\b|\btell (a )?friend/i,
+    reply: () =>
+      'There\'s a "🔗 Share Genesis" button right on the home page — tap it and it opens your phone\'s share sheet (or copies a link if sharing isn\'t supported) so you can send the app straight to a friend.',
+    link: () => ({ href: '/', label: 'Go to the home page' }),
+  },
+  {
     name: 'offer_ride',
     test: /\b(offer|post|list|give)\b.*\b(ride|journey|lift|seat)/i,
     reply: () => "I'll take you to the Offer a Journey page — enter your route, seats, and price and riders will be able to find and book you.",
