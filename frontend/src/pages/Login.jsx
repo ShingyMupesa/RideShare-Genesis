@@ -3,6 +3,18 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import PasswordField from '../components/PasswordField.jsx';
 
+// Only ever redirect to a path on this same app after login — never trust
+// the post-login destination as an off-origin URL. A path starting with
+// "//" or "/\" can still be interpreted by some browsers as
+// protocol-relative and navigate off-origin despite "looking" relative
+// (the open-redirect shape recent react-router CVEs have flagged), so
+// those are rejected alongside anything that isn't a genuine single-slash
+// relative path.
+function safeRedirectPath(path) {
+  if (typeof path !== 'string') return null;
+  return /^\/(?!\/|\\)/.test(path) ? path : null;
+}
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -17,7 +29,7 @@ export default function Login() {
     setSubmitting(true);
     try {
       await login(form.email, form.password);
-      navigate(location.state?.from?.pathname || '/my-journeys');
+      navigate(safeRedirectPath(location.state?.from?.pathname) || '/my-journeys');
     } catch (err) {
       setError(err.message || 'Could not log in');
     } finally {
