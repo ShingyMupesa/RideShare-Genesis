@@ -16,7 +16,7 @@ export default function NavBar() {
   return (
     <header className="navbar">
       <NavLink to="/" className="navbar__brand">
-        <span className="navbar__dot" aria-hidden="true" />
+        <img src="/brand-mark.png" alt="" width="28" height="28" className="navbar__mark" />
         RideShare Genesis
       </NavLink>
       <nav className="navbar__links">

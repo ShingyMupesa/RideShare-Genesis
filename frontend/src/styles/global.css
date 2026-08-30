@@ -74,11 +74,10 @@ a {
   color: var(--color-text);
 }
 
-.navbar__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+.navbar__mark {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 8px;
 }
 
 .navbar__links {
