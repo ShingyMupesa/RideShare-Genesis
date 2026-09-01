@@ -104,6 +104,11 @@ export const api = {
   // with the user's own Decision DNA weights; it stays optional server-side.
   askAssistant: (message) => request('/ai/assistant', { method: 'POST', body: { message } }),
   aiStatus: () => request('/ai/status', { auth: false }),
+
+  // Push notifications
+  getVapidPublicKey: () => request('/push/vapid-public-key', { auth: false }),
+  subscribePush: (subscription) => request('/push/subscribe', { method: 'POST', body: subscription }),
+  unsubscribePush: (endpoint) => request('/push/unsubscribe', { method: 'POST', body: { endpoint } }),
 };
 
 export { ApiError };

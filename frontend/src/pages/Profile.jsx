@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
+import PushNotificationToggle from '../components/PushNotificationToggle.jsx';
 
 const WEIGHT_KEYS = ['proximity', 'timing', 'price', 'preferences', 'reliability'];
 
@@ -107,6 +108,7 @@ export default function Profile() {
               Comfortable with pets
             </label>
           </div>
+          <PushNotificationToggle />
           <div className="form-field">
             <label htmlFor="paymentMethod">Preferred payment method</label>
             <select

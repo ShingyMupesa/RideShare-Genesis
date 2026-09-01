@@ -7,6 +7,7 @@ import { getProfile } from '../users/repository.js';
 import { getMatchById } from '../matching/engine.js';
 import { recordAuditEvent } from '../governance/auditLog.js';
 import { estimateBookingImpact } from '../utils/impact.js';
+import { notifyUser } from '../push/notify.js';
 
 export const router = Router();
 
@@ -49,6 +50,7 @@ router.post(
       metadata: { journeyId, seats, status: booking.status },
     });
 
+    await notifyUser(journey.ownerId);
     res.status(201).json({ booking });
   })
 );
@@ -87,7 +89,7 @@ router.get(
   })
 );
 
-function transitionHandler(nextStatus, { requireOwner = false, requirePassenger = false, seatEffect = null } = {}) {
+function transitionHandler(nextStatus, { requireOwner = false, requirePassenger = false, seatEffect = null, notify = null } = {}) {
   return asyncHandler(async (req, res) => {
     const booking = Bookings.getBookingById(req.params.id);
     if (!booking) throw NotFound('Booking not found');
@@ -133,15 +135,25 @@ function transitionHandler(nextStatus, { requireOwner = false, requirePassenger 
       metadata: { from: booking.status, to: nextStatus },
     });
 
+    if (notify) await notifyUser(notify(booking, journey));
+
     res.json({ booking: updated });
   });
 }
 
 // Passenger confirms intent to proceed; seats are reserved at this point.
-router.post('/:id/request', requireAuth, transitionHandler('BOOKING_REQUESTED', { requirePassenger: true, seatEffect: 'decrement' }));
+router.post(
+  '/:id/request',
+  requireAuth,
+  transitionHandler('BOOKING_REQUESTED', { requirePassenger: true, seatEffect: 'decrement', notify: (_booking, journey) => journey.ownerId })
+);
 
 // Journey owner (driver) confirms the booking.
-router.post('/:id/confirm', requireAuth, transitionHandler('CONFIRMED', { requireOwner: true }));
+router.post(
+  '/:id/confirm',
+  requireAuth,
+  transitionHandler('CONFIRMED', { requireOwner: true, notify: (booking) => booking.passengerId })
+);
 
 // Trip begins.
 router.post('/:id/start', requireAuth, transitionHandler('IN_PROGRESS', {}));

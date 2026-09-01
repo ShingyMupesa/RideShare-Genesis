@@ -38,6 +38,11 @@ STRIPE_PUBLISHABLE_KEY = "pk_test_51U3eBgAinwPSkE66HuIIknHlHgDp5qulB9MilDNO6cMSb
 # domain, but delivery is more restricted than a verified sender — verify
 # your own domain in Resend for reliable delivery to real users.
 EMAIL_FROM = "RideShare Genesis <onboarding@resend.dev>"
+# The VAPID public key is not secret by design (it's handed to every
+# browser that subscribes) — safe to expose, safe to commit. The matching
+# private key is a secret (see below). Without both set, push notifications
+# silently no-op — nothing else breaks.
+VAPID_PUBLIC_KEY = "BHVBce2nZxnVMFoP6scjXebdMCUmjqh6pHFTNYMSVcXrDGdbQag8RdkhDsZG1oR47qyPFnDI7by3U6yQfU0JDJg"
 
 # Secrets (set via `wrangler secret put <NAME>`, or the dashboard's
 # Settings -> Variables and Secrets, never committed here):
@@ -49,3 +54,8 @@ EMAIL_FROM = "RideShare Genesis <onboarding@resend.dev>"
 #   RESEND_API_KEY         - required to actually send "forgot password" emails (see src/lib/resend.js).
 #                            Without it, a reset link is generated but only logged server-side —
 #                            nothing breaks, "forgot password" just isn't self-service yet.
+#   VAPID_PRIVATE_KEY_JWK   - required (with VAPID_PUBLIC_KEY above) to enable push notifications
+#                             (see src/lib/webpush.js). A JSON Web Key string, e.g.
+#                             {"key_ops":["sign"],"ext":true,"kty":"EC","x":"...","y":"...","crv":"P-256","d":"..."}.
+#                             Without it, subscribing silently no-ops server-side — nothing breaks.
+#   VAPID_SUBJECT           - optional, defaults to "mailto:mupesashingy@gmail.com" (see src/lib/notify.js)

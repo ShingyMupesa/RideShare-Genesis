@@ -15,6 +15,7 @@ import { ai } from './routes/ai.js';
 import { tracking } from './routes/tracking.js';
 import { admin } from './routes/admin.js';
 import { feedback } from './routes/feedback.js';
+import { push } from './routes/push.js';
 
 export { BookingRoom } from './durable-objects/BookingRoom.js';
 
@@ -38,6 +39,7 @@ app.route('/api/governance', governance);
 app.route('/api/ai', ai);
 app.route('/api/tracking', tracking);
 app.route('/api/feedback', feedback);
+app.route('/api/push', push);
 app.route('/admin', admin);
 
 // Real-time messaging: browsers can't set custom headers on a WebSocket

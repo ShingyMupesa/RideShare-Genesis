@@ -8,6 +8,7 @@ import { getJourneyById, decrementSeats, restoreSeats } from './journeys.js';
 import { recordAuditEvent } from '../lib/audit.js';
 import { estimateBookingImpact } from '../lib/impact.js';
 import { getProfile } from './users.js';
+import { notifyUser } from '../lib/notify.js';
 
 export const bookings = new Hono();
 
@@ -88,6 +89,8 @@ bookings.post('/', requireAuth, async (c) => {
     metadata: { journeyId, seats, status: booking.status },
   });
 
+  await notifyUser(db, c.env, journey.ownerId);
+
   return c.json({ booking }, 201);
 });
 
@@ -129,7 +132,7 @@ bookings.get('/:id', requireAuth, async (c) => {
   });
 });
 
-function transitionRoute(nextStatus, { requireOwner = false, requirePassenger = false, seatEffect = null } = {}) {
+function transitionRoute(nextStatus, { requireOwner = false, requirePassenger = false, seatEffect = null, notify = null } = {}) {
   return async (c) => {
     const db = c.env.DB;
     const authUser = c.get('user');
@@ -178,12 +181,14 @@ function transitionRoute(nextStatus, { requireOwner = false, requirePassenger = 
       metadata: { from: booking.status, to: nextStatus },
     });
 
+    if (notify) await notifyUser(db, c.env, notify(booking, journey));
+
     return c.json({ booking: updated });
   };
 }
 
-bookings.post('/:id/request', requireAuth, transitionRoute('BOOKING_REQUESTED', { requirePassenger: true, seatEffect: 'decrement' }));
-bookings.post('/:id/confirm', requireAuth, transitionRoute('CONFIRMED', { requireOwner: true }));
+bookings.post('/:id/request', requireAuth, transitionRoute('BOOKING_REQUESTED', { requirePassenger: true, seatEffect: 'decrement', notify: (booking, journey) => journey.ownerId }));
+bookings.post('/:id/confirm', requireAuth, transitionRoute('CONFIRMED', { requireOwner: true, notify: (booking) => booking.passengerId }));
 bookings.post('/:id/start', requireAuth, transitionRoute('IN_PROGRESS', {}));
 bookings.post('/:id/complete', requireAuth, transitionRoute('COMPLETED', {}));
 bookings.post('/:id/cancel', requireAuth, transitionRoute('CANCELLED', { seatEffect: 'restore' }));

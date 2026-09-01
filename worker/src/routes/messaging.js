@@ -4,6 +4,7 @@ import { newId } from '../lib/ids.js';
 import { BadRequest, Forbidden, NotFound } from '../lib/errors.js';
 import { getBookingById } from './bookings.js';
 import { getJourneyById } from './journeys.js';
+import { notifyUser } from '../lib/notify.js';
 
 export const messaging = new Hono();
 
@@ -37,12 +38,15 @@ messaging.post('/booking/:bookingId', requireAuth, async (c) => {
   const body = await c.req.json().catch(() => ({}));
   if (!body.body || !body.body.trim()) throw BadRequest('Message body is required');
 
-  await assertBookingAccess(db, c.req.param('bookingId'), authUser.id);
+  const { booking, journey } = await assertBookingAccess(db, c.req.param('bookingId'), authUser.id);
   const message = await createMessage(db, { bookingId: c.req.param('bookingId'), senderId: authUser.id, body: body.body.trim() });
 
   // Fan out to any live WebSocket viewers of this booking's Durable Object room.
   const stub = c.env.BOOKING_ROOMS.get(c.env.BOOKING_ROOMS.idFromName(c.req.param('bookingId')));
   await stub.fetch('https://booking-room/broadcast', { method: 'POST', body: JSON.stringify({ type: 'message:new', message }) });
+
+  const recipientId = authUser.id === booking.passengerId ? journey.ownerId : booking.passengerId;
+  await notifyUser(db, c.env, recipientId);
 
   return c.json({ message }, 201);
 });

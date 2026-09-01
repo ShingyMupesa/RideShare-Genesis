@@ -37,3 +37,30 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match('/'))
   );
 });
+
+// Push notifications are sent with an empty payload (see worker/src/lib/webpush.js
+// for why) — there's no per-event title/body to read here, so every push shows
+// the same generic "something's new" prompt and the app fetches real detail
+// once it's opened.
+self.addEventListener('push', (event) => {
+  event.waitUntil(
+    self.registration.showNotification('RideShare Genesis', {
+      body: 'You have an update — open the app to see what changed.',
+      icon: '/icon-192.png',
+      badge: '/favicon-64.png',
+      tag: 'genesis-update',
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow('/');
+    })
+  );
+});
