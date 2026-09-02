@@ -1,11 +1,18 @@
 import { Hono } from 'hono';
 import { requireAuth, optionalAuth } from '../lib/auth.js';
 import { newId } from '../lib/ids.js';
-import { BadRequest, Forbidden, NotFound } from '../lib/errors.js';
+import { ApiError, BadRequest, Forbidden, NotFound } from '../lib/errors.js';
 import { generateMatchesForJourney } from '../lib/matching.js';
 import { VEHICLE_TYPES } from '../lib/impact.js';
+import * as DriverVerification from '../lib/driverVerification.js';
 
 export const journeys = new Hono();
+
+const VERIFICATION_MESSAGES = {
+  unverified: 'Complete driver verification before posting a journey. Add your details on your profile — an admin will review them shortly.',
+  pending: 'Your driver verification is still under review. We will notify you as soon as an admin clears it.',
+  rejected: 'Your driver verification was not approved. Check the reviewer note on your profile and resubmit.',
+};
 
 function deserialize(row) {
   if (!row) return null;
@@ -23,34 +30,43 @@ function deserialize(row) {
     preferences: JSON.parse(row.preferences_json),
     vehicleType: row.vehicle_type,
     status: row.status,
+    // Only meaningful for `offer` journeys — surfaced so the frontend can
+    // render a "Verified Driver" badge on offer cards without a second
+    // lookup per journey.
+    ownerDriverVerified: row.owner_driver_verification_status === 'verified',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
+const SELECT_JOURNEY = `SELECT j.*, p.driver_verification_status AS owner_driver_verification_status
+  FROM journeys j LEFT JOIN profiles p ON p.user_id = j.owner_id`;
+
 export async function getJourneyById(db, id) {
-  const row = await db.prepare('SELECT * FROM journeys WHERE id = ?').bind(id).first();
+  await DriverVerification.ensureDriverVerificationSchema(db);
+  const row = await db.prepare(`${SELECT_JOURNEY} WHERE j.id = ?`).bind(id).first();
   return deserialize(row);
 }
 
 export async function listJourneys(db, { type, status = 'active', ownerId } = {}) {
+  await DriverVerification.ensureDriverVerificationSchema(db);
   const clauses = [];
   const params = [];
   if (type) {
-    clauses.push('type = ?');
+    clauses.push('j.type = ?');
     params.push(type);
   }
   if (status) {
-    clauses.push('status = ?');
+    clauses.push('j.status = ?');
     params.push(status);
   }
   if (ownerId) {
-    clauses.push('owner_id = ?');
+    clauses.push('j.owner_id = ?');
     params.push(ownerId);
   }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const { results } = await db
-    .prepare(`SELECT * FROM journeys ${where} ORDER BY departure_time ASC`)
+    .prepare(`${SELECT_JOURNEY} ${where} ORDER BY j.departure_time ASC`)
     .bind(...params)
     .all();
   return results.map(deserialize);
@@ -114,6 +130,20 @@ journeys.post('/', requireAuth, async (c) => {
   const authUser = c.get('user');
   const body = await c.req.json().catch(() => ({}));
   validateJourneyInput(body);
+
+  // Driver verification only ever gates `offer` journeys — a rider
+  // requesting a ride isn't the one being verified. Enforcement is a
+  // platform-wide toggle an admin controls (default off), so this is a
+  // no-op until that's switched on.
+  await DriverVerification.ensureDriverVerificationSchema(db);
+  if (body.type === 'offer' && (await DriverVerification.isEnforced(db))) {
+    const driverStatus = (await DriverVerification.getStatus(db, authUser.id))?.status || 'unverified';
+    if (driverStatus !== 'verified') {
+      throw new ApiError(403, 'DRIVER_VERIFICATION_REQUIRED', VERIFICATION_MESSAGES[driverStatus] || VERIFICATION_MESSAGES.unverified, {
+        status: driverStatus,
+      });
+    }
+  }
 
   const id = newId('journey');
   await db

@@ -118,6 +118,8 @@ export function publicUser(user, profile) {
           homeCity: profile.home_city,
           verifiedId: !!profile.verified_id,
           verifiedEmail: !!profile.verified_email,
+          driverVerificationStatus: profile.driver_verification_status || 'unverified',
+          driverVerificationUpdatedAt: profile.driver_verification_updated_at || null,
           emergencyContactName: profile.emergency_contact_name,
           emergencyContactPhone: profile.emergency_contact_phone,
           preferences: profile.preferences,

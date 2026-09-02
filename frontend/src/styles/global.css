@@ -337,6 +337,23 @@ textarea:focus {
   color: var(--color-primary);
 }
 
+.verified-driver-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(31, 157, 85, 0.12);
+  color: var(--color-success);
+  white-space: nowrap;
+}
+.verified-driver-badge svg {
+  flex-shrink: 0;
+  color: var(--color-success);
+}
+
 .alert {
   padding: 12px 16px;
   border-radius: var(--radius-sm);

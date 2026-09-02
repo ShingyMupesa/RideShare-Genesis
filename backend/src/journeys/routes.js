@@ -1,9 +1,16 @@
 import { Router } from 'express';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
-import { asyncHandler, BadRequest, Forbidden, NotFound } from '../utils/errors.js';
+import { ApiError, asyncHandler, BadRequest, Forbidden, NotFound } from '../utils/errors.js';
 import * as Journeys from './repository.js';
 import { generateMatchesForJourney } from '../matching/engine.js';
 import { VEHICLE_TYPES } from '../utils/impact.js';
+import * as DriverVerification from '../driverVerification/repository.js';
+
+const VERIFICATION_MESSAGES = {
+  unverified: 'Complete driver verification before posting a journey. Add your details on your profile — an admin will review them shortly.',
+  pending: 'Your driver verification is still under review. We will notify you as soon as an admin clears it.',
+  rejected: 'Your driver verification was not approved. Check the reviewer note on your profile and resubmit.',
+};
 
 export const router = Router();
 
@@ -42,6 +49,18 @@ router.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     validateJourneyInput(req.body);
+
+    // Driver verification only ever gates `offer` journeys — a rider
+    // requesting a ride isn't the one being verified. Enforcement is a
+    // platform-wide toggle an admin controls (default off), so this is a
+    // no-op until that's switched on.
+    if (req.body.type === 'offer' && DriverVerification.isEnforced()) {
+      const status = DriverVerification.getStatus(req.user.id)?.status || 'unverified';
+      if (status !== 'verified') {
+        throw new ApiError(403, 'DRIVER_VERIFICATION_REQUIRED', VERIFICATION_MESSAGES[status] || VERIFICATION_MESSAGES.unverified, { status });
+      }
+    }
+
     const journey = Journeys.createJourney(req.user.id, req.body);
 
     let matches = [];

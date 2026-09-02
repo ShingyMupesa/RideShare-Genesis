@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api.js';
+import VerifiedDriverBadge from '../components/VerifiedDriverBadge.jsx';
 
 function toOfferPrefillQuery(journey) {
   const params = new URLSearchParams();
@@ -46,8 +47,9 @@ export default function BrowseJourneys() {
               {offers.map((j) => (
                 <Link key={j.id} to={`/journeys/${j.id}`} className="journey-row" style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div>
-                    <p className="journey-route">
+                    <p className="journey-route" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       {j.origin.label} → {j.destination.label}
+                      {j.ownerDriverVerified && <VerifiedDriverBadge />}
                     </p>
                     <p className="muted">
                       {new Date(j.departureTime).toLocaleString()} · {j.currency} {j.pricePerSeat}/seat

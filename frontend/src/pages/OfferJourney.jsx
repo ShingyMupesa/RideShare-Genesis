@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
@@ -31,6 +31,17 @@ export default function OfferJourney() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [verificationEnforced, setVerificationEnforced] = useState(false);
+
+  useEffect(() => {
+    api
+      .driverVerificationSettings()
+      .then((s) => setVerificationEnforced(s.enforced))
+      .catch(() => {}); // non-fatal — worst case the form allows a submit the server then blocks
+  }, []);
+
+  const driverStatus = user?.profile?.driverVerificationStatus || 'unverified';
+  const blockedByVerification = verificationEnforced && driverStatus !== 'verified';
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -70,6 +81,22 @@ export default function OfferJourney() {
         <p className="muted">
           Carried over from an open request — fill in exact coordinates for {prefillOriginLabel || 'your start'} and {prefillDestLabel || 'your destination'} below.
         </p>
+      )}
+
+      {blockedByVerification && (
+        <div className="alert alert-error">
+          {driverStatus === 'pending'
+            ? "Your driver verification is under review — you'll be able to publish once an admin clears it."
+            : driverStatus === 'rejected'
+              ? 'Your driver verification was not approved. Update your details and resubmit on your '
+              : 'Driver verification is now required before publishing a journey. Complete it on your '}
+          {driverStatus !== 'pending' && (
+            <a href="/profile" onClick={(e) => { e.preventDefault(); navigate('/profile'); }}>
+              profile
+            </a>
+          )}
+          {driverStatus !== 'pending' && '.'}
+        </div>
       )}
 
       {error && <div className="alert alert-error">{error}</div>}
@@ -181,7 +208,7 @@ export default function OfferJourney() {
           </div>
         </div>
 
-        <button className="btn btn-primary" type="submit" disabled={submitting}>
+        <button className="btn btn-primary" type="submit" disabled={submitting || blockedByVerification}>
           {submitting ? 'Publishing…' : 'Publish journey'}
         </button>
       </form>

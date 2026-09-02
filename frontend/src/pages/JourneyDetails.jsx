@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
+import VerifiedDriverBadge from '../components/VerifiedDriverBadge.jsx';
 
 const PREFERENCE_LABELS = {
   chattiness: 'Chattiness',
@@ -80,8 +81,9 @@ export default function JourneyDetails() {
   return (
     <div className="card" style={{ maxWidth: 560, margin: '0 auto' }}>
       <p className="eyebrow">{journey.type === 'offer' ? 'Offered journey' : 'Requested journey'}</p>
-      <h1>
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         {journey.origin.label} → {journey.destination.label}
+        {journey.type === 'offer' && journey.ownerDriverVerified && <VerifiedDriverBadge />}
       </h1>
       <p className="muted">{new Date(journey.departureTime).toLocaleString()}</p>
       {error && <div className="alert alert-error">{error}</div>}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api.js';
+import VerifiedDriverBadge from '../components/VerifiedDriverBadge.jsx';
 
 const STATUS_PILL = {
   active: 'pill-success',
@@ -91,8 +92,9 @@ export default function MyJourneys() {
           {journeys.map((j) => (
             <Link key={j.id} to={`/journeys/${j.id}`} className="journey-row" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div>
-                <p className="journey-route">
+                <p className="journey-route" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   {j.origin.label} → {j.destination.label}
+                  {j.type === 'offer' && j.ownerDriverVerified && <VerifiedDriverBadge />}
                 </p>
                 <p className="muted">
                   {j.type === 'offer' ? 'Offered' : 'Requested'} · {new Date(j.departureTime).toLocaleString()}

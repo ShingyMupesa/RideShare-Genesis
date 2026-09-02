@@ -24,8 +24,8 @@ All authenticated routes expect `Authorization: Bearer <token>`, issued by
 
 | Method | Path                     | Auth  | Description                                             |
 |--------|--------------------------|-------|-----------------------------------------------------------|
-| POST   | `/journeys`              | yes   | Create an `offer` or `request` journey. Requests trigger matching and return `{ journey, matches }`. **`currency` is required** — a 3-letter code (e.g. `KES`, `USD`), never defaulted server-side, so every price is always shown with an explicit currency rather than an assumed one. Offers may set `vehicleType` (`electric`\|`hybrid`\|`petrol`\|`diesel`\|`other`) — optional, used for the matching engine's environmental factor and for estimating impact once a booking completes. |
-| GET    | `/journeys`              | no*   | List journeys. Query: `type`, `status`, `mine=true` (requires auth). Without `mine=true`, any `request` journey that isn't the caller's own is redacted to route labels and trip terms only — `origin`/`destination` lose `lat`/`lng` and `ownerId` is stripped — the same privacy boundary `GET /journeys/:id` enforces, applied per-item here so the browse view (`/browse` in the frontend) can safely show open requests to any driver without leaking exact pickup coordinates. |
+| POST   | `/journeys`              | yes   | Create an `offer` or `request` journey. Requests trigger matching and return `{ journey, matches }`. **`currency` is required** — a 3-letter code (e.g. `KES`, `USD`), never defaulted server-side, so every price is always shown with an explicit currency rather than an assumed one. Offers may set `vehicleType` (`electric`\|`hybrid`\|`petrol`\|`diesel`\|`other`) — optional, used for the matching engine's environmental factor and for estimating impact once a booking completes. When [driver verification enforcement](#driver-verification) is on, posting an `offer` as an unverified/pending/rejected driver returns `403 DRIVER_VERIFICATION_REQUIRED` with `details.status`; `request` journeys are never gated. |
+| GET    | `/journeys`              | no*   | List journeys. Query: `type`, `status`, `mine=true` (requires auth). Without `mine=true`, any `request` journey that isn't the caller's own is redacted to route labels and trip terms only — `origin`/`destination` lose `lat`/`lng` and `ownerId` is stripped — the same privacy boundary `GET /journeys/:id` enforces, applied per-item here so the browse view (`/browse` in the frontend) can safely show open requests to any driver without leaking exact pickup coordinates. Every journey also carries `ownerDriverVerified` (only meaningful for `offer` journeys) so the frontend can render a "Verified Driver" badge without a second lookup. |
 | GET    | `/journeys/:id`          | no    | Get a single journey                                     |
 | POST   | `/journeys/:id/cancel`   | yes   | Cancel a journey you own                                  |
 
@@ -161,6 +161,33 @@ Real-time delivery uses Socket.IO (`booking:join`, `message:send`,
 | Method | Path                      | Auth        | Description                          |
 |--------|----------------------------|-------------|-----------------------------------------|
 | GET    | `/governance/audit-events` | yes (admin) | Query the platform's audit trail          |
+
+## Driver Verification
+
+A manual, admin-reviewed check a driver completes before their offers carry
+a "Verified Driver" badge. Trust, not automation: nothing here scans a
+document image — an admin reads the submitted details and approves or
+rejects. Whether it actually *blocks* posting is a separate, admin-controlled
+toggle (`driver_verification_enforced`, off by default) — the feature ships
+fully built but inert, exactly as designed, until an admin turns enforcement
+on (planned for once commission/monetisation goes live).
+
+| Method | Path                                    | Auth         | Description                          |
+|--------|-------------------------------------------|--------------|------------------------------------------|
+| GET    | `/driver-verification/settings`           | no           | `{ enforced }` — whether posting an offer currently requires a verified driver. |
+| POST   | `/driver-verification/settings`           | yes (admin)* | `{ enforced: boolean }` — the toggle switch on the admin dashboard. |
+| GET    | `/driver-verification/me`                 | yes          | `{ status, updatedAt, submission }` for the current user. `status` is one of `unverified`\|`pending`\|`verified`\|`rejected`. |
+| POST   | `/driver-verification`                    | yes          | Submit `{ fullLegalName, licenseNumber, licenseExpiry?, vehicleMakeModel?, vehiclePlate }` for review. `409` if already `verified` or `pending`; a `rejected` driver may resubmit. |
+| GET    | `/driver-verification/queue`              | yes (admin)* | Pending submissions (`?status=` to see others), newest-last. |
+| POST   | `/driver-verification/:id/approve`        | yes (admin)* | Marks the submission (and the driver's profile) `verified`. Sends a push notification to the driver if they've subscribed. |
+| POST   | `/driver-verification/:id/reject`         | yes (admin)* | `{ reviewNote }` (required — shown to the driver) → marks `rejected`. Also notifies the driver. |
+
+\* Same split as `/feedback` above: on the Workers deployment these are
+gated by the shared `ADMIN_TOKEN` (the dashboard's reviewer types their
+name into a plain text field, since there's no per-admin login there — it's
+stored as `reviewed_by` for the record); on the Node backend they're gated
+by `role === 'admin'` on the authenticated user, and `reviewed_by` is that
+admin's own user id.
 
 ## Feedback
 

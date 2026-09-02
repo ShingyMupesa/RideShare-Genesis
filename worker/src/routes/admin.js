@@ -20,6 +20,22 @@ const PAGE = `<!doctype html>
     .gate button:hover, .refresh:hover { background: #8f83ff; }
   }
   .error { color: #ff8080; font-size: 0.85rem; min-height: 1.2em; }
+  .toggle-row { display: flex; align-items: center; gap: 12px; margin: 10px 0 18px; flex-wrap: wrap; }
+  .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: #3a3750; border-radius: 999px; cursor: pointer; transition: background 0.15s; }
+  .toggle-slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px; background: #cfcadf; border-radius: 50%; transition: transform 0.15s; }
+  .toggle-switch input:checked + .toggle-slider { background: #1f9d55; }
+  .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); background: #fff; }
+  .toggle-switch input:disabled + .toggle-slider { opacity: 0.5; cursor: default; }
+  .reviewer-input { padding: 6px 10px; border-radius: 6px; border: 1px solid #3a3750; background: #1a1826; color: #eceaf5; font-size: 0.82rem; }
+  .btn-tiny { padding: 5px 10px; border-radius: 6px; border: none; font-weight: 600; font-size: 0.78rem; cursor: pointer; margin-right: 6px; }
+  .btn-approve { background: #1f9d55; color: white; }
+  .btn-reject { background: #d64545; color: white; }
+  @media (hover: hover) and (pointer: fine) {
+    .btn-approve:hover { background: #24b862; }
+    .btn-reject:hover { background: #e35a5a; }
+  }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin: 24px 0; }
   .stat { background: #1a1826; border: 1px solid #2c2940; border-radius: 10px; padding: 16px 18px; }
   .stat .val { font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -77,6 +93,30 @@ const PAGE = `<!doctype html>
       <h2 style="font-size:1rem;">Feedback</h2>
       <table id="feedbackTable"><thead><tr><th>When</th><th>Message</th><th>Email</th><th>Page</th></tr></thead><tbody></tbody></table>
     </section>
+
+    <section>
+      <h2 style="font-size:1rem;">Driver verification</h2>
+      <p class="muted" style="margin-bottom:6px;">
+        Designed and ready, but inert by default — offering a journey never requires verification until this is switched on.
+        Flip it green once revenue/commission goes live and driver trust needs to be enforced.
+      </p>
+      <div class="toggle-row">
+        <label class="toggle-switch">
+          <input type="checkbox" id="dvEnforceToggle">
+          <span class="toggle-slider"></span>
+        </label>
+        <span id="dvEnforceLabel" class="muted"></span>
+      </div>
+      <div class="toggle-row" style="margin-top:-8px;">
+        <label class="muted" for="dvReviewerName" style="font-size:0.8rem;">Reviewing as:</label>
+        <input type="text" id="dvReviewerName" class="reviewer-input" placeholder="Your name" style="width:160px;">
+      </div>
+      <p class="muted" id="dvQueueNote" style="margin-bottom:10px;"></p>
+      <table id="dvQueueTable">
+        <thead><tr><th>Applicant</th><th>License</th><th>Vehicle</th><th>Submitted</th><th>Action</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
   </div>
 
 <script>
@@ -107,6 +147,7 @@ const PAGE = `<!doctype html>
       gate.style.display = 'none';
       app.style.display = 'block';
       loadFeedback(token);
+      loadDriverVerification(token);
     } catch (err) {
       showGate('Could not reach the API: ' + err.message);
     }
@@ -128,6 +169,100 @@ const PAGE = `<!doctype html>
       // non-fatal — the rest of the dashboard still works
     }
   }
+
+  function reviewerName() {
+    return document.getElementById('dvReviewerName').value.trim() || 'admin';
+  }
+
+  async function loadDriverVerification(token) {
+    const toggle = document.getElementById('dvEnforceToggle');
+    const label = document.getElementById('dvEnforceLabel');
+    try {
+      const settingsRes = await fetch('/api/driver-verification/settings');
+      const settings = await settingsRes.json();
+      toggle.checked = !!settings.enforced;
+      label.textContent = settings.enforced
+        ? 'Enforced — unverified drivers are blocked from posting offers.'
+        : 'Off — driver verification is tracked but never blocks posting yet.';
+    } catch {
+      label.textContent = 'Could not load enforcement setting.';
+    }
+
+    try {
+      const queueRes = await fetch('/api/driver-verification/queue?status=pending', { headers: { 'x-admin-token': token } });
+      if (!queueRes.ok) { document.getElementById('dvQueueNote').textContent = 'Could not load the review queue.'; return; }
+      const data = await queueRes.json();
+      renderDriverQueue(data.submissions, token);
+    } catch {
+      document.getElementById('dvQueueNote').textContent = 'Could not load the review queue.';
+    }
+  }
+
+  function renderDriverQueue(submissions, token) {
+    document.getElementById('dvQueueNote').textContent = submissions.length
+      ? submissions.length + ' pending submission(s).'
+      : 'No pending submissions.';
+    const body = document.querySelector('#dvQueueTable tbody');
+    body.innerHTML = submissions.map(function (s) {
+      return '<tr data-id="' + s.id + '">' +
+        '<td>' + escapeHtml(s.applicant_name) + '<br><span class="muted">' + escapeHtml(s.applicant_email) + '</span></td>' +
+        '<td>' + escapeHtml(s.license_number) + (s.license_expiry ? '<br><span class="muted">exp ' + escapeHtml(s.license_expiry) + '</span>' : '') + '</td>' +
+        '<td>' + escapeHtml(s.vehicle_make_model || '—') + '<br><span class="muted">' + escapeHtml(s.vehicle_plate) + '</span></td>' +
+        '<td>' + new Date(s.submitted_at).toLocaleString() + '</td>' +
+        '<td><button class="btn-tiny btn-approve" data-action="approve">Approve</button><button class="btn-tiny btn-reject" data-action="reject">Reject</button></td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="5" style="color:#9490ab;">No pending submissions.</td></tr>';
+
+    body.querySelectorAll('button[data-action]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        const id = btn.closest('tr').getAttribute('data-id');
+        const action = btn.getAttribute('data-action');
+        let reviewNote = null;
+        if (action === 'reject') {
+          reviewNote = prompt('Reason for rejecting this submission (shown to the driver):');
+          if (!reviewNote || !reviewNote.trim()) return;
+        }
+        btn.disabled = true;
+        try {
+          const res = await fetch('/api/driver-verification/' + id + '/' + action, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+            body: JSON.stringify({ reviewerName: reviewerName(), reviewNote: reviewNote }),
+          });
+          if (!res.ok) { alert('Could not ' + action + ' this submission.'); btn.disabled = false; return; }
+          loadDriverVerification(token);
+        } catch {
+          alert('Could not reach the API.');
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  document.getElementById('dvEnforceToggle').addEventListener('change', async function (e) {
+    const token = getToken();
+    if (!token) return;
+    const next = e.target.checked;
+    e.target.disabled = true;
+    try {
+      const res = await fetch('/api/driver-verification/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ enforced: next }),
+      });
+      if (!res.ok) { e.target.checked = !next; alert('Could not update the setting.'); }
+      else {
+        document.getElementById('dvEnforceLabel').textContent = next
+          ? 'Enforced — unverified drivers are blocked from posting offers.'
+          : 'Off — driver verification is tracked but never blocks posting yet.';
+      }
+    } catch {
+      e.target.checked = !next;
+      alert('Could not reach the API.');
+    } finally {
+      e.target.disabled = false;
+    }
+  });
 
   function showGate(msg) {
     gate.style.display = 'block';

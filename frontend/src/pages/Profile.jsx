@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
 import PushNotificationToggle from '../components/PushNotificationToggle.jsx';
+import DriverVerificationCard from '../components/DriverVerificationCard.jsx';
 
 const WEIGHT_KEYS = ['proximity', 'timing', 'price', 'preferences', 'reliability'];
 
@@ -152,6 +153,10 @@ export default function Profile() {
           </button>
         </div>
       </form>
+
+      <div style={{ marginTop: 20 }}>
+        <DriverVerificationCard />
+      </div>
     </div>
   );
 }

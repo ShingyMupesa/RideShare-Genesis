@@ -109,6 +109,11 @@ export const api = {
   getVapidPublicKey: () => request('/push/vapid-public-key', { auth: false }),
   subscribePush: (subscription) => request('/push/subscribe', { method: 'POST', body: subscription }),
   unsubscribePush: (endpoint) => request('/push/unsubscribe', { method: 'POST', body: { endpoint } }),
+
+  // Driver verification
+  driverVerificationSettings: () => request('/driver-verification/settings', { auth: false }),
+  myDriverVerification: () => request('/driver-verification/me'),
+  submitDriverVerification: (payload) => request('/driver-verification', { method: 'POST', body: payload }),
 };
 
 export { ApiError };
