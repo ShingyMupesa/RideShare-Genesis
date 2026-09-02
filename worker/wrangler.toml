@@ -55,10 +55,10 @@ PLATFORM_COMMISSION_PCT = "0"
 # key (and the matching sk_live_ secret) only when actually taking real
 # payments.
 STRIPE_PUBLISHABLE_KEY = "pk_test_51U3eBgAinwPSkE66HuIIknHlHgDp5qulB9MilDNO6cMSbcw3bZNlpDQBiVmdNrUVhWObJq8qWAOvSS85bLjHXjm600ICmVfmsJ"
-# Resend's shared onboarding@resend.dev sender works without verifying a
-# domain, but delivery is more restricted than a verified sender — verify
-# your own domain in Resend for reliable delivery to real users.
-EMAIL_FROM = "RideShare Genesis <onboarding@resend.dev>"
+# ridesharegenesis.app is verified in Resend (SPF/DKIM added to Cloudflare
+# DNS) — sending from it directly rather than Resend's shared sandbox
+# sender means reliable delivery to real users, not just test addresses.
+EMAIL_FROM = "RideShare Genesis <no-reply@ridesharegenesis.app>"
 # The VAPID public key is not secret by design (it's handed to every
 # browser that subscribes) — safe to expose, safe to commit. The matching
 # private key is a secret (see below). Without both set, push notifications
