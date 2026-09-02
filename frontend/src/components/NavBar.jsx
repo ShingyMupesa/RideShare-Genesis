@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const links = [
+  { to: '/browse', label: 'Browse' },
   { to: '/find', label: 'Find a Journey' },
   { to: '/offer', label: 'Offer a Journey' },
   { to: '/my-journeys', label: 'My Journeys' },
@@ -15,7 +16,7 @@ export default function NavBar() {
   return (
     <header className="navbar">
       <NavLink to="/" className="navbar__brand">
-        <span className="navbar__dot" aria-hidden="true" />
+        <img src="/brand-mark.png" alt="" width="28" height="28" className="navbar__mark" />
         RideShare Genesis
       </NavLink>
       <nav className="navbar__links">

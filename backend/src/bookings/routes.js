@@ -3,8 +3,11 @@ import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler, BadRequest, Forbidden, NotFound, Conflict } from '../utils/errors.js';
 import * as Bookings from './repository.js';
 import * as Journeys from '../journeys/repository.js';
+import { getProfile } from '../users/repository.js';
 import { getMatchById } from '../matching/engine.js';
 import { recordAuditEvent } from '../governance/auditLog.js';
+import { estimateBookingImpact } from '../utils/impact.js';
+import { notifyUser } from '../push/notify.js';
 
 export const router = Router();
 
@@ -47,6 +50,7 @@ router.post(
       metadata: { journeyId, seats, status: booking.status },
     });
 
+    await notifyUser(journey.ownerId);
     res.status(201).json({ booking });
   })
 );
@@ -70,11 +74,22 @@ router.get(
     if (booking.passengerId !== req.user.id && journey.ownerId !== req.user.id) {
       throw Forbidden('You do not have access to this booking');
     }
-    res.json({ booking, journey });
+    // Once a booking exists, both parties are past the point of matching and
+    // into actually settling up — showing each other's preferred payment
+    // method here lets them coordinate (e.g. know upfront a driver is
+    // cash-only) instead of discovering it mid-trip.
+    const driverProfile = getProfile(journey.ownerId);
+    const passengerProfile = getProfile(booking.passengerId);
+    res.json({
+      booking,
+      journey,
+      driverPaymentMethod: driverProfile?.preferences?.payment_method || null,
+      passengerPaymentMethod: passengerProfile?.preferences?.payment_method || null,
+    });
   })
 );
 
-function transitionHandler(nextStatus, { requireOwner = false, requirePassenger = false, seatEffect = null } = {}) {
+function transitionHandler(nextStatus, { requireOwner = false, requirePassenger = false, seatEffect = null, notify = null } = {}) {
   return asyncHandler(async (req, res) => {
     const booking = Bookings.getBookingById(req.params.id);
     if (!booking) throw NotFound('Booking not found');
@@ -102,6 +117,16 @@ function transitionHandler(nextStatus, { requireOwner = false, requirePassenger 
       Journeys.restoreSeats(journey.id, booking.seats);
     }
 
+    if (nextStatus === 'COMPLETED') {
+      const impact = estimateBookingImpact({
+        origin: journey.origin,
+        destination: journey.destination,
+        seats: booking.seats,
+        vehicleType: journey.vehicleType,
+      });
+      updated = Bookings.setBookingImpact(booking.id, impact);
+    }
+
     recordAuditEvent({
       actorId: req.user.id,
       eventType: 'booking.status_changed',
@@ -110,15 +135,25 @@ function transitionHandler(nextStatus, { requireOwner = false, requirePassenger 
       metadata: { from: booking.status, to: nextStatus },
     });
 
+    if (notify) await notifyUser(notify(booking, journey));
+
     res.json({ booking: updated });
   });
 }
 
 // Passenger confirms intent to proceed; seats are reserved at this point.
-router.post('/:id/request', requireAuth, transitionHandler('BOOKING_REQUESTED', { requirePassenger: true, seatEffect: 'decrement' }));
+router.post(
+  '/:id/request',
+  requireAuth,
+  transitionHandler('BOOKING_REQUESTED', { requirePassenger: true, seatEffect: 'decrement', notify: (_booking, journey) => journey.ownerId })
+);
 
 // Journey owner (driver) confirms the booking.
-router.post('/:id/confirm', requireAuth, transitionHandler('CONFIRMED', { requireOwner: true }));
+router.post(
+  '/:id/confirm',
+  requireAuth,
+  transitionHandler('CONFIRMED', { requireOwner: true, notify: (booking) => booking.passengerId })
+);
 
 // Trip begins.
 router.post('/:id/start', requireAuth, transitionHandler('IN_PROGRESS', {}));

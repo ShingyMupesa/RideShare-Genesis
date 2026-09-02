@@ -5,9 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RideShare Genesis</title>
     <meta name="description" content="Genesis — a human-centred, explainable ridesharing platform." />
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#5b4cff" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Genesis" />
   </head>
   <body>
     <div id="root"></div>
+    <!-- Loaded directly per Stripe's own guidance (never bundled/self-hosted) -->
+    <script src="https://js.stripe.com/v3/"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

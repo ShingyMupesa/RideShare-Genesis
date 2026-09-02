@@ -7,10 +7,10 @@ export function createJourney(ownerId, input) {
     `INSERT INTO journeys (
       id, owner_id, type, origin_label, origin_lat, origin_lng,
       destination_label, destination_lat, destination_lng, departure_time,
-      seats_total, seats_available, price_per_seat, currency, preferences_json
+      seats_total, seats_available, price_per_seat, currency, preferences_json, vehicle_type
     ) VALUES (@id, @owner_id, @type, @origin_label, @origin_lat, @origin_lng,
       @destination_label, @destination_lat, @destination_lng, @departure_time,
-      @seats_total, @seats_available, @price_per_seat, @currency, @preferences_json)`
+      @seats_total, @seats_available, @price_per_seat, @currency, @preferences_json, @vehicle_type)`
   ).run({
     id,
     owner_id: ownerId,
@@ -25,34 +25,38 @@ export function createJourney(ownerId, input) {
     seats_total: input.seats ?? 1,
     seats_available: input.seats ?? 1,
     price_per_seat: input.pricePerSeat ?? 0,
-    currency: input.currency ?? 'USD',
+    currency: input.currency.toUpperCase(),
     preferences_json: JSON.stringify(input.preferences ?? {}),
+    vehicle_type: input.type === 'offer' ? input.vehicleType ?? null : null,
   });
   return getJourneyById(id);
 }
 
+const SELECT_JOURNEY = `SELECT j.*, p.driver_verification_status AS owner_driver_verification_status
+  FROM journeys j LEFT JOIN profiles p ON p.user_id = j.owner_id`;
+
 export function getJourneyById(id) {
-  return deserialize(db.prepare(`SELECT * FROM journeys WHERE id = ?`).get(id));
+  return deserialize(db.prepare(`${SELECT_JOURNEY} WHERE j.id = ?`).get(id));
 }
 
 export function listJourneys({ type, status = 'active', ownerId } = {}) {
   const clauses = [];
   const params = {};
   if (type) {
-    clauses.push('type = @type');
+    clauses.push('j.type = @type');
     params.type = type;
   }
   if (status) {
-    clauses.push('status = @status');
+    clauses.push('j.status = @status');
     params.status = status;
   }
   if (ownerId) {
-    clauses.push('owner_id = @ownerId');
+    clauses.push('j.owner_id = @ownerId');
     params.ownerId = ownerId;
   }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   return db
-    .prepare(`SELECT * FROM journeys ${where} ORDER BY departure_time ASC`)
+    .prepare(`${SELECT_JOURNEY} ${where} ORDER BY j.departure_time ASC`)
     .all(params)
     .map(deserialize);
 }
@@ -98,7 +102,12 @@ function deserialize(row) {
     pricePerSeat: row.price_per_seat,
     currency: row.currency,
     preferences: JSON.parse(row.preferences_json),
+    vehicleType: row.vehicle_type,
     status: row.status,
+    // Only meaningful for `offer` journeys — surfaced so the frontend can
+    // render a "Verified Driver" badge on offer cards without a second
+    // lookup per journey.
+    ownerDriverVerified: row.owner_driver_verification_status === 'verified',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

@@ -1,0 +1,91 @@
+name = "rideshare-genesis"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# The Worker is the origin for both — Cloudflare provisions DNS and the SSL
+# certificate automatically since the zone lives in this same account
+# (registered via Cloudflare Registrar). workers.dev keeps working alongside
+# these, so nothing that already links the old URL breaks.
+[[routes]]
+pattern = "ridesharegenesis.app"
+custom_domain = true
+
+[[routes]]
+pattern = "www.ridesharegenesis.app"
+custom_domain = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "rideshare-genesis"
+database_id = "72ff4368-4de1-4df5-b540-e3d576fd1727"
+
+[[durable_objects.bindings]]
+name = "BOOKING_ROOMS"
+class_name = "BookingRoom"
+
+# R2 isn't enabled on this Cloudflare account (it needs a one-time opt-in in
+# the dashboard), so driver-verification document photos use Workers KV
+# instead — a 25 MiB per-value limit is plenty for a compressed ID photo.
+# If R2 is enabled later, this is a one-file swap (src/lib/driverDocs.js)
+# with no schema change, since the DB only ever stores an opaque key.
+[[kv_namespaces]]
+binding = "DRIVER_DOCS"
+id = "973b85361f5a4953b1f1438ec4a7305b"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BookingRoom"]
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/ws/*", "/admin*"]
+
+[vars]
+CLIENT_ORIGIN = "*"
+PAYMENTS_MODE = "sandbox"
+JWT_EXPIRES_IN_SECONDS = "604800"
+# Platform commission, as a percent (e.g. "10" = 10%). Kept at 0 for the
+# early-bird period; the rate actually charged is stored per-payment, so
+# flipping this later only affects payments made after the change.
+PLATFORM_COMMISSION_PCT = "0"
+# Stripe's publishable key is not secret by Stripe's own design — safe to
+# expose client-side, safe to commit. Test-mode key; swap for a pk_live_
+# key (and the matching sk_live_ secret) only when actually taking real
+# payments.
+STRIPE_PUBLISHABLE_KEY = "pk_test_51U3eBgAinwPSkE66HuIIknHlHgDp5qulB9MilDNO6cMSbcw3bZNlpDQBiVmdNrUVhWObJq8qWAOvSS85bLjHXjm600ICmVfmsJ"
+# ridesharegenesis.app is verified in Resend (SPF/DKIM added to Cloudflare
+# DNS) — sending from it directly rather than Resend's shared sandbox
+# sender means reliable delivery to real users, not just test addresses.
+EMAIL_FROM = "RideShare Genesis <no-reply@ridesharegenesis.app>"
+# The VAPID public key is not secret by design (it's handed to every
+# browser that subscribes) — safe to expose, safe to commit. The matching
+# private key is a secret (see below). Without both set, push notifications
+# silently no-op — nothing else breaks.
+VAPID_PUBLIC_KEY = "BHVBce2nZxnVMFoP6scjXebdMCUmjqh6pHFTNYMSVcXrDGdbQag8RdkhDsZG1oR47qyPFnDI7by3U6yQfU0JDJg"
+# sandbox | production — always start with sandbox. Not secret on its own,
+# but the credentials below only mean anything once this is set correctly.
+MPESA_ENV = "sandbox"
+
+# Secrets (set via `wrangler secret put <NAME>`, or the dashboard's
+# Settings -> Variables and Secrets, never committed here):
+#   JWT_SECRET         - required, no insecure default (see src/lib/auth.js)
+#   ANTHROPIC_API_KEY   - optional, enables AI Gateway enrichment
+#   ADMIN_TOKEN          - required for /admin and /api/tracking/stats (see src/lib/adminAuth.js)
+#   STRIPE_SECRET_KEY     - required to enable the "Card (Stripe)" payment option (see src/lib/stripe.js).
+#                           Test-mode key (sk_test_...) pairs with the STRIPE_PUBLISHABLE_KEY above.
+#   RESEND_API_KEY         - required to actually send "forgot password" emails (see src/lib/resend.js).
+#                            Without it, a reset link is generated but only logged server-side —
+#                            nothing breaks, "forgot password" just isn't self-service yet.
+#   VAPID_PRIVATE_KEY_JWK   - required (with VAPID_PUBLIC_KEY above) to enable push notifications
+#                             (see src/lib/webpush.js). A JSON Web Key string, e.g.
+#                             {"key_ops":["sign"],"ext":true,"kty":"EC","x":"...","y":"...","crv":"P-256","d":"..."}.
+#                             Without it, subscribing silently no-ops server-side — nothing breaks.
+#   VAPID_SUBJECT           - optional, defaults to "mailto:mupesashingy@gmail.com" (see src/lib/notify.js)
+#   MPESA_CONSUMER_KEY      - required (with the three below) to enable the "M-Pesa" payment option
+#   MPESA_CONSUMER_SECRET     (see src/lib/mpesa.js). Get free sandbox credentials at
+#   MPESA_SHORTCODE           https://developer.safaricom.co.ke. Without these, /payments/methods
+#   MPESA_PASSKEY              reports mpesa as disabled and the frontend hides the option.
+#   MPESA_CALLBACK_BASE_URL - optional; only needed if the Worker's own request Host header
+#                             somehow isn't its true public origin. Leave unset normally.

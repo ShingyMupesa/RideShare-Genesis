@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ShareInstall from '../components/ShareInstall.jsx';
 
 const PRINCIPLES = [
   {
@@ -27,6 +28,7 @@ export default function Welcome() {
   return (
     <div>
       <section className="hero">
+        <img className="hero-logo" src="/brand-logo.png" alt="RideShare Genesis logo" width="96" height="96" />
         <p className="eyebrow">Genesis V1</p>
         <h1>Ridesharing that explains itself.</h1>
         <p>
@@ -41,6 +43,7 @@ export default function Welcome() {
             Offer a Journey
           </Link>
         </div>
+        <ShareInstall />
       </section>
 
       <section>

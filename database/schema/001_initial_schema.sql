@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS journeys (
   currency         TEXT NOT NULL DEFAULT 'USD',
   preferences_json TEXT NOT NULL DEFAULT '{}', -- journey-specific overrides of profile preferences
   status           TEXT NOT NULL DEFAULT 'active', -- active | full | cancelled | completed
+  vehicle_type     TEXT, -- electric | hybrid | petrol | diesel | other (offer journeys only; added in 0002)
   created_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   updated_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
@@ -79,6 +80,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   -- REQUESTED -> MATCHED -> BOOKING_REQUESTED -> CONFIRMED -> IN_PROGRESS -> COMPLETED
   -- any state may transition to CANCELLED
   status_history_json TEXT NOT NULL DEFAULT '[]',
+  impact_json      TEXT NOT NULL DEFAULT '{}', -- estimated environmental impact, set on completion (added in 0002)
   created_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   updated_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
@@ -96,6 +98,8 @@ CREATE TABLE IF NOT EXISTS payments (
   currency       TEXT NOT NULL DEFAULT 'USD',
   status         TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | AUTHORIZED | CAPTURED | FAILED | REFUNDED
   reference      TEXT,
+  commission_rate   REAL NOT NULL DEFAULT 0, -- platform's cut, as a fraction (0.10 = 10%); rate at time of payment (added in 0003)
+  commission_amount REAL NOT NULL DEFAULT 0, -- amount * commission_rate, deducted from the driver's payout, not added to the rider's fare
   created_at     TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   updated_at     TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
@@ -137,3 +141,28 @@ CREATE TABLE IF NOT EXISTS audit_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_events(entity_type, entity_id);
+
+-- Added in 0004. Only a SHA-256 hash of the token is stored, never the
+-- raw value — the same principle as never storing a plaintext password.
+CREATE TABLE IF NOT EXISTS password_resets (
+  id           TEXT PRIMARY KEY,
+  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash   TEXT NOT NULL,
+  expires_at   TEXT NOT NULL,
+  used_at      TEXT,
+  created_at   TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+);
+CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id);
+CREATE INDEX IF NOT EXISTS idx_password_resets_token_hash ON password_resets(token_hash);
+
+-- Added in 0005. Public, unauthenticated feedback (distinct from the
+-- Safety Centre's login-required "General feedback" report category).
+CREATE TABLE IF NOT EXISTS feedback (
+  id         TEXT PRIMARY KEY,
+  message    TEXT NOT NULL,
+  email      TEXT,
+  page       TEXT,
+  user_id    TEXT,
+  created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+);
+CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);

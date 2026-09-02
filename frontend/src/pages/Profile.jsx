@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
+import PushNotificationToggle from '../components/PushNotificationToggle.jsx';
+import DriverVerificationCard from '../components/DriverVerificationCard.jsx';
 
 const WEIGHT_KEYS = ['proximity', 'timing', 'price', 'preferences', 'reliability'];
 
@@ -107,6 +109,23 @@ export default function Profile() {
               Comfortable with pets
             </label>
           </div>
+          <PushNotificationToggle />
+          <div className="form-field">
+            <label htmlFor="paymentMethod">Preferred payment method</label>
+            <select
+              id="paymentMethod"
+              value={preferences.payment_method || 'card'}
+              onChange={(e) => setPreferences({ ...preferences, payment_method: e.target.value })}
+            >
+              <option value="card">Card</option>
+              <option value="mobile_money">Mobile Money</option>
+              <option value="wallet">Wallet</option>
+              <option value="cash">Cash</option>
+            </select>
+            <p className="muted" style={{ fontSize: '0.8rem' }}>
+              Shown to the other party once a booking is made, so you can both coordinate how you'll settle up.
+            </p>
+          </div>
 
           <h3 style={{ marginTop: 20 }}>Decision DNA weights</h3>
           <p className="muted">Tune how much each factor influences your match scores.</p>
@@ -134,6 +153,10 @@ export default function Profile() {
           </button>
         </div>
       </form>
+
+      <div style={{ marginTop: 20 }}>
+        <DriverVerificationCard />
+      </div>
     </div>
   );
 }

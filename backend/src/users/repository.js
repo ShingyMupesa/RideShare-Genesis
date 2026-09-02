@@ -8,6 +8,7 @@ const DEFAULT_PREFERENCES = {
   pets_ok: true,
   luggage: 'medium',
   gender_pref: 'no_preference',
+  payment_method: 'card', // card | mobile_money | wallet | cash — shown to the other party once a booking exists
 };
 
 const DEFAULT_DECISION_DNA = {
@@ -25,7 +26,7 @@ const DEFAULT_DECISION_DNA = {
 export function createUser({ email, passwordHash, fullName, phone }) {
   const id = newId('user');
   db.prepare(
-    `INSERT INTO users (id, email, password_hash, full_name, phone) VALUES (?, ?, ?, ?, ?)`
+    `INSERT INTO users (id, email, password_hash, full_name, phone, accepted_terms_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).run(id, email, passwordHash, fullName, phone || null);
 
   db.prepare(
@@ -78,6 +79,30 @@ export function updateProfile(userId, { bio, homeCity, preferences, decisionDnaW
   return getProfile(userId);
 }
 
+export function updatePasswordHash(userId, passwordHash) {
+  db.prepare(`UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(passwordHash, userId);
+}
+
+export function createPasswordReset(userId, tokenHash, expiresAt) {
+  const id = newId('reset');
+  db.prepare(
+    `INSERT INTO password_resets (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)`
+  ).run(id, userId, tokenHash, expiresAt);
+  return id;
+}
+
+export function findValidPasswordReset(tokenHash) {
+  return db
+    .prepare(
+      `SELECT * FROM password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP`
+    )
+    .get(tokenHash);
+}
+
+export function markPasswordResetUsed(id) {
+  db.prepare(`UPDATE password_resets SET used_at = CURRENT_TIMESTAMP WHERE id = ?`).run(id);
+}
+
 export function publicUser(user, profile) {
   return {
     id: user.id,
@@ -93,6 +118,8 @@ export function publicUser(user, profile) {
           homeCity: profile.home_city,
           verifiedId: !!profile.verified_id,
           verifiedEmail: !!profile.verified_email,
+          driverVerificationStatus: profile.driver_verification_status || 'unverified',
+          driverVerificationUpdatedAt: profile.driver_verification_updated_at || null,
           emergencyContactName: profile.emergency_contact_name,
           emergencyContactPhone: profile.emergency_contact_phone,
           preferences: profile.preferences,

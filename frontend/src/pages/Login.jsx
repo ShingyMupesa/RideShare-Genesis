@@ -1,6 +1,19 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import PasswordField from '../components/PasswordField.jsx';
+
+// Only ever redirect to a path on this same app after login — never trust
+// the post-login destination as an off-origin URL. A path starting with
+// "//" or "/\" can still be interpreted by some browsers as
+// protocol-relative and navigate off-origin despite "looking" relative
+// (the open-redirect shape recent react-router CVEs have flagged), so
+// those are rejected alongside anything that isn't a genuine single-slash
+// relative path.
+function safeRedirectPath(path) {
+  if (typeof path !== 'string') return null;
+  return /^\/(?!\/|\\)/.test(path) ? path : null;
+}
 
 export default function Login() {
   const { login } = useAuth();
@@ -16,7 +29,7 @@ export default function Login() {
     setSubmitting(true);
     try {
       await login(form.email, form.password);
-      navigate(location.state?.from?.pathname || '/my-journeys');
+      navigate(safeRedirectPath(location.state?.from?.pathname) || '/my-journeys');
     } catch (err) {
       setError(err.message || 'Could not log in');
     } finally {
@@ -40,16 +53,19 @@ export default function Login() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
         </div>
-        <div className="form-field">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            required
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-          />
-        </div>
+        <PasswordField
+          id="password"
+          label="Password"
+          required
+          autoComplete="current-password"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+        />
+        <p style={{ marginTop: -6, marginBottom: 14, textAlign: 'right' }}>
+          <Link to="/forgot-password" style={{ fontSize: '0.85rem' }}>
+            Forgot password?
+          </Link>
+        </p>
         <button className="btn btn-primary" type="submit" disabled={submitting} style={{ width: '100%' }}>
           {submitting ? 'Logging in…' : 'Log in'}
         </button>
