@@ -21,7 +21,16 @@ export async function ensureDriverVerificationSchema(db) {
     `CREATE TABLE IF NOT EXISTS driver_verifications (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, full_legal_name TEXT NOT NULL, license_number TEXT NOT NULL, license_expiry TEXT, vehicle_make_model TEXT, vehicle_plate TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', submitted_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP), reviewed_at TEXT, reviewed_by TEXT, review_note TEXT, created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP))`
   );
   await db.exec(`CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP))`);
-  for (const column of ['license_photo_key TEXT', 'license_photo_mime TEXT', 'vehicle_reg_photo_key TEXT', 'vehicle_reg_photo_mime TEXT']) {
+  for (const column of [
+    'license_photo_key TEXT',
+    'license_photo_mime TEXT',
+    'vehicle_reg_photo_key TEXT',
+    'vehicle_reg_photo_mime TEXT',
+    'insurance_policy_number TEXT',
+    'insurance_expiry TEXT',
+    'insurance_photo_key TEXT',
+    'insurance_photo_mime TEXT',
+  ]) {
     try {
       await db.exec(`ALTER TABLE driver_verifications ADD COLUMN ${column}`);
     } catch (err) {
@@ -50,15 +59,27 @@ export async function getSubmissionById(db, id) {
 export async function submitVerification(
   db,
   userId,
-  { fullLegalName, licenseNumber, licenseExpiry, vehicleMakeModel, vehiclePlate, licensePhoto, vehicleRegPhoto }
+  {
+    fullLegalName,
+    licenseNumber,
+    licenseExpiry,
+    vehicleMakeModel,
+    vehiclePlate,
+    licensePhoto,
+    vehicleRegPhoto,
+    insurancePolicyNumber,
+    insuranceExpiry,
+    insurancePhoto,
+  }
 ) {
   const id = newId('drv');
   await db
     .prepare(
       `INSERT INTO driver_verifications (
         id, user_id, full_legal_name, license_number, license_expiry, vehicle_make_model, vehicle_plate,
-        license_photo_key, license_photo_mime, vehicle_reg_photo_key, vehicle_reg_photo_mime, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
+        license_photo_key, license_photo_mime, vehicle_reg_photo_key, vehicle_reg_photo_mime,
+        insurance_policy_number, insurance_expiry, insurance_photo_key, insurance_photo_mime, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
     )
     .bind(
       id,
@@ -71,7 +92,11 @@ export async function submitVerification(
       licensePhoto?.key || null,
       licensePhoto?.mime || null,
       vehicleRegPhoto?.key || null,
-      vehicleRegPhoto?.mime || null
+      vehicleRegPhoto?.mime || null,
+      insurancePolicyNumber || null,
+      insuranceExpiry || null,
+      insurancePhoto?.key || null,
+      insurancePhoto?.mime || null
     )
     .run();
   await db

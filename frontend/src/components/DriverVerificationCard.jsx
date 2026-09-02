@@ -11,6 +11,9 @@ const EMPTY_FORM = {
   vehiclePlate: '',
   licensePhoto: null,
   vehicleRegPhoto: null,
+  insurancePolicyNumber: '',
+  insuranceExpiry: '',
+  insurancePhoto: null,
 };
 
 function PhotoField({ id, label, required, value, onChange, existingPhotoUrl }) {
@@ -60,7 +63,7 @@ export default function DriverVerificationCard() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [existingPhotoUrls, setExistingPhotoUrls] = useState({ license: null, vehicleReg: null });
+  const [existingPhotoUrls, setExistingPhotoUrls] = useState({ license: null, vehicleReg: null, insurance: null });
   const createdObjectUrls = useRef([]);
 
   async function load() {
@@ -76,9 +79,12 @@ export default function DriverVerificationCard() {
           licenseExpiry: data.submission.license_expiry || '',
           vehicleMakeModel: data.submission.vehicle_make_model || '',
           vehiclePlate: data.submission.vehicle_plate || '',
+          insurancePolicyNumber: data.submission.insurance_policy_number || '',
+          insuranceExpiry: data.submission.insurance_expiry || '',
         }));
         loadExistingPhoto(data.submission.id, 'license', data.submission.license_photo_key);
         loadExistingPhoto(data.submission.id, 'vehicleReg', data.submission.vehicle_reg_photo_key);
+        loadExistingPhoto(data.submission.id, 'insurance', data.submission.insurance_photo_key);
       }
     } catch {
       // non-fatal — the rest of the profile page still works
@@ -114,10 +120,14 @@ export default function DriverVerificationCard() {
       setError("A photo of your driver's license is required");
       return;
     }
+    if (!form.insurancePhoto) {
+      setError('A photo of your vehicle insurance is required');
+      return;
+    }
     setSubmitting(true);
     try {
       await api.submitDriverVerification(form);
-      setForm((prev) => ({ ...prev, licensePhoto: null, vehicleRegPhoto: null }));
+      setForm((prev) => ({ ...prev, licensePhoto: null, vehicleRegPhoto: null, insurancePhoto: null }));
       await load();
     } catch (err) {
       setError(err.message || 'Could not submit driver verification');
@@ -134,9 +144,9 @@ export default function DriverVerificationCard() {
     <div className="card">
       <h3>Driver verification</h3>
       <p className="muted" style={{ fontSize: '0.85rem' }}>
-        A one-time check so riders can trust who's behind the wheel. Submit a photo of your license (plus your vehicle
-        registration, if you have it) and an admin will review them — this doesn't block you from offering journeys yet, but
-        it will once the platform turns enforcement on.
+        A one-time check so riders can trust who's behind the wheel. Submit photos of your license and vehicle insurance
+        (plus your vehicle registration, if you have it) and an admin will review them — this doesn't block you from
+        offering journeys yet, but it will once the platform turns enforcement on.
       </p>
 
       {status === 'verified' && (
@@ -220,6 +230,31 @@ export default function DriverVerificationCard() {
               value={form.vehicleRegPhoto}
               existingPhotoUrl={existingPhotoUrls.vehicleReg}
               onChange={(dataUrl) => setForm((prev) => ({ ...prev, vehicleRegPhoto: dataUrl }))}
+            />
+            <div className="form-field">
+              <label htmlFor="dvInsurancePolicy">Insurance policy number (optional)</label>
+              <input
+                id="dvInsurancePolicy"
+                value={form.insurancePolicyNumber}
+                onChange={(e) => setForm({ ...form, insurancePolicyNumber: e.target.value })}
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="dvInsuranceExpiry">Insurance expiry (optional)</label>
+              <input
+                id="dvInsuranceExpiry"
+                type="date"
+                value={form.insuranceExpiry || ''}
+                onChange={(e) => setForm({ ...form, insuranceExpiry: e.target.value })}
+              />
+            </div>
+            <PhotoField
+              id="dvInsurancePhoto"
+              label="Photo of vehicle insurance"
+              required
+              value={form.insurancePhoto}
+              existingPhotoUrl={existingPhotoUrls.insurance}
+              onChange={(dataUrl) => setForm((prev) => ({ ...prev, insurancePhoto: dataUrl }))}
             />
             {error && <p className="alert alert-error">{error}</p>}
             <button className="btn btn-primary btn-sm" type="submit" disabled={submitting}>

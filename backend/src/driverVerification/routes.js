@@ -62,17 +62,31 @@ router.post(
     if (current?.status === 'verified') throw Conflict('You are already a verified driver');
     if (current?.status === 'pending') throw Conflict('Your driver verification is already under review');
 
-    const { fullLegalName, licenseNumber, licenseExpiry, vehicleMakeModel, vehiclePlate, licensePhoto, vehicleRegPhoto } = req.body || {};
+    const {
+      fullLegalName,
+      licenseNumber,
+      licenseExpiry,
+      vehicleMakeModel,
+      vehiclePlate,
+      licensePhoto,
+      vehicleRegPhoto,
+      insurancePolicyNumber,
+      insuranceExpiry,
+      insurancePhoto,
+    } = req.body || {};
     if (!fullLegalName?.trim()) throw BadRequest('fullLegalName is required');
     if (!licenseNumber?.trim()) throw BadRequest('licenseNumber is required');
     if (!vehiclePlate?.trim()) throw BadRequest('vehiclePlate is required');
-    if (!licensePhoto) throw BadRequest('A photo of your driver\'s license is required');
+    if (!licensePhoto) throw BadRequest("A photo of your driver's license is required");
+    if (!insurancePhoto) throw BadRequest('A photo of your vehicle insurance is required');
 
     let storedLicensePhoto;
     let storedVehicleRegPhoto;
+    let storedInsurancePhoto;
     try {
-      storedLicensePhoto = storePhoto(licensePhoto, "License photo");
+      storedLicensePhoto = storePhoto(licensePhoto, 'License photo');
       if (vehicleRegPhoto) storedVehicleRegPhoto = storePhoto(vehicleRegPhoto, 'Vehicle registration photo');
+      storedInsurancePhoto = storePhoto(insurancePhoto, 'Insurance photo');
     } catch (err) {
       throw BadRequest(err.message);
     }
@@ -85,6 +99,9 @@ router.post(
       vehiclePlate: vehiclePlate.trim(),
       licensePhoto: storedLicensePhoto,
       vehicleRegPhoto: storedVehicleRegPhoto,
+      insurancePolicyNumber: insurancePolicyNumber?.trim() || null,
+      insuranceExpiry: insuranceExpiry || null,
+      insurancePhoto: storedInsurancePhoto,
     });
 
     recordAuditEvent({ actorId: req.user.id, eventType: 'driver_verification.submitted', entityType: 'driver_verification', entityId: submission.id });
@@ -95,6 +112,7 @@ router.post(
 const PHOTO_FIELDS = {
   license: { key: 'license_photo_key', mime: 'license_photo_mime' },
   vehicleReg: { key: 'vehicle_reg_photo_key', mime: 'vehicle_reg_photo_mime' },
+  insurance: { key: 'insurance_photo_key', mime: 'insurance_photo_mime' },
 };
 
 router.get(
@@ -106,7 +124,7 @@ router.get(
     if (!canViewSubmission(req, submission)) throw Forbidden('You do not have access to this document');
 
     const fields = PHOTO_FIELDS[req.params.which];
-    if (!fields) throw BadRequest('which must be "license" or "vehicleReg"');
+    if (!fields) throw BadRequest('which must be "license", "vehicleReg", or "insurance"');
     const key = submission[fields.key];
     if (!key) throw NotFound('No photo on file for this field');
 

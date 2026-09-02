@@ -185,15 +185,20 @@ default) — the feature ships fully built but inert, exactly as designed,
 until an admin turns enforcement on (planned for once commission/
 monetisation goes live).
 
-**What "verified" means today (Tier 1 — shipped):** the driver submits a
-real photo of their license (required) and vehicle registration
-(optional), not just typed-in text. The server validates each photo's
-magic bytes actually match a genuine JPEG/PNG/WEBP before storing it (see
-`imageValidation.js` in each runtime) — so a renamed non-image file is
-rejected — but nothing OCRs the document or cross-checks it against an
-issuing authority. An admin looks at the photo and the typed fields, then
-approves or rejects by human judgement. That is a real, meaningful step up
-from a text-only form, but it is still not independent verification.
+**What "verified" means today (Tier 1 — shipped):** the driver submits real
+photos of their license and vehicle insurance (both required), plus vehicle
+registration (optional), not just typed-in text. The server validates each
+photo's magic bytes actually match a genuine JPEG/PNG/WEBP before storing
+it (see `imageValidation.js` in each runtime) — so a renamed non-image file
+is rejected — but nothing OCRs the document or cross-checks it against an
+issuing authority. An admin looks at the photos and the typed fields
+(including the insurance policy number/expiry, if given), then approves or
+rejects by human judgement. That is a real, meaningful step up from a
+text-only form, but it is still not independent verification — and whether
+insurance is *legally* mandatory for this platform still depends on the
+carpooling-vs-e-hailing classification a lawyer needs to confirm; collecting
+it doesn't presuppose that answer, it just means the platform can already
+act on it either way once known.
 
 **What's planned (Tier 2/3 — deferred, revenue-gated):** once the 10%
 platform commission is actually in effect, add a paid ID-verification API
@@ -209,8 +214,8 @@ without a redesign when that's funded.
 | GET    | `/driver-verification/settings`           | no           | `{ enforced }` — whether posting an offer currently requires a verified driver. |
 | POST   | `/driver-verification/settings`           | yes (admin)* | `{ enforced: boolean }` — the toggle switch on the admin dashboard. |
 | GET    | `/driver-verification/me`                 | yes          | `{ status, updatedAt, submission }` for the current user. `status` is one of `unverified`\|`pending`\|`verified`\|`rejected`. |
-| POST   | `/driver-verification`                    | yes          | Submit `{ fullLegalName, licenseNumber, licenseExpiry?, vehicleMakeModel?, vehiclePlate, licensePhoto, vehicleRegPhoto? }` for review. `licensePhoto`/`vehicleRegPhoto` are `data:image/...;base64,...` URLs (JPEG/PNG/WEBP, max 5MB decoded) — `licensePhoto` is required. `409` if already `verified` or `pending`; a `rejected` driver may resubmit. |
-| GET    | `/driver-verification/:id/photo/:which`   | yes (owner or admin) | Streams the raw photo bytes. `:which` is `license` or `vehicleReg`. Never publicly accessible — `404` if that field has no photo, `403` if the caller is neither the submission's owner nor an admin. |
+| POST   | `/driver-verification`                    | yes          | Submit `{ fullLegalName, licenseNumber, licenseExpiry?, vehicleMakeModel?, vehiclePlate, licensePhoto, vehicleRegPhoto?, insurancePolicyNumber?, insuranceExpiry?, insurancePhoto }` for review. `licensePhoto`/`vehicleRegPhoto`/`insurancePhoto` are `data:image/...;base64,...` URLs (JPEG/PNG/WEBP, max 5MB decoded) — `licensePhoto` and `insurancePhoto` are required, `vehicleRegPhoto` is optional. `409` if already `verified` or `pending`; a `rejected` driver may resubmit. |
+| GET    | `/driver-verification/:id/photo/:which`   | yes (owner or admin) | Streams the raw photo bytes. `:which` is `license`, `vehicleReg`, or `insurance`. Never publicly accessible — `404` if that field has no photo, `403` if the caller is neither the submission's owner nor an admin. |
 | GET    | `/driver-verification/queue`              | yes (admin)* | Pending submissions (`?status=` to see others), newest-last. |
 | POST   | `/driver-verification/:id/approve`        | yes (admin)* | Marks the submission (and the driver's profile) `verified`. Sends a push notification to the driver if they've subscribed. |
 | POST   | `/driver-verification/:id/reject`         | yes (admin)* | `{ reviewNote }` (required — shown to the driver) → marks `rejected`. Also notifies the driver. |

@@ -12,6 +12,7 @@ export const driverVerification = new Hono();
 const PHOTO_FIELDS = {
   license: ['license_photo_key', 'license_photo_mime'],
   vehicleReg: ['vehicle_reg_photo_key', 'vehicle_reg_photo_mime'],
+  insurance: ['insurance_photo_key', 'insurance_photo_mime'],
 };
 
 // Public: the frontend needs to know whether enforcement is on before it
@@ -62,17 +63,31 @@ driverVerification.post('/', requireAuth, async (c) => {
   if (current?.status === 'pending') throw Conflict('Your driver verification is already under review');
 
   const body = await c.req.json().catch(() => ({}));
-  const { fullLegalName, licenseNumber, licenseExpiry, vehicleMakeModel, vehiclePlate, licensePhoto, vehicleRegPhoto } = body;
+  const {
+    fullLegalName,
+    licenseNumber,
+    licenseExpiry,
+    vehicleMakeModel,
+    vehiclePlate,
+    licensePhoto,
+    vehicleRegPhoto,
+    insurancePolicyNumber,
+    insuranceExpiry,
+    insurancePhoto,
+  } = body;
   if (!fullLegalName?.trim()) throw BadRequest('fullLegalName is required');
   if (!licenseNumber?.trim()) throw BadRequest('licenseNumber is required');
   if (!vehiclePlate?.trim()) throw BadRequest('vehiclePlate is required');
   if (!licensePhoto) throw BadRequest("A photo of your driver's license is required");
+  if (!insurancePhoto) throw BadRequest('A photo of your vehicle insurance is required');
 
   let storedLicensePhoto;
   let storedVehicleRegPhoto;
+  let storedInsurancePhoto;
   try {
     storedLicensePhoto = await storePhoto(c.env, licensePhoto, 'License photo');
     if (vehicleRegPhoto) storedVehicleRegPhoto = await storePhoto(c.env, vehicleRegPhoto, 'Vehicle registration photo');
+    storedInsurancePhoto = await storePhoto(c.env, insurancePhoto, 'Insurance photo');
   } catch (err) {
     throw BadRequest(err.message);
   }
@@ -85,6 +100,9 @@ driverVerification.post('/', requireAuth, async (c) => {
     vehiclePlate: vehiclePlate.trim(),
     licensePhoto: storedLicensePhoto,
     vehicleRegPhoto: storedVehicleRegPhoto,
+    insurancePolicyNumber: insurancePolicyNumber?.trim() || null,
+    insuranceExpiry: insuranceExpiry || null,
+    insurancePhoto: storedInsurancePhoto,
   });
 
   await recordAuditEvent(db, { actorId: authUser.id, eventType: 'driver_verification.submitted', entityType: 'driver_verification', entityId: submission.id });
@@ -104,7 +122,7 @@ driverVerification.get('/:id/photo/:which', optionalAuth, async (c) => {
   if (!isAdmin && !isOwner) throw Forbidden('You do not have access to this document');
 
   const fields = PHOTO_FIELDS[c.req.param('which')];
-  if (!fields) throw BadRequest('which must be "license" or "vehicleReg"');
+  if (!fields) throw BadRequest('which must be "license", "vehicleReg", or "insurance"');
   const key = submission[fields[0]];
   if (!key) throw NotFound('No photo on file for this field');
 

@@ -9,6 +9,7 @@ import { buildTestApp } from './helpers/testApp.js';
 const VALID_JPEG_BASE64 =
   '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=';
 const VALID_LICENSE_PHOTO = `data:image/jpeg;base64,${VALID_JPEG_BASE64}`;
+const VALID_INSURANCE_PHOTO = VALID_LICENSE_PHOTO; // same fixture bytes, distinct field
 
 describe('driver verification', () => {
   let app;
@@ -93,7 +94,15 @@ describe('driver verification', () => {
     const res = await request(app)
       .post('/api/driver-verification')
       .set('Authorization', `Bearer ${driverToken}`)
-      .send({ fullLegalName: 'Nadia Newdriver', licenseNumber: 'DL-99182', vehiclePlate: 'KAA 123X', licensePhoto: fakePhoto });
+      .send({ fullLegalName: 'Nadia Newdriver', licenseNumber: 'DL-99182', vehiclePlate: 'KAA 123X', licensePhoto: fakePhoto, insurancePhoto: VALID_INSURANCE_PHOTO });
+    assert.equal(res.status, 400);
+  });
+
+  test('rejects a submission with no insurance photo', async () => {
+    const res = await request(app)
+      .post('/api/driver-verification')
+      .set('Authorization', `Bearer ${driverToken}`)
+      .send({ fullLegalName: 'Nadia Newdriver', licenseNumber: 'DL-99182', vehiclePlate: 'KAA 123X', licensePhoto: VALID_LICENSE_PHOTO });
     assert.equal(res.status, 400);
   });
 
@@ -108,6 +117,7 @@ describe('driver verification', () => {
         licenseNumber: 'DL-99182',
         vehiclePlate: 'KAA 123X',
         licensePhoto: `data:image/jpeg;base64,${oversized.toString('base64')}`,
+        insurancePhoto: VALID_INSURANCE_PHOTO,
       });
     assert.equal(res.status, 400);
   });
@@ -129,11 +139,16 @@ describe('driver verification', () => {
         vehicleMakeModel: 'Toyota Prius',
         vehiclePlate: 'KAA 123X',
         licensePhoto: VALID_LICENSE_PHOTO,
+        insurancePolicyNumber: 'INS-55210',
+        insuranceExpiry: '2027-01-01',
+        insurancePhoto: VALID_INSURANCE_PHOTO,
       });
     assert.equal(res.status, 201);
     assert.equal(res.body.submission.status, 'pending');
     assert.ok(res.body.submission.license_photo_key);
     assert.equal(res.body.submission.license_photo_mime, 'image/jpeg');
+    assert.ok(res.body.submission.insurance_photo_key);
+    assert.equal(res.body.submission.insurance_policy_number, 'INS-55210');
     submissionId = res.body.submission.id;
 
     const me = await request(app).get('/api/driver-verification/me').set('Authorization', `Bearer ${driverToken}`);
@@ -165,13 +180,17 @@ describe('driver verification', () => {
     // An admin can also fetch it, for review.
     const asAdmin = await request(app).get(`/api/driver-verification/${submissionId}/photo/license`).set('Authorization', `Bearer ${adminToken}`);
     assert.equal(asAdmin.status, 200);
+
+    const insurance = await request(app).get(`/api/driver-verification/${submissionId}/photo/insurance`).set('Authorization', `Bearer ${driverToken}`);
+    assert.equal(insurance.status, 200);
+    assert.equal(insurance.headers['content-type'], 'image/jpeg');
   });
 
   test('cannot resubmit while a submission is already pending', async () => {
     const res = await request(app)
       .post('/api/driver-verification')
       .set('Authorization', `Bearer ${driverToken}`)
-      .send({ fullLegalName: 'Nadia Newdriver', licenseNumber: 'DL-99182', vehiclePlate: 'KAA 123X', licensePhoto: VALID_LICENSE_PHOTO });
+      .send({ fullLegalName: 'Nadia Newdriver', licenseNumber: 'DL-99182', vehiclePlate: 'KAA 123X', licensePhoto: VALID_LICENSE_PHOTO, insurancePhoto: VALID_INSURANCE_PHOTO });
     assert.equal(res.status, 409);
   });
 
@@ -285,7 +304,7 @@ describe('driver verification', () => {
     const submit = await request(app)
       .post('/api/driver-verification')
       .set('Authorization', `Bearer ${strangerToken}`)
-      .send({ fullLegalName: 'Remy Rejected', licenseNumber: 'DL-00001', vehiclePlate: 'KBB 456Y', licensePhoto: VALID_LICENSE_PHOTO });
+      .send({ fullLegalName: 'Remy Rejected', licenseNumber: 'DL-00001', vehiclePlate: 'KBB 456Y', licensePhoto: VALID_LICENSE_PHOTO, insurancePhoto: VALID_INSURANCE_PHOTO });
     const id = submit.body.submission.id;
 
     const rejectNoNote = await request(app).post(`/api/driver-verification/${id}/reject`).set('Authorization', `Bearer ${adminToken}`).send({});
@@ -306,7 +325,7 @@ describe('driver verification', () => {
     const resubmit = await request(app)
       .post('/api/driver-verification')
       .set('Authorization', `Bearer ${strangerToken}`)
-      .send({ fullLegalName: 'Remy Rejected', licenseNumber: 'DL-00001', vehiclePlate: 'KBB 456Y', licensePhoto: VALID_LICENSE_PHOTO });
+      .send({ fullLegalName: 'Remy Rejected', licenseNumber: 'DL-00001', vehiclePlate: 'KBB 456Y', licensePhoto: VALID_LICENSE_PHOTO, insurancePhoto: VALID_INSURANCE_PHOTO });
     assert.equal(resubmit.status, 201);
   });
 });

@@ -101,7 +101,7 @@ const PAGE = `<!doctype html>
         Flip it green once revenue/commission goes live and driver trust needs to be enforced.
       </p>
       <p class="muted" style="margin-bottom:6px; font-size:0.78rem;">
-        Tier 1 (live): a real license photo, checked to be a genuine image before storage — but reviewed by human judgement, not
+        Tier 1 (live): real license and insurance photos, checked to be genuine images before storage — but reviewed by human judgement, not
         automated ID verification. Tier 2/3 (paid ID-verification API + government license lookup) is planned once the 10%
         commission is in effect.
       </p>
@@ -211,11 +211,14 @@ const PAGE = `<!doctype html>
     body.innerHTML = submissions.map(function (s) {
       const docButtons =
         (s.license_photo_key ? '<button class="btn-tiny" data-view="license" style="background:#3a3750;color:#eceaf5;">License photo</button>' : '<span class="muted">No license photo</span>') +
-        (s.vehicle_reg_photo_key ? '<button class="btn-tiny" data-view="vehicleReg" style="background:#3a3750;color:#eceaf5;">Reg photo</button>' : '');
+        (s.vehicle_reg_photo_key ? '<button class="btn-tiny" data-view="vehicleReg" style="background:#3a3750;color:#eceaf5;">Reg photo</button>' : '') +
+        (s.insurance_photo_key ? '<button class="btn-tiny" data-view="insurance" style="background:#3a3750;color:#eceaf5;">Insurance photo</button>' : '<span class="muted">No insurance photo</span>');
       return '<tr data-id="' + s.id + '">' +
         '<td>' + escapeHtml(s.applicant_name) + '<br><span class="muted">' + escapeHtml(s.applicant_email) + '</span></td>' +
         '<td>' + escapeHtml(s.license_number) + (s.license_expiry ? '<br><span class="muted">exp ' + escapeHtml(s.license_expiry) + '</span>' : '') + '</td>' +
-        '<td>' + escapeHtml(s.vehicle_make_model || '—') + '<br><span class="muted">' + escapeHtml(s.vehicle_plate) + '</span></td>' +
+        '<td>' + escapeHtml(s.vehicle_make_model || '—') + '<br><span class="muted">' + escapeHtml(s.vehicle_plate) + '</span>' +
+          (s.insurance_policy_number ? '<br><span class="muted">ins. ' + escapeHtml(s.insurance_policy_number) + (s.insurance_expiry ? ' (exp ' + escapeHtml(s.insurance_expiry) + ')' : '') + '</span>' : '') +
+        '</td>' +
         '<td>' + docButtons + '</td>' +
         '<td>' + new Date(s.submitted_at).toLocaleString() + '</td>' +
         '<td><button class="btn-tiny btn-approve" data-action="approve">Approve</button><button class="btn-tiny btn-reject" data-action="reject">Reject</button></td>' +
