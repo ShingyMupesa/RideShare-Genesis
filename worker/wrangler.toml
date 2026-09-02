@@ -2,6 +2,18 @@ name = "rideshare-genesis"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
 
+# The Worker is the origin for both — Cloudflare provisions DNS and the SSL
+# certificate automatically since the zone lives in this same account
+# (registered via Cloudflare Registrar). workers.dev keeps working alongside
+# these, so nothing that already links the old URL breaks.
+[[routes]]
+pattern = "ridesharegenesis.app"
+custom_domain = true
+
+[[routes]]
+pattern = "www.ridesharegenesis.app"
+custom_domain = true
+
 [[d1_databases]]
 binding = "DB"
 database_name = "rideshare-genesis"
