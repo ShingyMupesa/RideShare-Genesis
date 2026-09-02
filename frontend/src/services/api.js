@@ -40,6 +40,13 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
   return data;
 }
 
+async function requestBlob(path) {
+  const token = getToken();
+  const res = await fetch(`${BASE_URL}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new ApiError(res.status, 'FETCH_FAILED', 'Could not load this image');
+  return res.blob();
+}
+
 export const api = {
   // Auth / users
   register: (payload) => request('/users/register', { method: 'POST', body: payload, auth: false }),
@@ -114,6 +121,7 @@ export const api = {
   driverVerificationSettings: () => request('/driver-verification/settings', { auth: false }),
   myDriverVerification: () => request('/driver-verification/me'),
   submitDriverVerification: (payload) => request('/driver-verification', { method: 'POST', body: payload }),
+  driverVerificationPhotoBlob: (submissionId, which) => requestBlob(`/driver-verification/${submissionId}/photo/${which}`),
 };
 
 export { ApiError };

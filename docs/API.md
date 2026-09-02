@@ -165,19 +165,38 @@ Real-time delivery uses Socket.IO (`booking:join`, `message:send`,
 ## Driver Verification
 
 A manual, admin-reviewed check a driver completes before their offers carry
-a "Verified Driver" badge. Trust, not automation: nothing here scans a
-document image — an admin reads the submitted details and approves or
-rejects. Whether it actually *blocks* posting is a separate, admin-controlled
-toggle (`driver_verification_enforced`, off by default) — the feature ships
-fully built but inert, exactly as designed, until an admin turns enforcement
-on (planned for once commission/monetisation goes live).
+a "Verified Driver" badge. Whether it actually *blocks* posting is a
+separate, admin-controlled toggle (`driver_verification_enforced`, off by
+default) — the feature ships fully built but inert, exactly as designed,
+until an admin turns enforcement on (planned for once commission/
+monetisation goes live).
+
+**What "verified" means today (Tier 1 — shipped):** the driver submits a
+real photo of their license (required) and vehicle registration
+(optional), not just typed-in text. The server validates each photo's
+magic bytes actually match a genuine JPEG/PNG/WEBP before storing it (see
+`imageValidation.js` in each runtime) — so a renamed non-image file is
+rejected — but nothing OCRs the document or cross-checks it against an
+issuing authority. An admin looks at the photo and the typed fields, then
+approves or rejects by human judgement. That is a real, meaningful step up
+from a text-only form, but it is still not independent verification.
+
+**What's planned (Tier 2/3 — deferred, revenue-gated):** once the 10%
+platform commission is actually in effect, add a paid ID-verification API
+(Stripe Identity, Persona, Onfido, or similar — document + liveness/selfie
+check) and, where available, a direct government license-authority lookup.
+Both require a paid third-party account this project doesn't have yet, so
+they're intentionally not built — the schema and admin queue are already
+shaped to slot a `verification_tier` / external-provider-result field in
+without a redesign when that's funded.
 
 | Method | Path                                    | Auth         | Description                          |
 |--------|-------------------------------------------|--------------|------------------------------------------|
 | GET    | `/driver-verification/settings`           | no           | `{ enforced }` — whether posting an offer currently requires a verified driver. |
 | POST   | `/driver-verification/settings`           | yes (admin)* | `{ enforced: boolean }` — the toggle switch on the admin dashboard. |
 | GET    | `/driver-verification/me`                 | yes          | `{ status, updatedAt, submission }` for the current user. `status` is one of `unverified`\|`pending`\|`verified`\|`rejected`. |
-| POST   | `/driver-verification`                    | yes          | Submit `{ fullLegalName, licenseNumber, licenseExpiry?, vehicleMakeModel?, vehiclePlate }` for review. `409` if already `verified` or `pending`; a `rejected` driver may resubmit. |
+| POST   | `/driver-verification`                    | yes          | Submit `{ fullLegalName, licenseNumber, licenseExpiry?, vehicleMakeModel?, vehiclePlate, licensePhoto, vehicleRegPhoto? }` for review. `licensePhoto`/`vehicleRegPhoto` are `data:image/...;base64,...` URLs (JPEG/PNG/WEBP, max 5MB decoded) — `licensePhoto` is required. `409` if already `verified` or `pending`; a `rejected` driver may resubmit. |
+| GET    | `/driver-verification/:id/photo/:which`   | yes (owner or admin) | Streams the raw photo bytes. `:which` is `license` or `vehicleReg`. Never publicly accessible — `404` if that field has no photo, `403` if the caller is neither the submission's owner nor an admin. |
 | GET    | `/driver-verification/queue`              | yes (admin)* | Pending submissions (`?status=` to see others), newest-last. |
 | POST   | `/driver-verification/:id/approve`        | yes (admin)* | Marks the submission (and the driver's profile) `verified`. Sends a push notification to the driver if they've subscribed. |
 | POST   | `/driver-verification/:id/reject`         | yes (admin)* | `{ reviewNote }` (required — shown to the driver) → marks `rejected`. Also notifies the driver. |
@@ -188,6 +207,14 @@ name into a plain text field, since there's no per-admin login there — it's
 stored as `reviewed_by` for the record); on the Node backend they're gated
 by `role === 'admin'` on the authenticated user, and `reviewed_by` is that
 admin's own user id.
+
+**Storage:** only an opaque key + mime type are stored in the database —
+never the bytes. The Node backend writes photos to local disk
+(`backend/data/driver-docs/`, gitignored); the Workers deployment stores
+them in Workers KV (binding `DRIVER_DOCS`) rather than R2, since R2 isn't
+enabled on this Cloudflare account (it needs a one-time dashboard opt-in) —
+KV's 25MiB per-value limit is comfortably enough for a compressed ID photo,
+and swapping to R2 later only touches `worker/src/lib/driverDocs.js`.
 
 ## Feedback
 

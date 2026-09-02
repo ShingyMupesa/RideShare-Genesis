@@ -11,6 +11,15 @@ database_id = "72ff4368-4de1-4df5-b540-e3d576fd1727"
 name = "BOOKING_ROOMS"
 class_name = "BookingRoom"
 
+# R2 isn't enabled on this Cloudflare account (it needs a one-time opt-in in
+# the dashboard), so driver-verification document photos use Workers KV
+# instead — a 25 MiB per-value limit is plenty for a compressed ID photo.
+# If R2 is enabled later, this is a one-file swap (src/lib/driverDocs.js)
+# with no schema change, since the DB only ever stores an opaque key.
+[[kv_namespaces]]
+binding = "DRIVER_DOCS"
+id = "973b85361f5a4953b1f1438ec4a7305b"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["BookingRoom"]

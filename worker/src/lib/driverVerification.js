@@ -21,6 +21,13 @@ export async function ensureDriverVerificationSchema(db) {
     `CREATE TABLE IF NOT EXISTS driver_verifications (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, full_legal_name TEXT NOT NULL, license_number TEXT NOT NULL, license_expiry TEXT, vehicle_make_model TEXT, vehicle_plate TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', submitted_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP), reviewed_at TEXT, reviewed_by TEXT, review_note TEXT, created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP))`
   );
   await db.exec(`CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP))`);
+  for (const column of ['license_photo_key TEXT', 'license_photo_mime TEXT', 'vehicle_reg_photo_key TEXT', 'vehicle_reg_photo_mime TEXT']) {
+    try {
+      await db.exec(`ALTER TABLE driver_verifications ADD COLUMN ${column}`);
+    } catch (err) {
+      if (!/duplicate column/i.test(err.message || '')) throw err;
+    }
+  }
   ensured = true;
 }
 
@@ -40,14 +47,32 @@ export async function getSubmissionById(db, id) {
   return db.prepare('SELECT * FROM driver_verifications WHERE id = ?').bind(id).first();
 }
 
-export async function submitVerification(db, userId, { fullLegalName, licenseNumber, licenseExpiry, vehicleMakeModel, vehiclePlate }) {
+export async function submitVerification(
+  db,
+  userId,
+  { fullLegalName, licenseNumber, licenseExpiry, vehicleMakeModel, vehiclePlate, licensePhoto, vehicleRegPhoto }
+) {
   const id = newId('drv');
   await db
     .prepare(
-      `INSERT INTO driver_verifications (id, user_id, full_legal_name, license_number, license_expiry, vehicle_make_model, vehicle_plate, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`
+      `INSERT INTO driver_verifications (
+        id, user_id, full_legal_name, license_number, license_expiry, vehicle_make_model, vehicle_plate,
+        license_photo_key, license_photo_mime, vehicle_reg_photo_key, vehicle_reg_photo_mime, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
     )
-    .bind(id, userId, fullLegalName, licenseNumber, licenseExpiry || null, vehicleMakeModel || null, vehiclePlate)
+    .bind(
+      id,
+      userId,
+      fullLegalName,
+      licenseNumber,
+      licenseExpiry || null,
+      vehicleMakeModel || null,
+      vehiclePlate,
+      licensePhoto?.key || null,
+      licensePhoto?.mime || null,
+      vehicleRegPhoto?.key || null,
+      vehicleRegPhoto?.mime || null
+    )
     .run();
   await db
     .prepare(`UPDATE profiles SET driver_verification_status = 'pending', driver_verification_updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`)

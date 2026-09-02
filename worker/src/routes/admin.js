@@ -100,6 +100,11 @@ const PAGE = `<!doctype html>
         Designed and ready, but inert by default — offering a journey never requires verification until this is switched on.
         Flip it green once revenue/commission goes live and driver trust needs to be enforced.
       </p>
+      <p class="muted" style="margin-bottom:6px; font-size:0.78rem;">
+        Tier 1 (live): a real license photo, checked to be a genuine image before storage — but reviewed by human judgement, not
+        automated ID verification. Tier 2/3 (paid ID-verification API + government license lookup) is planned once the 10%
+        commission is in effect.
+      </p>
       <div class="toggle-row">
         <label class="toggle-switch">
           <input type="checkbox" id="dvEnforceToggle">
@@ -113,7 +118,7 @@ const PAGE = `<!doctype html>
       </div>
       <p class="muted" id="dvQueueNote" style="margin-bottom:10px;"></p>
       <table id="dvQueueTable">
-        <thead><tr><th>Applicant</th><th>License</th><th>Vehicle</th><th>Submitted</th><th>Action</th></tr></thead>
+        <thead><tr><th>Applicant</th><th>License</th><th>Vehicle</th><th>Documents</th><th>Submitted</th><th>Action</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -204,14 +209,36 @@ const PAGE = `<!doctype html>
       : 'No pending submissions.';
     const body = document.querySelector('#dvQueueTable tbody');
     body.innerHTML = submissions.map(function (s) {
+      const docButtons =
+        (s.license_photo_key ? '<button class="btn-tiny" data-view="license" style="background:#3a3750;color:#eceaf5;">License photo</button>' : '<span class="muted">No license photo</span>') +
+        (s.vehicle_reg_photo_key ? '<button class="btn-tiny" data-view="vehicleReg" style="background:#3a3750;color:#eceaf5;">Reg photo</button>' : '');
       return '<tr data-id="' + s.id + '">' +
         '<td>' + escapeHtml(s.applicant_name) + '<br><span class="muted">' + escapeHtml(s.applicant_email) + '</span></td>' +
         '<td>' + escapeHtml(s.license_number) + (s.license_expiry ? '<br><span class="muted">exp ' + escapeHtml(s.license_expiry) + '</span>' : '') + '</td>' +
         '<td>' + escapeHtml(s.vehicle_make_model || '—') + '<br><span class="muted">' + escapeHtml(s.vehicle_plate) + '</span></td>' +
+        '<td>' + docButtons + '</td>' +
         '<td>' + new Date(s.submitted_at).toLocaleString() + '</td>' +
         '<td><button class="btn-tiny btn-approve" data-action="approve">Approve</button><button class="btn-tiny btn-reject" data-action="reject">Reject</button></td>' +
         '</tr>';
-    }).join('') || '<tr><td colspan="5" style="color:#9490ab;">No pending submissions.</td></tr>';
+    }).join('') || '<tr><td colspan="6" style="color:#9490ab;">No pending submissions.</td></tr>';
+
+    body.querySelectorAll('button[data-view]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        const id = btn.closest('tr').getAttribute('data-id');
+        const which = btn.getAttribute('data-view');
+        btn.disabled = true;
+        try {
+          const res = await fetch('/api/driver-verification/' + id + '/photo/' + which, { headers: { 'x-admin-token': token } });
+          if (!res.ok) { alert('Could not load that photo.'); return; }
+          const blob = await res.blob();
+          window.open(URL.createObjectURL(blob), '_blank', 'noopener');
+        } catch {
+          alert('Could not reach the API.');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
 
     body.querySelectorAll('button[data-action]').forEach(function (btn) {
       btn.addEventListener('click', async function () {

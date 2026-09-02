@@ -1,8 +1,58 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../services/api.js';
+import { compressImageToDataUrl } from '../utils/imageCompress.js';
 import VerifiedDriverBadge from './VerifiedDriverBadge.jsx';
 
-const EMPTY_FORM = { fullLegalName: '', licenseNumber: '', licenseExpiry: '', vehicleMakeModel: '', vehiclePlate: '' };
+const EMPTY_FORM = {
+  fullLegalName: '',
+  licenseNumber: '',
+  licenseExpiry: '',
+  vehicleMakeModel: '',
+  vehiclePlate: '',
+  licensePhoto: null,
+  vehicleRegPhoto: null,
+};
+
+function PhotoField({ id, label, required, value, onChange, existingPhotoUrl }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError('');
+    setBusy(true);
+    try {
+      const dataUrl = await compressImageToDataUrl(file);
+      onChange(dataUrl);
+    } catch (err) {
+      setError(err.message || 'Could not process that image');
+      onChange(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const preview = value || existingPhotoUrl;
+
+  return (
+    <div className="form-field">
+      <label htmlFor={id}>
+        {label} {!required && '(optional)'}
+      </label>
+      <input id={id} type="file" accept="image/*" capture="environment" onChange={handleFile} required={required && !value && !existingPhotoUrl} />
+      {busy && <p className="muted" style={{ fontSize: '0.78rem' }}>Compressing…</p>}
+      {error && <p className="alert alert-error" style={{ fontSize: '0.8rem' }}>{error}</p>}
+      {preview && (
+        <img
+          src={preview}
+          alt={`${label} preview`}
+          style={{ marginTop: 8, maxWidth: 160, maxHeight: 110, borderRadius: 8, border: '1px solid var(--color-border)', objectFit: 'cover' }}
+        />
+      )}
+    </div>
+  );
+}
 
 export default function DriverVerificationCard() {
   const [loading, setLoading] = useState(true);
@@ -10,6 +60,8 @@ export default function DriverVerificationCard() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [existingPhotoUrls, setExistingPhotoUrls] = useState({ license: null, vehicleReg: null });
+  const createdObjectUrls = useRef([]);
 
   async function load() {
     setLoading(true);
@@ -17,13 +69,16 @@ export default function DriverVerificationCard() {
       const data = await api.myDriverVerification();
       setRecord(data);
       if (data.submission) {
-        setForm({
+        setForm((prev) => ({
+          ...prev,
           fullLegalName: data.submission.full_legal_name || '',
           licenseNumber: data.submission.license_number || '',
           licenseExpiry: data.submission.license_expiry || '',
           vehicleMakeModel: data.submission.vehicle_make_model || '',
           vehiclePlate: data.submission.vehicle_plate || '',
-        });
+        }));
+        loadExistingPhoto(data.submission.id, 'license', data.submission.license_photo_key);
+        loadExistingPhoto(data.submission.id, 'vehicleReg', data.submission.vehicle_reg_photo_key);
       }
     } catch {
       // non-fatal — the rest of the profile page still works
@@ -32,16 +87,37 @@ export default function DriverVerificationCard() {
     }
   }
 
+  async function loadExistingPhoto(submissionId, which, key) {
+    if (!key) return;
+    try {
+      const blob = await api.driverVerificationPhotoBlob(submissionId, which);
+      const url = URL.createObjectURL(blob);
+      createdObjectUrls.current.push(url);
+      setExistingPhotoUrls((prev) => ({ ...prev, [which]: url }));
+    } catch {
+      // non-fatal — the form still works without the preview
+    }
+  }
+
   useEffect(() => {
     load();
+    return () => {
+      createdObjectUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function submit(e) {
     e.preventDefault();
     setError('');
+    if (!form.licensePhoto) {
+      setError("A photo of your driver's license is required");
+      return;
+    }
     setSubmitting(true);
     try {
       await api.submitDriverVerification(form);
+      setForm((prev) => ({ ...prev, licensePhoto: null, vehicleRegPhoto: null }));
       await load();
     } catch (err) {
       setError(err.message || 'Could not submit driver verification');
@@ -58,8 +134,9 @@ export default function DriverVerificationCard() {
     <div className="card">
       <h3>Driver verification</h3>
       <p className="muted" style={{ fontSize: '0.85rem' }}>
-        A one-time check so riders can trust who's behind the wheel. Submit your details below and an admin will review them —
-        this doesn't block you from offering journeys yet, but it will once the platform turns enforcement on.
+        A one-time check so riders can trust who's behind the wheel. Submit a photo of your license (plus your vehicle
+        registration, if you have it) and an admin will review them — this doesn't block you from offering journeys yet, but
+        it will once the platform turns enforcement on.
       </p>
 
       {status === 'verified' && (
@@ -103,6 +180,14 @@ export default function DriverVerificationCard() {
                 onChange={(e) => setForm({ ...form, licenseNumber: e.target.value })}
               />
             </div>
+            <PhotoField
+              id="dvLicensePhoto"
+              label="Photo of your driver's license"
+              required
+              value={form.licensePhoto}
+              existingPhotoUrl={existingPhotoUrls.license}
+              onChange={(dataUrl) => setForm((prev) => ({ ...prev, licensePhoto: dataUrl }))}
+            />
             <div className="form-field">
               <label htmlFor="dvExpiry">License expiry (optional)</label>
               <input
@@ -129,6 +214,13 @@ export default function DriverVerificationCard() {
                 onChange={(e) => setForm({ ...form, vehiclePlate: e.target.value })}
               />
             </div>
+            <PhotoField
+              id="dvVehicleRegPhoto"
+              label="Photo of vehicle registration"
+              value={form.vehicleRegPhoto}
+              existingPhotoUrl={existingPhotoUrls.vehicleReg}
+              onChange={(dataUrl) => setForm((prev) => ({ ...prev, vehicleRegPhoto: dataUrl }))}
+            />
             {error && <p className="alert alert-error">{error}</p>}
             <button className="btn btn-primary btn-sm" type="submit" disabled={submitting}>
               {submitting ? 'Submitting…' : status === 'rejected' ? 'Resubmit for review' : 'Submit for review'}

@@ -16,12 +16,29 @@ export function getSubmissionById(id) {
   return db.prepare('SELECT * FROM driver_verifications WHERE id = ?').get(id);
 }
 
-export function submitVerification(userId, { fullLegalName, licenseNumber, licenseExpiry, vehicleMakeModel, vehiclePlate }) {
+export function submitVerification(
+  userId,
+  { fullLegalName, licenseNumber, licenseExpiry, vehicleMakeModel, vehiclePlate, licensePhoto, vehicleRegPhoto }
+) {
   const id = newId('drv');
   db.prepare(
-    `INSERT INTO driver_verifications (id, user_id, full_legal_name, license_number, license_expiry, vehicle_make_model, vehicle_plate, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`
-  ).run(id, userId, fullLegalName, licenseNumber, licenseExpiry || null, vehicleMakeModel || null, vehiclePlate);
+    `INSERT INTO driver_verifications (
+      id, user_id, full_legal_name, license_number, license_expiry, vehicle_make_model, vehicle_plate,
+      license_photo_key, license_photo_mime, vehicle_reg_photo_key, vehicle_reg_photo_mime, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
+  ).run(
+    id,
+    userId,
+    fullLegalName,
+    licenseNumber,
+    licenseExpiry || null,
+    vehicleMakeModel || null,
+    vehiclePlate,
+    licensePhoto?.key || null,
+    licensePhoto?.mime || null,
+    vehicleRegPhoto?.key || null,
+    vehicleRegPhoto?.mime || null
+  );
   db.prepare(`UPDATE profiles SET driver_verification_status = 'pending', driver_verification_updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`).run(userId);
   return getSubmissionById(id);
 }

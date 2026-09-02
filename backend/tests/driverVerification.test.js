@@ -3,11 +3,17 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import { buildTestApp } from './helpers/testApp.js';
 
+// A real, minimal (1x1 black pixel) JPEG — its magic bytes genuinely match
+// image/jpeg, which matters because the server sniffs bytes rather than
+// trusting the declared mime type.
+const VALID_JPEG_BASE64 =
+  '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=';
+const VALID_LICENSE_PHOTO = `data:image/jpeg;base64,${VALID_JPEG_BASE64}`;
+
 describe('driver verification', () => {
   let app;
   let cleanup;
   let driverToken;
-  let driverId;
   let adminToken;
 
   before(async () => {
@@ -20,7 +26,6 @@ describe('driver verification', () => {
       acceptedTerms: true,
     });
     driverToken = driver.body.token;
-    driverId = driver.body.user.id;
 
     const admin = await request(app).post('/api/users/register').send({
       email: 'admin@example.com',
@@ -75,6 +80,38 @@ describe('driver verification', () => {
     assert.equal(res.status, 400);
   });
 
+  test('rejects a submission with no license photo', async () => {
+    const res = await request(app)
+      .post('/api/driver-verification')
+      .set('Authorization', `Bearer ${driverToken}`)
+      .send({ fullLegalName: 'Nadia Newdriver', licenseNumber: 'DL-99182', vehiclePlate: 'KAA 123X' });
+    assert.equal(res.status, 400);
+  });
+
+  test('rejects a "photo" whose bytes do not actually match the declared image type', async () => {
+    const fakePhoto = `data:image/jpeg;base64,${Buffer.from('this is definitely not a jpeg').toString('base64')}`;
+    const res = await request(app)
+      .post('/api/driver-verification')
+      .set('Authorization', `Bearer ${driverToken}`)
+      .send({ fullLegalName: 'Nadia Newdriver', licenseNumber: 'DL-99182', vehiclePlate: 'KAA 123X', licensePhoto: fakePhoto });
+    assert.equal(res.status, 400);
+  });
+
+  test('rejects a photo over the size limit', async () => {
+    // Magic bytes are genuinely JPEG (FF D8 FF), only the size is the problem.
+    const oversized = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(6 * 1024 * 1024)]);
+    const res = await request(app)
+      .post('/api/driver-verification')
+      .set('Authorization', `Bearer ${driverToken}`)
+      .send({
+        fullLegalName: 'Nadia Newdriver',
+        licenseNumber: 'DL-99182',
+        vehiclePlate: 'KAA 123X',
+        licensePhoto: `data:image/jpeg;base64,${oversized.toString('base64')}`,
+      });
+    assert.equal(res.status, 400);
+  });
+
   test('a non-admin cannot see the review queue or approve submissions', async () => {
     const queue = await request(app).get('/api/driver-verification/queue').set('Authorization', `Bearer ${driverToken}`);
     assert.equal(queue.status, 403);
@@ -82,7 +119,7 @@ describe('driver verification', () => {
 
   let submissionId;
 
-  test('submitting verification moves the driver to pending', async () => {
+  test('submitting verification with a genuine license photo moves the driver to pending', async () => {
     const res = await request(app)
       .post('/api/driver-verification')
       .set('Authorization', `Bearer ${driverToken}`)
@@ -91,20 +128,50 @@ describe('driver verification', () => {
         licenseNumber: 'DL-99182',
         vehicleMakeModel: 'Toyota Prius',
         vehiclePlate: 'KAA 123X',
+        licensePhoto: VALID_LICENSE_PHOTO,
       });
     assert.equal(res.status, 201);
     assert.equal(res.body.submission.status, 'pending');
+    assert.ok(res.body.submission.license_photo_key);
+    assert.equal(res.body.submission.license_photo_mime, 'image/jpeg');
     submissionId = res.body.submission.id;
 
     const me = await request(app).get('/api/driver-verification/me').set('Authorization', `Bearer ${driverToken}`);
     assert.equal(me.body.status, 'pending');
   });
 
+  test('the submission owner can fetch their license photo back, but a stranger cannot', async () => {
+    const own = await request(app).get(`/api/driver-verification/${submissionId}/photo/license`).set('Authorization', `Bearer ${driverToken}`);
+    assert.equal(own.status, 200);
+    assert.equal(own.headers['content-type'], 'image/jpeg');
+    assert.ok(own.body.length > 0);
+
+    const noVehicleRegPhoto = await request(app)
+      .get(`/api/driver-verification/${submissionId}/photo/vehicleReg`)
+      .set('Authorization', `Bearer ${driverToken}`);
+    assert.equal(noVehicleRegPhoto.status, 404);
+
+    const stranger = await request(app).post('/api/users/register').send({
+      email: 'photo-stranger@example.com',
+      password: 'supersecret1',
+      fullName: 'Percy Photostranger',
+      acceptedTerms: true,
+    });
+    const forbidden = await request(app)
+      .get(`/api/driver-verification/${submissionId}/photo/license`)
+      .set('Authorization', `Bearer ${stranger.body.token}`);
+    assert.equal(forbidden.status, 403);
+
+    // An admin can also fetch it, for review.
+    const asAdmin = await request(app).get(`/api/driver-verification/${submissionId}/photo/license`).set('Authorization', `Bearer ${adminToken}`);
+    assert.equal(asAdmin.status, 200);
+  });
+
   test('cannot resubmit while a submission is already pending', async () => {
     const res = await request(app)
       .post('/api/driver-verification')
       .set('Authorization', `Bearer ${driverToken}`)
-      .send({ fullLegalName: 'Nadia Newdriver', licenseNumber: 'DL-99182', vehiclePlate: 'KAA 123X' });
+      .send({ fullLegalName: 'Nadia Newdriver', licenseNumber: 'DL-99182', vehiclePlate: 'KAA 123X', licensePhoto: VALID_LICENSE_PHOTO });
     assert.equal(res.status, 409);
   });
 
@@ -218,7 +285,7 @@ describe('driver verification', () => {
     const submit = await request(app)
       .post('/api/driver-verification')
       .set('Authorization', `Bearer ${strangerToken}`)
-      .send({ fullLegalName: 'Remy Rejected', licenseNumber: 'DL-00001', vehiclePlate: 'KBB 456Y' });
+      .send({ fullLegalName: 'Remy Rejected', licenseNumber: 'DL-00001', vehiclePlate: 'KBB 456Y', licensePhoto: VALID_LICENSE_PHOTO });
     const id = submit.body.submission.id;
 
     const rejectNoNote = await request(app).post(`/api/driver-verification/${id}/reject`).set('Authorization', `Bearer ${adminToken}`).send({});
@@ -239,7 +306,7 @@ describe('driver verification', () => {
     const resubmit = await request(app)
       .post('/api/driver-verification')
       .set('Authorization', `Bearer ${strangerToken}`)
-      .send({ fullLegalName: 'Remy Rejected', licenseNumber: 'DL-00001', vehiclePlate: 'KBB 456Y' });
+      .send({ fullLegalName: 'Remy Rejected', licenseNumber: 'DL-00001', vehiclePlate: 'KBB 456Y', licensePhoto: VALID_LICENSE_PHOTO });
     assert.equal(resubmit.status, 201);
   });
 });
