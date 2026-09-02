@@ -103,11 +103,14 @@ in the README.
 
 | Method | Path                          | Auth | Description                                    |
 |--------|-------------------------------|------|--------------------------------------------------|
-| GET    | `/payments/methods`           | no   | Sandbox methods (`card`, `mobile_money`, `wallet`, `cash`), plus `{ stripe: { enabled, publishableKey } }` if Stripe is configured |
+| GET    | `/payments/methods`           | no   | Sandbox methods (`card`, `mobile_money`, `wallet`, `cash`), plus `{ stripe: { enabled, publishableKey } }` and `{ mpesa: { enabled } }` for whichever real processors are configured |
 | POST   | `/payments`                   | yes  | Pay for a booking via a sandbox method: `{ bookingId, method }` |
 | GET    | `/payments/booking/:bookingId`| yes  | Payment history for a booking                       |
 | POST   | `/payments/stripe/intent`     | yes  | Start a real Stripe payment: `{ bookingId }` → `{ paymentId, clientSecret }` |
 | POST   | `/payments/stripe/:paymentId/confirm` | yes | After the frontend confirms the card with Stripe directly, re-verifies the PaymentIntent server-side and captures |
+| POST   | `/payments/mpesa/stk-push`    | yes  | Start a real M-Pesa payment: `{ bookingId, phone }` → `{ paymentId, customerMessage }`. `phone` accepts `07XXXXXXXX`, `254XXXXXXXXX`, or `+254XXXXXXXXX`. `400` if the booking isn't priced in `KES` — M-Pesa never handles any other currency. |
+| POST   | `/payments/mpesa/callback`    | no   | Safaricom's own async webhook — never call this directly. Public by necessity (Safaricom sends no auth header), but a callback is only ever applied if its `CheckoutRequestID` matches the one stored against the `paymentId` in the URL at STK-push time. |
+| GET    | `/payments/mpesa/:paymentId/status` | yes | Polling fallback for when the callback above is slow or (common in Safaricom's sandbox) never arrives — re-asks Safaricom directly rather than trusting anything client-supplied. |
 
 Stripe doesn't fit the synchronous authorize/capture contract the sandbox
 providers share — the card is collected client-side via Stripe Elements
@@ -131,9 +134,20 @@ creation, not recomputed from current config. See
 [Monetization & marketplace integrity](../README.md#monetization--marketplace-integrity)
 in the README.
 
-Every method implements the same `authorize` → `capture` provider contract
-(`backend/src/payments/providers.js`), so adding a real processor later means
-adding one provider — no route changes.
+Every sandbox method implements the same `authorize` → `capture` provider
+contract (`backend/src/payments/providers.js`); Stripe and M-Pesa are both
+real-money processors with an inherently async settlement step, so — like
+Stripe — M-Pesa is a deliberately separate flow rather than being forced
+into that synchronous shape: `POST /payments/mpesa/stk-push` asks Safaricom
+to push an "enter your PIN" prompt to the payer's phone and creates a local
+`PENDING` payment row (`method: 'mpesa'`, `reference` set to Safaricom's
+`CheckoutRequestID`); the *real* outcome arrives later, either via
+Safaricom's callback or a `GET /payments/mpesa/:paymentId/status` poll,
+either of which re-verifies with Safaricom itself before marking the
+payment `CAPTURED` or `FAILED` — the client's own claim is never trusted.
+See `backend/src/payments/mpesa.js` (a from-scratch Daraja API client, no
+SDK — same "thin fetch wrapper" approach as `stripe.js`) and
+`.env.example`/`worker/wrangler.toml` for the required configuration.
 
 ## Messaging
 

@@ -43,3 +43,14 @@ export const feedbackLimiter = limiter({
   max: 10,
   message: 'Too much feedback from this network at once. Please try again later.',
 });
+
+// Each call sends a real "enter your PIN" prompt to a real phone — without
+// this, the endpoint could be used to spam an arbitrary Kenyan number with
+// M-Pesa prompts (the caller doesn't have to be paying with their own
+// line). Tight enough to block abuse, loose enough for a legitimate payer
+// who missed the prompt and needs to retry a couple of times.
+export const mpesaLimiter = limiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Too many M-Pesa payment attempts from this network. Please wait a few minutes and try again.',
+});

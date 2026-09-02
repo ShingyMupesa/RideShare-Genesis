@@ -12,6 +12,9 @@ const METHOD_LABELS = {
   cash: { icon: '💵', label: 'Cash' },
 };
 
+const MPESA_POLL_INTERVAL_MS = 3000;
+const MPESA_POLL_TIMEOUT_MS = 90000;
+
 function StatusStepper({ status }) {
   if (status === 'CANCELLED') {
     return (
@@ -44,6 +47,10 @@ export default function Booking() {
   const [payments, setPayments] = useState([]);
   const [methods, setMethods] = useState([]);
   const [stripeConfig, setStripeConfig] = useState({ enabled: false, publishableKey: null });
+  const [mpesaEnabled, setMpesaEnabled] = useState(false);
+  const [mpesaPhone, setMpesaPhone] = useState('');
+  const [mpesaStatus, setMpesaStatus] = useState(''); // '' | 'awaiting' | 'timeout'
+  const [mpesaCustomerMessage, setMpesaCustomerMessage] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('card');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -51,6 +58,7 @@ export default function Booking() {
   const stripeObjRef = useRef(null);
   const cardElementRef = useRef(null);
   const cardMountRef = useRef(null);
+  const mpesaPollRef = useRef(null);
 
   const load = useCallback(async () => {
     const res = await api.getBooking(id);
@@ -71,8 +79,12 @@ export default function Booking() {
     api.paymentMethods().then((res) => {
       setMethods(res.methods);
       if (res.stripe?.enabled) setStripeConfig(res.stripe);
+      if (res.mpesa?.enabled) setMpesaEnabled(true);
     });
-  }, [load]);
+    if (user?.phone) setMpesaPhone(user.phone);
+  }, [load, user?.phone]);
+
+  useEffect(() => () => clearInterval(mpesaPollRef.current), []);
 
   // Mount the Stripe Card Element only once "Card (Stripe)" is selected —
   // Stripe.js owns that DOM node directly, outside React's render cycle.
@@ -137,6 +149,44 @@ export default function Booking() {
     } catch (err) {
       setError(err.message || 'Payment failed');
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleMpesaPay() {
+    setBusy(true);
+    setError('');
+    setMpesaStatus('');
+    try {
+      const { paymentId, customerMessage } = await api.mpesaStkPush(id, mpesaPhone);
+      setMpesaStatus('awaiting');
+      setMpesaCustomerMessage(customerMessage || '');
+
+      const startedAt = Date.now();
+      clearInterval(mpesaPollRef.current);
+      mpesaPollRef.current = setInterval(async () => {
+        if (Date.now() - startedAt > MPESA_POLL_TIMEOUT_MS) {
+          clearInterval(mpesaPollRef.current);
+          setMpesaStatus('timeout');
+          setBusy(false);
+          return;
+        }
+        try {
+          const { payment } = await api.mpesaPaymentStatus(paymentId);
+          if (payment.status === 'CAPTURED' || payment.status === 'FAILED') {
+            clearInterval(mpesaPollRef.current);
+            setMpesaStatus('');
+            setBusy(false);
+            if (payment.status === 'FAILED') setError('M-Pesa payment was not completed — cancelled, timed out, or declined.');
+            await load();
+          }
+        } catch {
+          // transient poll failure — the interval just tries again
+        }
+      }, MPESA_POLL_INTERVAL_MS);
+    } catch (err) {
+      setError(err.message || 'Could not start the M-Pesa payment');
+      setMpesaStatus('');
       setBusy(false);
     }
   }
@@ -243,6 +293,15 @@ export default function Booking() {
                     <div>Card (Stripe)</div>
                   </div>
                 )}
+                {mpesaEnabled && booking.currency === 'KES' && (
+                  <div
+                    className={`method-card ${selectedMethod === 'mpesa' ? 'selected' : ''}`}
+                    onClick={() => setSelectedMethod('mpesa')}
+                  >
+                    <div style={{ fontSize: '1.4rem' }}>📲</div>
+                    <div>M-Pesa</div>
+                  </div>
+                )}
               </div>
 
               {selectedMethod === 'card_stripe' ? (
@@ -253,6 +312,32 @@ export default function Booking() {
                   </p>
                   <button className="btn btn-primary" disabled={busy} onClick={handleStripePay}>
                     Pay {booking.currency} {booking.totalPrice}
+                  </button>
+                </>
+              ) : selectedMethod === 'mpesa' ? (
+                <>
+                  {mpesaStatus === 'awaiting' ? (
+                    <div className="alert alert-info">
+                      {mpesaCustomerMessage || 'Check your phone'} — enter your M-Pesa PIN to complete the payment.
+                    </div>
+                  ) : (
+                    <div className="form-field">
+                      <label htmlFor="mpesaPhone">M-Pesa phone number</label>
+                      <input
+                        id="mpesaPhone"
+                        placeholder="07XXXXXXXX"
+                        value={mpesaPhone}
+                        onChange={(e) => setMpesaPhone(e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {mpesaStatus === 'timeout' && (
+                    <p className="alert alert-error">
+                      Didn't hear back from M-Pesa in time — if you already paid, refresh in a moment; otherwise try again.
+                    </p>
+                  )}
+                  <button className="btn btn-primary" disabled={busy || !mpesaPhone} onClick={handleMpesaPay}>
+                    {mpesaStatus === 'awaiting' ? 'Waiting for confirmation…' : `Pay ${booking.currency} ${booking.totalPrice}`}
                   </button>
                 </>
               ) : (

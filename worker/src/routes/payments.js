@@ -6,8 +6,32 @@ import { getProvider, SUPPORTED_METHODS } from '../lib/providers.js';
 import { getBookingById } from './bookings.js';
 import { recordAuditEvent } from '../lib/audit.js';
 import { createPaymentIntent, retrievePaymentIntent } from '../lib/stripe.js';
+import { initiateStkPush, queryStkPushStatus, parseCallbackMetadata } from '../lib/mpesa.js';
+import { mpesaLimiter } from '../lib/rateLimit.js';
 
 export const payments = new Hono();
+
+function mpesaConfigFromEnv(env) {
+  return {
+    consumerKey: env.MPESA_CONSUMER_KEY,
+    consumerSecret: env.MPESA_CONSUMER_SECRET,
+    shortcode: env.MPESA_SHORTCODE,
+    passkey: env.MPESA_PASSKEY,
+    environment: env.MPESA_ENV || 'sandbox',
+  };
+}
+
+function mpesaEnabled(env) {
+  const c = mpesaConfigFromEnv(env);
+  return !!(c.consumerKey && c.consumerSecret && c.shortcode && c.passkey);
+}
+
+// Safaricom needs a real, publicly reachable HTTPS URL to call back to.
+// MPESA_CALLBACK_BASE_URL overrides for anything unusual; otherwise the
+// Worker's own request URL already carries its real public origin.
+function callbackOrigin(c) {
+  return c.env.MPESA_CALLBACK_BASE_URL || new URL(c.req.url).origin;
+}
 
 // payments predates the commission columns; self-provision them the same
 // way tracking.js does for page_events, so this works against the existing
@@ -70,6 +94,9 @@ payments.get('/methods', (c) =>
     stripe: c.env.STRIPE_SECRET_KEY
       ? { enabled: true, publishableKey: c.env.STRIPE_PUBLISHABLE_KEY || null }
       : { enabled: false, publishableKey: null },
+    // No client-side secret needed — the STK Push is initiated entirely
+    // server-side, so the frontend just needs to know whether to offer it.
+    mpesa: { enabled: mpesaEnabled(c.env) },
   })
 );
 
@@ -195,6 +222,131 @@ payments.post('/stripe/:paymentId/confirm', requireAuth, async (c) => {
   }
 
   return c.json({ payment: updated, stripeStatus: intent.status });
+});
+
+// M-Pesa STK Push doesn't fit the synchronous authorize/capture contract
+// either — Safaricom accepts the request immediately, then reports the
+// real outcome later via an async callback (or a status poll), exactly
+// like the Stripe PaymentIntent flow above but over Safaricom's own
+// protocol instead of Stripe's.
+payments.post('/mpesa/stk-push', requireAuth, mpesaLimiter, async (c) => {
+  const db = c.env.DB;
+  const authUser = c.get('user');
+  if (!mpesaEnabled(c.env)) throw BadRequest('M-Pesa is not configured on this server');
+
+  const body = await c.req.json().catch(() => ({}));
+  const { bookingId, phone } = body;
+  if (!bookingId) throw BadRequest('bookingId is required');
+  if (!phone) throw BadRequest('phone is required');
+
+  const booking = await getBookingById(db, bookingId);
+  if (!booking) throw NotFound('Booking not found');
+  if (booking.passengerId !== authUser.id) throw Forbidden('Only the passenger can pay for this booking');
+  if (booking.currency !== 'KES') throw BadRequest('M-Pesa only supports payments priced in KES');
+
+  await ensureCommissionColumns(db);
+  const payment = await createPayment(db, {
+    bookingId,
+    payerId: authUser.id,
+    method: 'mpesa',
+    amount: booking.totalPrice,
+    currency: booking.currency,
+    commissionRate: commissionRateFromEnv(c.env),
+  });
+
+  let stk;
+  try {
+    stk = await initiateStkPush({
+      phone,
+      amount: booking.totalPrice,
+      accountReference: bookingId,
+      transactionDesc: 'Genesis ride',
+      callbackUrl: `${callbackOrigin(c)}/api/payments/mpesa/callback?paymentId=${payment.id}`,
+      config: mpesaConfigFromEnv(c.env),
+    });
+  } catch (err) {
+    await updatePaymentStatus(db, payment.id, 'FAILED', null);
+    throw BadRequest(err.message || 'Could not start the M-Pesa payment');
+  }
+
+  await updatePaymentStatus(db, payment.id, 'PENDING', stk.checkoutRequestId);
+  await recordAuditEvent(db, { actorId: authUser.id, eventType: 'payment.mpesa_stk_pushed', entityType: 'payment', entityId: payment.id, metadata: { bookingId } });
+
+  return c.json({ paymentId: payment.id, customerMessage: stk.customerMessage }, 201);
+});
+
+// Public — Safaricom calls this directly, with no auth header. Correlated
+// back to a specific payment via the paymentId embedded in the callback
+// URL at STK-push time, then double-checked against the CheckoutRequestID
+// stored as that payment's reference — a forged callback would have to
+// guess both a real paymentId and its matching (long, Safaricom-generated)
+// CheckoutRequestID to do anything. Always acknowledges with Safaricom's
+// expected {ResultCode:0} shape regardless of what happened on our side —
+// otherwise Safaricom just keeps retrying.
+payments.post('/mpesa/callback', async (c) => {
+  const db = c.env.DB;
+  const ack = () => c.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+
+  const paymentId = c.req.query('paymentId');
+  const body = await c.req.json().catch(() => ({}));
+  const stkCallback = body?.Body?.stkCallback;
+  if (!paymentId || !stkCallback) return ack();
+
+  const payment = await db.prepare('SELECT * FROM payments WHERE id = ?').bind(paymentId).first();
+  if (!payment || payment.reference !== stkCallback.CheckoutRequestID) return ack();
+  if (payment.status !== 'PENDING') return ack(); // already resolved (e.g. via a status poll) — don't double-process
+
+  if (stkCallback.ResultCode === 0) {
+    const meta = parseCallbackMetadata(stkCallback.CallbackMetadata?.Item);
+    await updatePaymentStatus(db, payment.id, 'CAPTURED', payment.reference);
+    await recordAuditEvent(db, {
+      eventType: 'payment.captured',
+      entityType: 'payment',
+      entityId: payment.id,
+      metadata: { bookingId: payment.booking_id, provider: 'mpesa', ...meta },
+    });
+  } else {
+    await updatePaymentStatus(db, payment.id, 'FAILED', payment.reference);
+    await recordAuditEvent(db, {
+      eventType: 'payment.failed',
+      entityType: 'payment',
+      entityId: payment.id,
+      metadata: { bookingId: payment.booking_id, provider: 'mpesa', resultDesc: stkCallback.ResultDesc },
+    });
+  }
+
+  return ack();
+});
+
+// Polling fallback for when the callback above is slow or never arrives
+// (common in Safaricom's sandbox) — re-asks Safaricom for the truth rather
+// than trusting anything the client claims.
+payments.get('/mpesa/:paymentId/status', requireAuth, async (c) => {
+  const db = c.env.DB;
+  const authUser = c.get('user');
+  const payment = await db.prepare('SELECT * FROM payments WHERE id = ?').bind(c.req.param('paymentId')).first();
+  if (!payment) throw NotFound('Payment not found');
+  if (payment.payer_id !== authUser.id) throw Forbidden('You do not have access to this payment');
+
+  if (payment.status !== 'PENDING' || !payment.reference) {
+    return c.json({ payment });
+  }
+
+  const result = await queryStkPushStatus({ checkoutRequestId: payment.reference, config: mpesaConfigFromEnv(c.env) });
+  if (result.pending) return c.json({ payment });
+
+  const nextStatus = result.success ? 'CAPTURED' : 'FAILED';
+  const updated = await updatePaymentStatus(db, payment.id, nextStatus, payment.reference);
+  if (nextStatus === 'CAPTURED') {
+    await recordAuditEvent(db, {
+      actorId: authUser.id,
+      eventType: 'payment.captured',
+      entityType: 'payment',
+      entityId: payment.id,
+      metadata: { bookingId: payment.booking_id, provider: 'mpesa' },
+    });
+  }
+  return c.json({ payment: updated, resultDesc: result.resultDesc });
 });
 
 payments.get('/booking/:bookingId', requireAuth, async (c) => {

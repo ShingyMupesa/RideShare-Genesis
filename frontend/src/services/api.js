@@ -95,6 +95,8 @@ export const api = {
   paymentsForBooking: (bookingId) => request(`/payments/booking/${bookingId}`),
   createStripeIntent: (bookingId) => request('/payments/stripe/intent', { method: 'POST', body: { bookingId } }),
   confirmStripePayment: (paymentId) => request(`/payments/stripe/${paymentId}/confirm`, { method: 'POST' }),
+  mpesaStkPush: (bookingId, phone) => request('/payments/mpesa/stk-push', { method: 'POST', body: { bookingId, phone } }),
+  mpesaPaymentStatus: (paymentId) => request(`/payments/mpesa/${paymentId}/status`),
 
   // Messaging
   listMessages: (bookingId) => request(`/messages/booking/${bookingId}`),
