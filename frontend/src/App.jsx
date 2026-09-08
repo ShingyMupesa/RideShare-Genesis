@@ -1,5 +1,6 @@
 import { Routes, Route, Link } from 'react-router-dom';
 import NavBar from './components/NavBar.jsx';
+import { useLanguage } from './context/LanguageContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import GenesisAssistant from './components/GenesisAssistant.jsx';
 import FeedbackWidget from './components/FeedbackWidget.jsx';
@@ -27,6 +28,7 @@ import SafetyCentre from './pages/SafetyCentre.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 export default function App() {
+  const { t } = useLanguage();
   return (
     <div className="app-shell">
       <NavBar />
@@ -91,11 +93,11 @@ export default function App() {
         </Routes>
       </main>
       <footer className="footer-note">
-        RideShare Genesis V1 — built human-centred, explained end-to-end. ·{' '}
-        <Link to="/trust">Trust &amp; Safety</Link> · <Link to="/privacy">Privacy Policy</Link> ·{' '}
-        <Link to="/data-deletion">Delete my data</Link> ·{' '}
+        {t('footer.tagline')} ·{' '}
+        <Link to="/trust">{t('footer.trust')}</Link> · <Link to="/privacy">{t('footer.privacy')}</Link> ·{' '}
+        <Link to="/data-deletion">{t('footer.deleteData')}</Link> ·{' '}
         <a href="https://wa.me/447449494405?text=Hi%21%20I%20have%20feedback%20on%20RideShare%20Genesis." target="_blank" rel="noopener">
-          💬 Send feedback on WhatsApp
+          {t('footer.feedback')}
         </a>
       </footer>
       <GenesisAssistant />

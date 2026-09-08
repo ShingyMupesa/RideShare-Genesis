@@ -1,17 +1,19 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-
-const links = [
-  { to: '/browse', label: 'Browse' },
-  { to: '/find', label: 'Find a Journey' },
-  { to: '/offer', label: 'Offer a Journey' },
-  { to: '/my-journeys', label: 'My Journeys' },
-  { to: '/safety', label: 'Safety Centre' },
-];
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 export default function NavBar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { lang, toggleLang, t } = useLanguage();
+
+  const links = [
+    { to: '/browse', label: t('nav.browse') },
+    { to: '/find', label: t('nav.find') },
+    { to: '/offer', label: t('nav.offer') },
+    { to: '/my-journeys', label: t('nav.myJourneys') },
+    { to: '/safety', label: t('nav.safety') },
+  ];
 
   return (
     <header className="navbar">
@@ -36,17 +38,26 @@ export default function NavBar() {
                 navigate('/');
               }}
             >
-              Log out
+              {t('nav.logout')}
             </button>
           </>
         ) : (
           <>
-            <NavLink to="/login">Log in</NavLink>
+            <NavLink to="/login">{t('nav.login')}</NavLink>
             <NavLink to="/register" className="btn btn-primary btn-sm">
-              Sign up
+              {t('nav.signup')}
             </NavLink>
           </>
         )}
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={toggleLang}
+          title={lang === 'en' ? 'Badilisha lugha kuwa Kiswahili' : 'Switch language to English'}
+          aria-label="Toggle language"
+        >
+          {lang === 'en' ? '🇰🇪 SW' : '🇬🇧 EN'}
+        </button>
       </nav>
     </header>
   );
