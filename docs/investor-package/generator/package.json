@@ -1,0 +1,8 @@
+{
+  "name": "rideshare-genesis-investor-docs-generator",
+  "private": true,
+  "description": "Generates the .docx files in ../documents from source. Run: npm install && node blueprint.js && node compliance.js && node terms.js",
+  "dependencies": {
+    "docx": "^9.0.0"
+  }
+}

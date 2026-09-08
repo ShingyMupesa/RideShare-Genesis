@@ -4,6 +4,17 @@ import { requireAuth, signToken } from '../middleware/auth.js';
 import { asyncHandler, BadRequest, Conflict, NotFound, Unauthorized } from '../utils/errors.js';
 import { recordAuditEvent } from '../governance/auditLog.js';
 import * as Users from './repository.js';
+import { generateResetToken, hashResetToken } from './resetToken.js';
+import { sendEmail, resetPasswordEmailHtml, confirmDeletionEmailHtml } from '../email/resend.js';
+import { loginLimiter, registerLimiter, forgotPasswordLimiter, deletionRequestLimiter } from '../middleware/rateLimit.js';
+import {
+  deleteAccount,
+  generateDeletionToken,
+  hashDeletionToken,
+  createDeletionRequest,
+  findValidDeletionRequest,
+  markDeletionRequestConfirmed,
+} from './deletion.js';
 
 export const router = Router();
 
@@ -11,11 +22,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.post(
   '/register',
+  registerLimiter,
   asyncHandler(async (req, res) => {
-    const { email, password, fullName, phone } = req.body || {};
+    const { email, password, fullName, phone, acceptedTerms } = req.body || {};
     if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');
     if (!password || password.length < 8) throw BadRequest('Password must be at least 8 characters');
     if (!fullName || !fullName.trim()) throw BadRequest('Full name is required');
+    if (acceptedTerms !== true) throw BadRequest('You must accept the Terms & Conditions to create an account');
 
     if (Users.findUserByEmail(email.toLowerCase())) {
       throw Conflict('An account with this email already exists');
@@ -44,6 +57,7 @@ router.post(
 
 router.post(
   '/login',
+  loginLimiter,
   asyncHandler(async (req, res) => {
     const { email, password } = req.body || {};
     if (!email || !password) throw BadRequest('Email and password are required');
@@ -57,6 +71,72 @@ router.post(
     const profile = Users.getProfile(user.id);
     const token = signToken(user);
     res.json({ token, user: Users.publicUser(user, profile) });
+  })
+);
+
+// Always responds with the same generic message whether or not the email
+// matches an account — otherwise this endpoint would let anyone check
+// which emails have accounts on Genesis.
+router.post(
+  '/forgot-password',
+  forgotPasswordLimiter,
+  asyncHandler(async (req, res) => {
+    const { email } = req.body || {};
+    if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');
+
+    const genericResponse = { message: "If an account exists for that email, we've sent a reset link." };
+    const user = Users.findUserByEmail(email.toLowerCase());
+    if (!user) return res.json(genericResponse);
+
+    const token = generateResetToken();
+    const tokenHash = hashResetToken(token);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    Users.createPasswordReset(user.id, tokenHash, expiresAt);
+
+    const resetUrl = `${(process.env.CLIENT_ORIGIN || 'http://localhost:5173').replace(/\/$/, '')}/reset-password?token=${token}`;
+
+    if (process.env.RESEND_API_KEY) {
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: 'Reset your RideShare Genesis password',
+          html: resetPasswordEmailHtml({ resetUrl, fullName: user.full_name }),
+          apiKey: process.env.RESEND_API_KEY,
+          from: process.env.EMAIL_FROM || 'RideShare Genesis <onboarding@resend.dev>',
+        });
+      } catch (err) {
+        console.error('[forgot-password] failed to send email:', err.message);
+      }
+    } else {
+      console.warn('[forgot-password] RESEND_API_KEY not configured — no email sent. Reset link:', resetUrl);
+    }
+
+    recordAuditEvent({ actorId: user.id, eventType: 'user.password_reset_requested', entityType: 'user', entityId: user.id });
+    res.json(genericResponse);
+  })
+);
+
+router.post(
+  '/reset-password',
+  asyncHandler(async (req, res) => {
+    const { token, newPassword } = req.body || {};
+    if (!token) throw BadRequest('token is required');
+    if (!newPassword || newPassword.length < 8) throw BadRequest('Password must be at least 8 characters');
+
+    const tokenHash = hashResetToken(token);
+    const reset = Users.findValidPasswordReset(tokenHash);
+    if (!reset) throw BadRequest('This reset link is invalid or has expired');
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    Users.updatePasswordHash(reset.user_id, passwordHash);
+    Users.markPasswordResetUsed(reset.id);
+
+    const user = Users.getUserById(reset.user_id);
+    const profile = Users.getProfile(user.id);
+    recordAuditEvent({ actorId: user.id, eventType: 'user.password_reset', entityType: 'user', entityId: user.id });
+
+    const authToken = signToken(user);
+    res.json({ token: authToken, user: Users.publicUser(user, profile) });
   })
 );
 
@@ -88,5 +168,84 @@ router.patch(
 
     const user = Users.getUserById(req.user.id);
     res.json({ user: Users.publicUser(user, profile) });
+  })
+);
+
+// In-app deletion path. Requires the current password so a hijacked or
+// left-open session can't wipe an account without it — the same bar as
+// changing a password would need, not a lower one.
+router.delete(
+  '/me',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { password } = req.body || {};
+    if (!password) throw BadRequest('Your current password is required to delete your account');
+
+    const user = Users.getUserById(req.user.id);
+    if (!user) throw NotFound('User not found');
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) throw Unauthorized('Incorrect password');
+
+    await deleteAccount(user.id);
+    res.json({ message: 'Your account and personal data have been deleted.' });
+  })
+);
+
+// Web-based deletion path — for someone who wants their data gone without
+// logging in (they may have already uninstalled the app). Always responds
+// with the same generic message, same reasoning as forgot-password: this
+// must not let a caller check which emails have accounts on Genesis.
+router.post(
+  '/deletion-requests',
+  deletionRequestLimiter,
+  asyncHandler(async (req, res) => {
+    const { email } = req.body || {};
+    if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');
+
+    const genericResponse = { message: "If an account exists for that email, we've sent a confirmation link." };
+    const user = Users.findUserByEmail(email.toLowerCase());
+    if (!user || user.status === 'deleted') return res.json(genericResponse);
+
+    const token = generateDeletionToken();
+    const tokenHash = hashDeletionToken(token);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    createDeletionRequest(user.id, tokenHash, expiresAt);
+
+    const confirmUrl = `${(process.env.CLIENT_ORIGIN || 'http://localhost:5173').replace(/\/$/, '')}/confirm-deletion?token=${token}`;
+
+    if (process.env.RESEND_API_KEY) {
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: 'Confirm deletion of your RideShare Genesis account',
+          html: confirmDeletionEmailHtml({ confirmUrl, fullName: user.full_name }),
+          apiKey: process.env.RESEND_API_KEY,
+          from: process.env.EMAIL_FROM || 'RideShare Genesis <onboarding@resend.dev>',
+        });
+      } catch (err) {
+        console.error('[deletion-requests] failed to send email:', err.message);
+      }
+    } else {
+      console.warn('[deletion-requests] RESEND_API_KEY not configured — no email sent. Confirm link:', confirmUrl);
+    }
+
+    recordAuditEvent({ actorId: user.id, eventType: 'user.deletion_requested', entityType: 'user', entityId: user.id });
+    res.json(genericResponse);
+  })
+);
+
+router.post(
+  '/deletion-requests/confirm',
+  asyncHandler(async (req, res) => {
+    const { token } = req.body || {};
+    if (!token) throw BadRequest('token is required');
+
+    const tokenHash = hashDeletionToken(token);
+    const request = findValidDeletionRequest(tokenHash);
+    if (!request) throw BadRequest('This deletion link is invalid or has expired');
+
+    await deleteAccount(request.user_id);
+    markDeletionRequestConfirmed(request.id);
+    res.json({ message: 'Your account and personal data have been deleted.' });
   })
 );

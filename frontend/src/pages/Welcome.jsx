@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import ShareInstall from '../components/ShareInstall.jsx';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 const PRINCIPLES = [
   {
@@ -24,27 +26,33 @@ const PRINCIPLES = [
 ];
 
 export default function Welcome() {
+  const location = useLocation();
+  const { t } = useLanguage();
   return (
     <div>
+      {location.state?.accountDeleted && (
+        <div className="alert alert-success" style={{ marginBottom: 16 }}>
+          Your account and personal data have been deleted.
+        </div>
+      )}
       <section className="hero">
-        <p className="eyebrow">Genesis V1</p>
-        <h1>Ridesharing that explains itself.</h1>
-        <p>
-          Find or offer a journey, get matched with full transparency, and travel with a platform built around
-          safety, trust, and human preferences — not a black box.
-        </p>
+        <img className="hero-logo" src="/brand-logo.png" alt="RideShare Genesis logo" width="96" height="96" />
+        <p className="eyebrow">{t('welcome.eyebrow')}</p>
+        <h1>{t('welcome.headline')}</h1>
+        <p>{t('welcome.body')}</p>
         <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link to="/find" className="btn btn-primary">
-            Find a Journey
+            {t('welcome.ctaFind')}
           </Link>
           <Link to="/offer" className="btn btn-secondary">
-            Offer a Journey
+            {t('welcome.ctaOffer')}
           </Link>
         </div>
+        <ShareInstall />
       </section>
 
       <section>
-        <h2 style={{ textAlign: 'center' }}>Human-centred principles</h2>
+        <h2 style={{ textAlign: 'center' }}>{t('welcome.principlesHeading')}</h2>
         <div className="principles-grid">
           {PRINCIPLES.map((p) => (
             <div className="principle-card" key={p.title}>
@@ -57,7 +65,7 @@ export default function Welcome() {
       </section>
 
       <section className="card" style={{ marginTop: 32 }}>
-        <p className="eyebrow">How it works</p>
+        <p className="eyebrow">{t('welcome.howItWorks')}</p>
         <ol style={{ paddingLeft: 20, lineHeight: 1.9 }}>
           <li>Tell Genesis where you're headed — as a rider requesting a seat, or a driver offering one.</li>
           <li>Genesis's matching engine scores candidates against your Decision DNA and shows its reasoning.</li>

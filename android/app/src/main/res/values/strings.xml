@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RideShare Genesis</string>
+
+    <!-- Informational mirror of frontend/public/.well-known/assetlinks.json —
+         some verification tooling reads this from the APK itself rather than
+         fetching the live URL. Keep the fingerprint in sync with whichever
+         keystore actually signs the release build; a mismatch here does not
+         break the app, it only breaks link verification (the app still opens
+         fine, just inside browser chrome instead of full-screen). -->
+    <string name="asset_statements">
+        [{
+            \"relation\": [\"delegate_permission/common.handle_all_urls\"],
+            \"target\": {
+                \"namespace\": \"web\",
+                \"site\": \"https://ridesharegenesis.app\"
+            }
+        }]
+    </string>
+</resources>

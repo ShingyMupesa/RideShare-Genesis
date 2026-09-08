@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../services/api.js';
 import DecisionDnaCard from '../components/DecisionDnaCard.jsx';
+import VerifiedDriverBadge from '../components/VerifiedDriverBadge.jsx';
 
 export default function MatchResults() {
   const { journeyId } = useParams();
@@ -90,8 +91,9 @@ export default function MatchResults() {
             <div key={match.id} className="card" style={{ opacity: dismissed ? 0.5 : 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div>
-                  <p className="journey-route">
+                  <p className="journey-route" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     {offer.origin.label} → {offer.destination.label}
+                    {offer.ownerDriverVerified && <VerifiedDriverBadge />}
                   </p>
                   <p className="muted">
                     {new Date(offer.departureTime).toLocaleString()} · {offer.currency} {offer.pricePerSeat}/seat ·{' '}

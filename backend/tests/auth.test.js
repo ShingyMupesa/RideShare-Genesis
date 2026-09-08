@@ -18,6 +18,7 @@ describe('auth + profile', () => {
       email: 'ada@example.com',
       password: 'supersecret1',
       fullName: 'Ada Lovelace',
+      acceptedTerms: true,
     });
     assert.equal(res.status, 201);
     assert.ok(res.body.token);
@@ -30,11 +31,13 @@ describe('auth + profile', () => {
       email: 'dup@example.com',
       password: 'supersecret1',
       fullName: 'Dup User',
+      acceptedTerms: true,
     });
     const res = await request(app).post('/api/users/register').send({
       email: 'dup@example.com',
       password: 'supersecret1',
       fullName: 'Dup Again',
+      acceptedTerms: true,
     });
     assert.equal(res.status, 409);
   });
@@ -44,6 +47,7 @@ describe('auth + profile', () => {
       email: 'weak@example.com',
       password: '123',
       fullName: 'Weak Pw',
+      acceptedTerms: true,
     });
     assert.equal(res.status, 400);
   });
@@ -53,6 +57,7 @@ describe('auth + profile', () => {
       email: 'login@example.com',
       password: 'supersecret1',
       fullName: 'Login User',
+      acceptedTerms: true,
     });
     const loginRes = await request(app).post('/api/users/login').send({
       email: 'login@example.com',
@@ -79,6 +84,7 @@ describe('auth + profile', () => {
       email: 'profile@example.com',
       password: 'supersecret1',
       fullName: 'Profile User',
+      acceptedTerms: true,
     });
     const token = reg.body.token;
 

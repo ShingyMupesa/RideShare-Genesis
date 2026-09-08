@@ -1,8 +1,16 @@
 import { Router } from 'express';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
-import { asyncHandler, BadRequest, Forbidden, NotFound } from '../utils/errors.js';
+import { ApiError, asyncHandler, BadRequest, Forbidden, NotFound } from '../utils/errors.js';
 import * as Journeys from './repository.js';
 import { generateMatchesForJourney } from '../matching/engine.js';
+import { VEHICLE_TYPES } from '../utils/impact.js';
+import * as DriverVerification from '../driverVerification/repository.js';
+
+const VERIFICATION_MESSAGES = {
+  unverified: 'Complete driver verification before posting a journey. Add your details on your profile — an admin will review them shortly.',
+  pending: 'Your driver verification is still under review. We will notify you as soon as an admin clears it.',
+  rejected: 'Your driver verification was not approved. Check the reviewer note on your profile and resubmit.',
+};
 
 export const router = Router();
 
@@ -24,6 +32,15 @@ function validateJourneyInput(body) {
   if (pricePerSeat !== undefined && (typeof pricePerSeat !== 'number' || pricePerSeat < 0)) {
     throw BadRequest('pricePerSeat must be a non-negative number');
   }
+  // Currency is mandatory, not defaulted — every financial figure in the
+  // app (journey price, booking total, payment amount) must carry an
+  // explicit currency the user actually chose, never a silent USD fallback.
+  if (!body?.currency || typeof body.currency !== 'string' || !/^[A-Za-z]{3}$/.test(body.currency)) {
+    throw BadRequest('currency is required and must be a 3-letter currency code (e.g. KES, USD)');
+  }
+  if (body?.vehicleType !== undefined && body.vehicleType !== null && !VEHICLE_TYPES.includes(body.vehicleType)) {
+    throw BadRequest(`vehicleType must be one of: ${VEHICLE_TYPES.join(', ')}`);
+  }
 }
 
 // Find Journey / Offer Journey both post here; `type` distinguishes them.
@@ -32,6 +49,18 @@ router.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     validateJourneyInput(req.body);
+
+    // Driver verification only ever gates `offer` journeys — a rider
+    // requesting a ride isn't the one being verified. Enforcement is a
+    // platform-wide toggle an admin controls (default off), so this is a
+    // no-op until that's switched on.
+    if (req.body.type === 'offer' && DriverVerification.isEnforced()) {
+      const status = DriverVerification.getStatus(req.user.id)?.status || 'unverified';
+      if (status !== 'verified') {
+        throw new ApiError(403, 'DRIVER_VERIFICATION_REQUIRED', VERIFICATION_MESSAGES[status] || VERIFICATION_MESSAGES.unverified, { status });
+      }
+    }
+
     const journey = Journeys.createJourney(req.user.id, req.body);
 
     let matches = [];
@@ -43,6 +72,18 @@ router.post(
   })
 );
 
+// A `request` journey carries a rider's private pickup/drop-off intent
+// (exact coordinates). Browsing the general list (not `mine=true`) must
+// never leak that — same rule GET /:id already enforces for a single
+// journey — so anything that isn't the viewer's own request gets reduced
+// to route labels and trip terms only: enough for a free driver to gauge
+// demand, nothing that identifies the requester or their exact location.
+function redactIfPrivateRequest(journey, viewerId) {
+  if (journey.type !== 'request' || journey.ownerId === viewerId) return journey;
+  const { ownerId, origin, destination, ...rest } = journey;
+  return { ...rest, origin: { label: origin.label }, destination: { label: destination.label } };
+}
+
 router.get(
   '/',
   optionalAuth,
@@ -50,7 +91,7 @@ router.get(
     const { type, status, mine } = req.query;
     const ownerId = mine === 'true' ? req.user?.id : undefined;
     if (mine === 'true' && !req.user) throw Forbidden('Sign in to view your own journeys');
-    const journeys = Journeys.listJourneys({ type, status, ownerId });
+    const journeys = Journeys.listJourneys({ type, status, ownerId }).map((j) => redactIfPrivateRequest(j, req.user?.id));
     res.json({ journeys });
   })
 );

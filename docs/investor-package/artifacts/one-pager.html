@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RideShare Genesis — Executive Summary</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --ink: #15142b;
+    --paper: #f3f1ea;
+    --muted: #9c98ba;
+    --muted-2: #7a76a0;
+    --brass: #c89b3c;
+    --brass-soft: #e0bd6a;
+    --success: #58b98a;
+    --line: rgba(243, 241, 234, 0.14);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15.5px;
+    line-height: 1.48;
+  }
+  @page { size: A4 portrait; margin: 0; }
+
+  .page {
+    width: 210mm;
+    height: 296mm;
+    padding: 22mm 24mm;
+    display: flex;
+    flex-direction: column;
+    background:
+      radial-gradient(680px 420px at 100% 0%, rgba(200, 155, 60, 0.11), transparent 60%),
+      var(--ink);
+  }
+  .page + .page { break-before: page; }
+
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; color: var(--paper); margin: 0; }
+  a { color: var(--brass-soft); }
+
+  /* Header */
+  header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 13px; }
+  .brand-name { font-size: 32px; font-weight: 600; }
+  .tagline { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  .stage-tag { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brass-soft); border: 1px solid rgba(200,155,60,0.4); border-radius: 20px; padding: 4px 14px; display: inline-block; margin-top: 10px; }
+  .contact { text-align: right; font-size: 12.5px; color: var(--muted); line-height: 1.8; }
+  .contact strong { color: var(--paper); }
+  .page-marker { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Body grid */
+  .cols { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 28px; }
+
+  .full-block { margin-bottom: 11px; }
+  .block { margin-bottom: 12px; }
+  .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--brass-soft); margin-bottom: 5px; }
+  .block h2 { font-size: 18px; margin-bottom: 8px; }
+  .full-block h2 { font-size: 19px; margin-bottom: 8px; }
+  .block p, .full-block p { margin: 0; color: var(--muted); }
+  .block p strong, .full-block p strong { color: var(--paper); font-weight: 600; }
+
+  .bullets { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .bullets li { padding-left: 18px; position: relative; color: var(--muted); }
+  .bullets li::before { content: '—'; position: absolute; left: 0; color: var(--brass); }
+  .bullets li strong { color: var(--paper); font-weight: 600; }
+
+  .traction-box { background: rgba(88,185,138,0.08); border: 1px solid rgba(88,185,138,0.3); border-radius: 11px; padding: 13px 15px; }
+  .traction-box .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success); margin-right: 8px; }
+  .traction-box p { color: var(--paper); }
+
+  .stat-row { display: flex; gap: 13px; margin-top: 11px; }
+  .stat { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 11px; padding: 14px 15px; }
+  .stat .val { font-family: 'Fraunces', serif; font-size: 24px; color: var(--brass-soft); font-weight: 600; }
+  .stat .lbl { font-size: 11px; color: var(--muted-2); margin-top: 5px; line-height: 1.4; }
+
+  .expansion-row { display: flex; gap: 9px; margin-top: 11px; flex-wrap: wrap; }
+  .expansion-row span { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 14px; padding: 5px 13px; }
+  .expansion-row span.origin { color: var(--brass-soft); border-color: rgba(200,155,60,0.4); }
+
+  .tech-grid { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .tech-grid span { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--paper); background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 8px; padding: 5px 11px; }
+  .tech-grid span.roadmap { color: var(--muted-2); border-style: dashed; }
+
+  .ask-box { background: rgba(200,155,60,0.08); border: 1px solid rgba(200,155,60,0.35); border-radius: 11px; padding: 18px 20px; }
+  .ask-box .val { font-family: 'Fraunces', serif; font-size: 30px; color: var(--brass-soft); font-weight: 700; }
+  .ask-box .sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .ask-box ul { margin: 14px 0 0; padding-left: 18px; color: var(--muted); }
+  .ask-box li { margin-bottom: 7px; }
+  .ask-box li strong { color: var(--paper); }
+
+  footer { border-top: 1px solid var(--line); padding-top: 14px; margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 11px; color: var(--muted-2); }
+  footer .note { max-width: 62%; }
+  footer a { color: var(--brass-soft); text-decoration: none; }
+  footer .links { display: flex; gap: 18px; flex-shrink: 0; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+  <!-- PAGE 1 -->
+  <div class="page">
+
+    <header>
+      <div>
+        <div class="brand-name">RideShare Genesis</div>
+        <div class="tagline">Ridesharing that explains itself.</div>
+        <div class="stage-tag">Nairobi Pilot · Pre-Seed</div>
+      </div>
+      <div class="contact">
+        <div><strong>Shingy Mupesa</strong> — Founder &amp; CEO</div>
+        <div>founder@ridesharegenesis.app</div>
+        <div>+44 7449 494405</div>
+        <div>ridesharegenesis.app</div>
+      </div>
+    </header>
+
+    <div class="full-block">
+      <div class="eyebrow">Mission</div>
+      <p>RideShare Genesis is a human-centred, technology-enabled mobility platform designed to help people identify and fulfil real mobility needs through shared journeys, intelligent assistance, trust infrastructure, and measurable impact.</p>
+    </div>
+
+    <div class="full-block">
+      <div class="eyebrow">Eleven technology layers, not one feature</div>
+      <p>Nine of these are live in production today; mapping/routing (a placeholder geocoder for now) and predictive "future mobility intelligence" are in progress — named honestly, not glossed over.</p>
+      <div class="tech-grid">
+        <span>Real-time journey marketplace</span>
+        <span>Matching</span>
+        <span class="roadmap">Mapping &amp; routing</span>
+        <span>Authentication</span>
+        <span>Communications</span>
+        <span>Payments</span>
+        <span>Safety infrastructure</span>
+        <span>AI assistance</span>
+        <span>Decision DNA</span>
+        <span>Data infrastructure</span>
+        <span class="roadmap">Future mobility intelligence</span>
+      </div>
+    </div>
+
+    <div class="cols">
+      <!-- LEFT COLUMN -->
+      <div>
+        <div class="block">
+          <div class="eyebrow">The problem</div>
+          <p>Ride-matching is a black box everywhere — riders can't see why they were paired with a given driver, and drivers face opaque commission structures they can't audit. In markets where ridesharing is still informal — Nairobi's matatu culture included — trust has to be earned trip by trip, not assumed.</p>
+        </div>
+
+        <div class="block">
+          <div class="eyebrow">The solution</div>
+          <h2>Every match explains itself.</h2>
+          <ul class="bullets">
+            <li><strong>Decision DNA</strong> — a live, weighted score across six factors (route fit, timing, price, preferences, reliability, and environmental fit) shown to the rider, not hidden — and personally retunable.</li>
+            <li><strong>Verified Driver review</strong> — licence, vehicle registration, and insurance checked before a driver can post, honestly labelled for what it does and doesn't yet certify.</li>
+            <li><strong>Mobile-money-native</strong> — M-Pesa and card payments live from day one, a shillings-first product, not a card-first one retrofitted for Kenya.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <div class="block">
+          <div class="eyebrow">Traction</div>
+          <div class="traction-box">
+            <p><span class="status-dot"></span><strong>V1 is fully built and live in production</strong> at ridesharegenesis.app — real M-Pesa &amp; card payments, a working matching engine, a Safety Centre, driver verification. Deliberately pre-launch on user acquisition: commission plumbing is live end-to-end at 0% while we seed the first cohort. This round funds the go-to-market push that hasn't started yet.</p>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="eyebrow">Why Nairobi, then where next</div>
+          <p>Mobile-money-native payments and an informal matatu-based trust gap Decision DNA closes faster than a black-box score. The same criteria point regionally once the pilot proves out:</p>
+          <div class="expansion-row">
+            <span class="origin">Nairobi (pilot)</span>
+            <span>Kampala</span>
+            <span>Dar es Salaam</span>
+            <span>Kigali</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PAGE 2 -->
+  <div class="page">
+
+    <header>
+      <div>
+        <div class="brand-name" style="font-size:19px;">RideShare Genesis</div>
+        <div class="tagline">Executive summary, continued</div>
+      </div>
+      <div class="page-marker">Page 2 of 2</div>
+    </header>
+
+    <div class="cols">
+      <!-- LEFT COLUMN -->
+      <div>
+        <div class="block">
+          <div class="eyebrow">Market — sized bottom-up</div>
+          <div class="stat-row">
+            <div class="stat"><div class="val">$750M</div><div class="lbl">TAM — East African urban ride-hailing &amp; carpooling / yr</div></div>
+            <div class="stat"><div class="val">$150M</div><div class="lbl">SAM — Nairobi metro shared-ride spend / yr</div></div>
+            <div class="stat"><div class="val">$3M</div><div class="lbl">SOM — Year-3 Nairobi pilot target GMV / yr</div></div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="eyebrow">Unit economics</div>
+          <p>KES 650 avg fare · <strong>10% target take rate</strong> ≈ $0.50 revenue/ride — already live end-to-end, since every payment stores its own rate at the moment it's captured, so history never gets rewritten.</p>
+        </div>
+
+        <div class="block">
+          <div class="eyebrow">Year-3 target</div>
+          <p><strong>~5,700 monthly active riders</strong> — 2% penetration of the Nairobi SAM, ≈8 rides/rider/month. The milestone this round is sized to reach, not a hockey-stick guess.</p>
+        </div>
+
+        <div class="block">
+          <div class="eyebrow">What's honestly still open</div>
+          <p>Kenyan business registration, carpooling-vs-e-hailing legal classification, and contingent liability insurance beyond a driver's own policy are not yet resolved — named plainly here, not discovered in diligence.</p>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <div class="block">
+          <div class="eyebrow">The ask</div>
+          <div class="ask-box">
+            <div class="val">$250,000</div>
+            <div class="sub">Pre-seed · 12-month runway</div>
+            <ul>
+              <li><strong>Real geocoding &amp; maps</strong> to replace the current placeholder layer</li>
+              <li><strong>Driver ID verification</strong> — Tier 2 automated checks against licensing-authority data</li>
+              <li><strong>A licensed payment processor</strong> at production volume, beyond the current integration</li>
+              <li><strong>First 5,000-rider Nairobi cohort</strong> — the go-to-market push, not product build</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="eyebrow">Let's talk</div>
+          <p>Happy to walk through the live product, the Decision DNA scoring logic, or the numbers behind this summary — whichever gets you to a decision fastest. The app is live today; create a real account and try a ride as a rider or driver.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <span class="note">Illustrative planning figures — methodology in the full deck, refined with real pilot data as it accrues.</span>
+      <span class="links">
+        <a href="https://ridesharegenesis.app">ridesharegenesis.app</a>
+        <a href="https://claude.ai/code/artifact/c0b8b697-8765-4cc5-bbd5-f0134d31de1c">Full deck + demo ↗</a>
+      </span>
+    </footer>
+
+  </div>
+
+</body>
+</html>

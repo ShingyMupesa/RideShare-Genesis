@@ -1,70 +1,47 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
+import { CURRENCIES, DEFAULT_CURRENCY } from '../constants/currencies.js';
+import LocationField from '../components/LocationField.jsx';
 
-const PRESETS = [
-  { label: 'Downtown Plaza', lat: -1.2921, lng: 36.8219 },
-  { label: 'Airport Terminal', lat: -1.3192, lng: 36.9278 },
-  { label: 'University Campus', lat: -1.2635, lng: 36.8121 },
-  { label: 'Tech Park', lat: -1.2167, lng: 36.8956 },
-];
-
-function LocationField({ label, value, onChange }) {
-  return (
-    <div className="form-field">
-      <label>{label}</label>
-      <input
-        placeholder="Place name"
-        value={value.label}
-        onChange={(e) => onChange({ ...value, label: e.target.value })}
-        style={{ marginBottom: 6 }}
-      />
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input
-          type="number"
-          step="any"
-          placeholder="Latitude"
-          value={value.lat}
-          onChange={(e) => onChange({ ...value, lat: Number(e.target.value) })}
-        />
-        <input
-          type="number"
-          step="any"
-          placeholder="Longitude"
-          value={value.lng}
-          onChange={(e) => onChange({ ...value, lng: Number(e.target.value) })}
-        />
-      </div>
-      <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-        {PRESETS.map((p) => (
-          <button
-            key={p.label}
-            type="button"
-            className="pill"
-            style={{ cursor: 'pointer', border: 'none' }}
-            onClick={() => onChange(p)}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+// datetime-local wants "YYYY-MM-DDTHH:mm" in local time, not an ISO string.
+function toDatetimeLocalValue(isoString) {
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export default function OfferJourney() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [origin, setOrigin] = useState({ label: '', lat: '', lng: '' });
-  const [destination, setDestination] = useState({ label: '', lat: '', lng: '' });
-  const [departureTime, setDepartureTime] = useState('');
+  const [searchParams] = useSearchParams();
+  const prefillOriginLabel = searchParams.get('originLabel') || '';
+  const prefillDestLabel = searchParams.get('destLabel') || '';
+  const prefillDeparture = searchParams.get('departureTime');
+  const [origin, setOrigin] = useState({ label: prefillOriginLabel, lat: '', lng: '' });
+  const [destination, setDestination] = useState({ label: prefillDestLabel, lat: '', lng: '' });
+  const [departureTime, setDepartureTime] = useState(prefillDeparture ? toDatetimeLocalValue(prefillDeparture) : '');
   const [seats, setSeats] = useState(3);
   const [pricePerSeat, setPricePerSeat] = useState(10);
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+  const [vehicleType, setVehicleType] = useState('');
   const [preferences, setPreferences] = useState({ chattiness: 'flexible', smoking: false, pets_ok: true });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [verificationEnforced, setVerificationEnforced] = useState(false);
+
+  useEffect(() => {
+    api
+      .driverVerificationSettings()
+      .then((s) => setVerificationEnforced(s.enforced))
+      .catch(() => {}); // non-fatal — worst case the form allows a submit the server then blocks
+  }, []);
+
+  const driverStatus = user?.profile?.driverVerificationStatus || 'unverified';
+  const blockedByVerification = verificationEnforced && driverStatus !== 'verified';
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -83,7 +60,9 @@ export default function OfferJourney() {
         departureTime: new Date(departureTime).toISOString(),
         seats: Number(seats),
         pricePerSeat: Number(pricePerSeat),
+        currency,
         preferences,
+        vehicleType: vehicleType || null,
       });
       setSuccess(journey);
     } catch (err) {
@@ -98,6 +77,27 @@ export default function OfferJourney() {
       <p className="eyebrow">Offer a Journey</p>
       <h1>Share your ride</h1>
       <p className="muted">Publish your route so Genesis can match you with riders heading your way.</p>
+      {(prefillOriginLabel || prefillDestLabel) && (
+        <p className="muted">
+          Carried over from an open request — fill in exact coordinates for {prefillOriginLabel || 'your start'} and {prefillDestLabel || 'your destination'} below.
+        </p>
+      )}
+
+      {blockedByVerification && (
+        <div className="alert alert-error">
+          {driverStatus === 'pending'
+            ? "Your driver verification is under review — you'll be able to publish once an admin clears it."
+            : driverStatus === 'rejected'
+              ? 'Your driver verification was not approved. Update your details and resubmit on your '
+              : 'Driver verification is now required before publishing a journey. Complete it on your '}
+          {driverStatus !== 'pending' && (
+            <a href="/profile" onClick={(e) => { e.preventDefault(); navigate('/profile'); }}>
+              profile
+            </a>
+          )}
+          {driverStatus !== 'pending' && '.'}
+        </div>
+      )}
 
       {error && <div className="alert alert-error">{error}</div>}
       {success && (
@@ -131,16 +131,47 @@ export default function OfferJourney() {
             <input id="seats" type="number" min="1" value={seats} onChange={(e) => setSeats(e.target.value)} />
           </div>
         </div>
-        <div className="form-field">
-          <label htmlFor="pricePerSeat">Price per seat (USD)</label>
-          <input
-            id="pricePerSeat"
-            type="number"
-            min="0"
-            step="0.5"
-            value={pricePerSeat}
-            onChange={(e) => setPricePerSeat(e.target.value)}
-          />
+        <div className="grid-2">
+          <div className="form-field">
+            <label htmlFor="pricePerSeat">Price per seat</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select
+                id="currency"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                style={{ maxWidth: 110, flex: '0 0 auto' }}
+                aria-label="Currency"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code}
+                  </option>
+                ))}
+              </select>
+              <input
+                id="pricePerSeat"
+                type="number"
+                min="0"
+                step="0.5"
+                value={pricePerSeat}
+                onChange={(e) => setPricePerSeat(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="form-field">
+            <label htmlFor="vehicleType">Vehicle type</label>
+            <select id="vehicleType" value={vehicleType} onChange={(e) => setVehicleType(e.target.value)}>
+              <option value="">Prefer not to say</option>
+              <option value="electric">Electric</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="petrol">Petrol</option>
+              <option value="diesel">Diesel</option>
+              <option value="other">Other</option>
+            </select>
+            <p className="muted" style={{ fontSize: '0.8rem', marginTop: 4 }}>
+              Helps Genesis estimate this journey's environmental impact — never affects your visibility to riders beyond the Decision DNA match score.
+            </p>
+          </div>
         </div>
 
         <h3>Journey preferences</h3>
@@ -177,7 +208,7 @@ export default function OfferJourney() {
           </div>
         </div>
 
-        <button className="btn btn-primary" type="submit" disabled={submitting}>
+        <button className="btn btn-primary" type="submit" disabled={submitting || blockedByVerification}>
           {submitting ? 'Publishing…' : 'Publish journey'}
         </button>
       </form>

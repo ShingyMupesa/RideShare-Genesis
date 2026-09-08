@@ -17,6 +17,7 @@ describe('journeys + matching + Decision DNA', () => {
       email: 'driver@example.com',
       password: 'supersecret1',
       fullName: 'Diana Driver',
+      acceptedTerms: true,
     });
     driverToken = driver.body.token;
 
@@ -24,6 +25,7 @@ describe('journeys + matching + Decision DNA', () => {
       email: 'rider@example.com',
       password: 'supersecret1',
       fullName: 'Ravi Rider',
+      acceptedTerms: true,
     });
     riderToken = rider.body.token;
 
@@ -31,6 +33,7 @@ describe('journeys + matching + Decision DNA', () => {
       email: 'stranger@example.com',
       password: 'supersecret1',
       fullName: 'Sam Stranger',
+      acceptedTerms: true,
     });
     strangerToken = stranger.body.token;
   });
@@ -50,6 +53,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 3,
         pricePerSeat: 10,
+        currency: 'USD',
       });
     assert.equal(res.status, 201);
     assert.equal(res.body.matches.length, 0);
@@ -67,6 +71,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 1,
         pricePerSeat: 12,
+        currency: 'USD',
       });
 
     assert.equal(res.status, 201);
@@ -90,6 +95,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 1,
         pricePerSeat: 12,
+        currency: 'USD',
       });
 
     const matchId = journeyRes.body.matches[0].id;
@@ -113,6 +119,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 1,
         pricePerSeat: 12,
+        currency: 'USD',
       });
     const matchId = journeyRes.body.matches[0].id;
 
@@ -133,6 +140,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 1,
         pricePerSeat: 12,
+        currency: 'USD',
       });
     const matchId = journeyRes.body.matches[0].id;
 
@@ -168,6 +176,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 2,
         pricePerSeat: 5,
+        currency: 'USD',
       });
 
     const res = await request(app).get(`/api/journeys/${offerRes.body.journey.id}`);
@@ -185,6 +194,7 @@ describe('journeys + matching + Decision DNA', () => {
         departureTime: departure,
         seats: 1,
         pricePerSeat: 12,
+        currency: 'USD',
       });
     const journeyId = requestRes.body.journey.id;
 
@@ -196,5 +206,112 @@ describe('journeys + matching + Decision DNA', () => {
 
     const ownerRes = await request(app).get(`/api/journeys/${journeyId}`).set('Authorization', `Bearer ${riderToken}`);
     assert.equal(ownerRes.status, 200);
+  });
+
+  test('the journeys list redacts exact coordinates and owner id for other people\'s request journeys', async () => {
+    const requestRes = await request(app)
+      .post('/api/journeys')
+      .set('Authorization', `Bearer ${riderToken}`)
+      .send({
+        type: 'request',
+        origin: { label: 'List Redaction Origin', lat: -1.301, lng: 36.801 },
+        destination: { label: 'List Redaction Destination', lat: -1.321, lng: 36.931 },
+        departureTime: departure,
+        seats: 1,
+        pricePerSeat: 12,
+        currency: 'USD',
+      });
+    const journeyId = requestRes.body.journey.id;
+
+    const strangerListRes = await request(app)
+      .get('/api/journeys?type=request&status=active')
+      .set('Authorization', `Bearer ${strangerToken}`);
+    assert.equal(strangerListRes.status, 200);
+    const seenByStranger = strangerListRes.body.journeys.find((j) => j.id === journeyId);
+    assert.ok(seenByStranger, 'the request journey should still be listed');
+    assert.equal(seenByStranger.ownerId, undefined);
+    assert.equal(seenByStranger.origin.lat, undefined);
+    assert.equal(seenByStranger.origin.lng, undefined);
+    assert.equal(seenByStranger.destination.lat, undefined);
+    assert.equal(seenByStranger.origin.label, 'List Redaction Origin');
+
+    const anonListRes = await request(app).get('/api/journeys?type=request&status=active');
+    const seenByAnon = anonListRes.body.journeys.find((j) => j.id === journeyId);
+    assert.equal(seenByAnon.ownerId, undefined);
+    assert.equal(seenByAnon.origin.lat, undefined);
+
+    const ownerListRes = await request(app)
+      .get('/api/journeys?type=request&status=active&mine=true')
+      .set('Authorization', `Bearer ${riderToken}`);
+    const seenByOwner = ownerListRes.body.journeys.find((j) => j.id === journeyId);
+    assert.equal(seenByOwner.origin.lat, -1.301);
+    assert.equal(seenByOwner.ownerId, requestRes.body.journey.ownerId);
+  });
+
+  test('reliability factor is a real, queried signal — not a hardcoded constant', async () => {
+    // A driver with no completed trips yet starts at the neutral baseline.
+    const freshOfferRes = await request(app)
+      .post('/api/journeys')
+      .set('Authorization', `Bearer ${driverToken}`)
+      .send({
+        type: 'offer',
+        origin: { label: 'Reliability Origin', lat: -1.29, lng: 36.82 },
+        destination: { label: 'Reliability Destination', lat: -1.31, lng: 36.92 },
+        departureTime: departure,
+        seats: 3,
+        pricePerSeat: 10,
+        currency: 'USD',
+      });
+
+    const baselineRequestRes = await request(app)
+      .post('/api/journeys')
+      .set('Authorization', `Bearer ${strangerToken}`)
+      .send({
+        type: 'request',
+        origin: { label: 'Reliability Origin', lat: -1.29, lng: 36.82 },
+        destination: { label: 'Reliability Destination', lat: -1.31, lng: 36.92 },
+        departureTime: departure,
+        seats: 1,
+        pricePerSeat: 12,
+        currency: 'USD',
+      });
+    const baselineMatch = baselineRequestRes.body.matches.find((m) => m.offerJourney.id === freshOfferRes.body.journey.id);
+    assert.ok(baselineMatch, 'expected a match against the fresh offer');
+    assert.equal(baselineMatch.decisionDna.factors.reliability.score, 0.6);
+    assert.match(baselineMatch.decisionDna.factors.reliability.detail, /no completed trips/i);
+
+    // Drive one booking against the driver's fresh offer all the way to
+    // COMPLETED, then check the driver's reliability score reflects it.
+    const bookingRes = await request(app)
+      .post('/api/bookings')
+      .set('Authorization', `Bearer ${strangerToken}`)
+      .send({ journeyId: freshOfferRes.body.journey.id, seats: 1 });
+    assert.equal(bookingRes.status, 201);
+    const bookingId = bookingRes.body.booking.id;
+
+    await request(app).post(`/api/bookings/${bookingId}/request`).set('Authorization', `Bearer ${strangerToken}`);
+    await request(app).post(`/api/bookings/${bookingId}/confirm`).set('Authorization', `Bearer ${driverToken}`);
+    await request(app).post(`/api/bookings/${bookingId}/start`).set('Authorization', `Bearer ${driverToken}`);
+    const completeRes = await request(app).post(`/api/bookings/${bookingId}/complete`).set('Authorization', `Bearer ${driverToken}`);
+    assert.equal(completeRes.status, 200);
+
+    // A fresh match against the same driver should now score higher and
+    // say so explicitly.
+    const afterRequestRes = await request(app)
+      .post('/api/journeys')
+      .set('Authorization', `Bearer ${strangerToken}`)
+      .send({
+        type: 'request',
+        origin: { label: 'Reliability Origin', lat: -1.29, lng: 36.82 },
+        destination: { label: 'Reliability Destination', lat: -1.31, lng: 36.92 },
+        departureTime: departure,
+        seats: 1,
+        pricePerSeat: 12,
+        currency: 'USD',
+      });
+    const afterMatch = afterRequestRes.body.matches.find((m) => m.offerJourney.id === freshOfferRes.body.journey.id);
+    assert.ok(afterMatch, 'expected a match against the now-experienced driver');
+    assert.equal(afterMatch.decisionDna.factors.reliability.score, 0.65);
+    assert.match(afterMatch.decisionDna.factors.reliability.detail, /1 completed trip on Genesis/);
   });
 });
