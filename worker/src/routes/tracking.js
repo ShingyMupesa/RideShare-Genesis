@@ -53,7 +53,7 @@ tracking.post('/', async (c) => {
 // `to` is checked against a fixed allowlist — never redirects to a caller-
 // supplied URL, to avoid this becoming an open redirect.
 const GO_DESTINATIONS = {
-  live_app: 'https://rideshare-genesis.mupesashingy.workers.dev/',
+  live_app: 'https://ridesharegenesis.app/',
   repo: 'https://github.com/ShingyMupesa/RideShare-Genesis',
 };
 
