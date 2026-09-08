@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
 import VerifiedDriverBadge from '../components/VerifiedDriverBadge.jsx';
+import { whatsAppShareUrl } from '../utils/whatsapp.js';
 
 const PREFERENCE_LABELS = {
   chattiness: 'Chattiness',
@@ -92,6 +93,17 @@ export default function JourneyDetails() {
         <span className="pill">{journey.seatsAvailable}/{journey.seatsTotal} seats available</span>{' '}
         <span className={`pill ${journey.status === 'active' ? 'pill-success' : 'pill-warning'}`}>{journey.status}</span>
       </p>
+
+      <a
+        className="btn btn-ghost btn-sm"
+        href={whatsAppShareUrl(
+          `🚗 ${journey.origin.label} → ${journey.destination.label} on RideShare Genesis — ${journey.currency} ${journey.pricePerSeat}/seat, ${new Date(journey.departureTime).toLocaleString()}.\n${typeof window !== 'undefined' ? window.location.href : ''}`,
+        )}
+        target="_blank"
+        rel="noopener"
+      >
+        💬 Share via WhatsApp
+      </a>
 
       {journey.preferences && Object.keys(journey.preferences).length > 0 && (
         <div style={{ marginTop: 12 }}>

@@ -9,6 +9,7 @@ import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import TermsAndConditions from './pages/TermsAndConditions.jsx';
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx';
+import TrustAndSafety from './pages/TrustAndSafety.jsx';
 import DataDeletion from './pages/DataDeletion.jsx';
 import ConfirmDeletion from './pages/ConfirmDeletion.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/trust" element={<TrustAndSafety />} />
           <Route path="/data-deletion" element={<DataDeletion />} />
           <Route path="/confirm-deletion" element={<ConfirmDeletion />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -90,7 +92,8 @@ export default function App() {
       </main>
       <footer className="footer-note">
         RideShare Genesis V1 — built human-centred, explained end-to-end. ·{' '}
-        <Link to="/privacy">Privacy Policy</Link> · <Link to="/data-deletion">Delete my data</Link> ·{' '}
+        <Link to="/trust">Trust &amp; Safety</Link> · <Link to="/privacy">Privacy Policy</Link> ·{' '}
+        <Link to="/data-deletion">Delete my data</Link> ·{' '}
         <a href="https://wa.me/447449494405?text=Hi%21%20I%20have%20feedback%20on%20RideShare%20Genesis." target="_blank" rel="noopener">
           💬 Send feedback on WhatsApp
         </a>

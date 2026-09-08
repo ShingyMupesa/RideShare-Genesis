@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
+import { whatsAppShareUrl } from '../utils/whatsapp.js';
 
 const FLOW = ['REQUESTED', 'MATCHED', 'BOOKING_REQUESTED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'];
 
@@ -208,6 +209,17 @@ export default function Booking() {
       <p className="muted">
         {booking.seats} seat(s) · {booking.currency} {booking.totalPrice} total
       </p>
+
+      <a
+        className="btn btn-ghost btn-sm"
+        href={whatsAppShareUrl(
+          `🚗 I'm on a ride booked via RideShare Genesis: ${journey.origin.label} → ${journey.destination.label} (${booking.status.replace('_', ' ').toLowerCase()}).\n${typeof window !== 'undefined' ? `${window.location.origin}/journeys/${journey.id}` : ''}`,
+        )}
+        target="_blank"
+        rel="noopener"
+      >
+        💬 Share via WhatsApp
+      </a>
 
       <StatusStepper status={booking.status} />
       {error && <div className="alert alert-error">{error}</div>}
