@@ -80,6 +80,10 @@ export default function Register() {
               I have read and agree to the{' '}
               <Link to="/terms" target="_blank" rel="noopener">
                 Terms &amp; Conditions
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy" target="_blank" rel="noopener">
+                Privacy Policy
               </Link>
               .
             </span>

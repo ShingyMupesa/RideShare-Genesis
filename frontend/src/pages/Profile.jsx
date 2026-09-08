@@ -1,13 +1,16 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { api } from '../services/api.js';
+import { api, ApiError } from '../services/api.js';
 import PushNotificationToggle from '../components/PushNotificationToggle.jsx';
 import DriverVerificationCard from '../components/DriverVerificationCard.jsx';
+import PasswordField from '../components/PasswordField.jsx';
 
 const WEIGHT_KEYS = ['proximity', 'timing', 'price', 'preferences', 'reliability'];
 
 export default function Profile() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
+  const navigate = useNavigate();
   const profile = user?.profile;
   const [preferences, setPreferences] = useState(profile?.preferences || {});
   const [weights, setWeights] = useState(profile?.decisionDna?.weights || {});
@@ -37,6 +40,31 @@ export default function Profile() {
       setStatus(err.message || 'Could not save profile');
     } finally {
       setSaving(false);
+    }
+  }
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDeleteAccount(e) {
+    e.preventDefault();
+    setDeleteError('');
+    if (deleteConfirmText !== 'DELETE') {
+      setDeleteError('Type DELETE (all caps) to confirm.');
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.deleteAccount(deletePassword);
+      logout();
+      navigate('/', { state: { accountDeleted: true } });
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : 'Could not delete your account');
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -156,6 +184,63 @@ export default function Profile() {
 
       <div style={{ marginTop: 20 }}>
         <DriverVerificationCard />
+      </div>
+
+      <div className="card" style={{ marginTop: 20, borderColor: 'var(--color-danger)' }}>
+        <h3>Danger zone</h3>
+        {!deleteOpen ? (
+          <>
+            <p className="muted">
+              Permanently delete your account and personal data. Bookings and payments already made stay on
+              record for financial and safety purposes, but are no longer linked to your name, email, or phone.
+            </p>
+            <button className="btn btn-danger" type="button" onClick={() => setDeleteOpen(true)}>
+              Delete my account
+            </button>
+          </>
+        ) : (
+          <form onSubmit={handleDeleteAccount}>
+            <p className="alert alert-error">
+              This cannot be undone. Your profile, driver verification documents, and push subscriptions are
+              deleted outright; your email and name are wiped from your account everywhere else.
+            </p>
+            {deleteError && <div className="alert alert-error">{deleteError}</div>}
+            <PasswordField
+              id="delete-password"
+              label="Confirm your password"
+              required
+              autoComplete="current-password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+            />
+            <div className="form-field">
+              <label htmlFor="delete-confirm-text">Type DELETE to confirm</label>
+              <input
+                id="delete-confirm-text"
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-danger" type="submit" disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Permanently delete my account'}
+              </button>
+              <button
+                className="btn btn-ghost"
+                type="button"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteError('');
+                  setDeletePassword('');
+                  setDeleteConfirmText('');
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

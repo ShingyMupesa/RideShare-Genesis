@@ -19,6 +19,13 @@ All authenticated routes expect `Authorization: Bearer <token>`, issued by
 | PATCH  | `/users/me/profile`   | yes  | Update bio, preferences, Decision DNA weights  |
 | POST   | `/users/forgot-password` | no | `{ email }` → generic message regardless of whether the account exists (avoids leaking which emails are registered). Emails a reset link via Resend if `RESEND_API_KEY` is configured; otherwise the link is only logged server-side. |
 | POST   | `/users/reset-password`  | no | `{ token, newPassword }` → `{ token, user }` on success. The token is single-use, expires after 30 minutes, and only its SHA-256 hash is ever stored. |
+| DELETE | `/users/me`              | yes | `{ password }` → anonymizes the account (name, email, phone, driver verification documents and photos wiped) after verifying the current password. Bookings, payments, and messages stay on record but stop being linked to a real name or contact detail — see [Account deletion](#account-deletion). |
+| POST   | `/users/deletion-requests` | no | `{ email }` → generic message regardless of whether the account exists, same reasoning as forgot-password. Emails a confirmation link via Resend if `RESEND_API_KEY` is configured; otherwise the link is only logged server-side. For someone who wants their data deleted without logging in. |
+| POST   | `/users/deletion-requests/confirm` | no | `{ token }` → runs the same anonymization as `DELETE /users/me`. The token is single-use, expires after 30 minutes, and only its SHA-256 hash is ever stored. |
+
+### Account deletion
+
+Deleting an account never removes the `users` row outright — a journey, booking, payment, or message another user still has a legitimate claim on would either orphan or (via the `ON DELETE CASCADE` other tables carry) silently vanish out from under them. Instead, `deleteAccount()` (`backend/src/users/deletion.js`, mirrored in `worker/src/lib/deletion.js`) anonymizes in place: `email`/`full_name`/`phone` are wiped, `status` is set to `'deleted'`, `password_hash` becomes an unusable random hash, driver verification submissions and their photo blobs are deleted outright, push subscriptions and password-reset tokens are deleted, and any of the user's own non-terminal journeys are cancelled. Bookings, payments, and message content are left alone — they're someone else's record too, and financial records need to stay reconcilable — just no longer attributable to a real identity. A JWT issued before deletion can remain technically valid until its normal expiry (up to 7 days), but has nothing left to show beyond the anonymized profile.
 
 ## Journeys (Find / Offer)
 

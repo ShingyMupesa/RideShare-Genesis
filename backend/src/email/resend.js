@@ -31,3 +31,15 @@ export function resetPasswordEmailHtml({ resetUrl, fullName }) {
     </div>
   `;
 }
+
+export function confirmDeletionEmailHtml({ confirmUrl, fullName }) {
+  return `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1c1b2e;">
+      <h2 style="color:#5b4cff;">RideShare Genesis</h2>
+      <p>Hi ${fullName || 'there'},</p>
+      <p>Someone requested deletion of this account and all its personal data. If that was you, click below to confirm — this link expires in 30 minutes and cannot be undone once confirmed.</p>
+      <p><a href="${confirmUrl}" style="display:inline-block;background:#b3261e;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:600;">Permanently delete my account</a></p>
+      <p style="color:#6a6883;font-size:0.85rem;">If you didn't request this, you can safely ignore this email — your account stays exactly as it is.</p>
+    </div>
+  `;
+}

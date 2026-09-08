@@ -57,6 +57,10 @@ export const api = {
   resetPassword: (token, newPassword) =>
     request('/users/reset-password', { method: 'POST', body: { token, newPassword }, auth: false }),
   updateProfile: (payload) => request('/users/me/profile', { method: 'PATCH', body: payload }),
+  deleteAccount: (password) => request('/users/me', { method: 'DELETE', body: { password } }),
+  requestDataDeletion: (email) => request('/users/deletion-requests', { method: 'POST', body: { email }, auth: false }),
+  confirmDataDeletion: (token) =>
+    request('/users/deletion-requests/confirm', { method: 'POST', body: { token }, auth: false }),
 
   // Journeys
   createJourney: (payload) => request('/journeys', { method: 'POST', body: payload }),

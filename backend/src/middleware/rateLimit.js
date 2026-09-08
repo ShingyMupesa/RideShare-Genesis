@@ -32,6 +32,12 @@ export const forgotPasswordLimiter = limiter({
   message: 'Too many password reset requests. Please try again later.',
 });
 
+export const deletionRequestLimiter = limiter({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: 'Too many account deletion requests. Please try again later.',
+});
+
 export const assistantLimiter = limiter({
   windowMs: 60 * 1000,
   max: 20,

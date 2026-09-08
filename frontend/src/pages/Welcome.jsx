@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import ShareInstall from '../components/ShareInstall.jsx';
 
 const PRINCIPLES = [
@@ -25,8 +25,14 @@ const PRINCIPLES = [
 ];
 
 export default function Welcome() {
+  const location = useLocation();
   return (
     <div>
+      {location.state?.accountDeleted && (
+        <div className="alert alert-success" style={{ marginBottom: 16 }}>
+          Your account and personal data have been deleted.
+        </div>
+      )}
       <section className="hero">
         <img className="hero-logo" src="/brand-logo.png" alt="RideShare Genesis logo" width="96" height="96" />
         <p className="eyebrow">Genesis V1</p>

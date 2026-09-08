@@ -29,3 +29,15 @@ export function readPhoto(key) {
     return null;
   }
 }
+
+export function deletePhoto(key) {
+  if (!key) return;
+  const filePath = path.join(DOCS_DIR, key);
+  if (path.relative(DOCS_DIR, filePath).startsWith('..')) return;
+  try {
+    fs.unlinkSync(filePath);
+  } catch {
+    // Already gone, or never existed — deleting an account should never
+    // fail because a photo blob was already cleaned up some other way.
+  }
+}

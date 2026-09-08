@@ -18,3 +18,8 @@ export async function storePhoto(env, dataUrl, fieldLabel) {
 export async function readPhoto(env, key) {
   return env.DRIVER_DOCS.get(key, 'arrayBuffer');
 }
+
+export async function deletePhoto(env, key) {
+  if (!key) return;
+  await env.DRIVER_DOCS.delete(key);
+}

@@ -5,8 +5,17 @@ import { newId } from '../lib/ids.js';
 import { BadRequest, Conflict, NotFound, Unauthorized } from '../lib/errors.js';
 import { recordAuditEvent } from '../lib/audit.js';
 import { generateResetToken, hashResetToken } from '../lib/resetToken.js';
-import { sendEmail, resetPasswordEmailHtml } from '../lib/resend.js';
-import { loginLimiter, registerLimiter, forgotPasswordLimiter } from '../lib/rateLimit.js';
+import { sendEmail, resetPasswordEmailHtml, confirmDeletionEmailHtml } from '../lib/resend.js';
+import { loginLimiter, registerLimiter, forgotPasswordLimiter, deletionRequestLimiter } from '../lib/rateLimit.js';
+import {
+  deleteAccount,
+  generateDeletionToken,
+  hashDeletionToken,
+  ensureDeletionRequestsTable,
+  createDeletionRequest,
+  findValidDeletionRequest,
+  markDeletionRequestConfirmed,
+} from '../lib/deletion.js';
 
 export const users = new Hono();
 
@@ -248,6 +257,84 @@ users.patch('/me/profile', requireAuth, async (c) => {
   const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(authUser.id).first();
   const profile = await getProfile(db, authUser.id);
   return c.json({ user: publicUser(user, profile) });
+});
+
+// In-app deletion path. Requires the current password so a hijacked or
+// left-open session can't wipe an account without it — the same bar as
+// changing a password would need, not a lower one.
+users.delete('/me', requireAuth, async (c) => {
+  const db = c.env.DB;
+  const authUser = c.get('user');
+  const body = await c.req.json().catch(() => ({}));
+  const { password } = body;
+  if (!password) throw BadRequest('Your current password is required to delete your account');
+
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(authUser.id).first();
+  if (!user) throw NotFound('User not found');
+  const valid = await bcrypt.compare(password, user.password_hash);
+  if (!valid) throw Unauthorized('Incorrect password');
+
+  await deleteAccount(db, c.env, user.id);
+  return c.json({ message: 'Your account and personal data have been deleted.' });
+});
+
+// Web-based deletion path — for someone who wants their data gone without
+// logging in (they may have already uninstalled the app). Always responds
+// with the same generic message, same reasoning as forgot-password: this
+// must not let a caller check which emails have accounts on Genesis.
+users.post('/deletion-requests', deletionRequestLimiter, async (c) => {
+  const db = c.env.DB;
+  const body = await c.req.json().catch(() => ({}));
+  const { email } = body;
+  if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');
+
+  await ensureDeletionRequestsTable(db);
+  const genericResponse = { message: "If an account exists for that email, we've sent a confirmation link." };
+  const user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email.toLowerCase()).first();
+  if (!user || user.status === 'deleted') return c.json(genericResponse);
+
+  const token = generateDeletionToken();
+  const tokenHash = await hashDeletionToken(token);
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+  await createDeletionRequest(db, user.id, tokenHash, expiresAt);
+
+  const origin = new URL(c.req.url).origin;
+  const confirmUrl = `${origin}/confirm-deletion?token=${token}`;
+
+  if (c.env.RESEND_API_KEY) {
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Confirm deletion of your RideShare Genesis account',
+        html: confirmDeletionEmailHtml({ confirmUrl, fullName: user.full_name }),
+        apiKey: c.env.RESEND_API_KEY,
+        from: c.env.EMAIL_FROM || 'RideShare Genesis <onboarding@resend.dev>',
+      });
+    } catch (err) {
+      console.error('[deletion-requests] failed to send email:', err.message);
+    }
+  } else {
+    console.warn('[deletion-requests] RESEND_API_KEY not configured — no email sent. Confirm link:', confirmUrl);
+  }
+
+  await recordAuditEvent(db, { actorId: user.id, eventType: 'user.deletion_requested', entityType: 'user', entityId: user.id });
+  return c.json(genericResponse);
+});
+
+users.post('/deletion-requests/confirm', async (c) => {
+  const db = c.env.DB;
+  const body = await c.req.json().catch(() => ({}));
+  const { token } = body;
+  if (!token) throw BadRequest('token is required');
+
+  await ensureDeletionRequestsTable(db);
+  const tokenHash = await hashDeletionToken(token);
+  const request = await findValidDeletionRequest(db, tokenHash);
+  if (!request) throw BadRequest('This deletion link is invalid or has expired');
+
+  await deleteAccount(db, c.env, request.user_id);
+  await markDeletionRequestConfirmed(db, request.id);
+  return c.json({ message: 'Your account and personal data have been deleted.' });
 });
 
 export { getProfile, publicUser };

@@ -16,3 +16,7 @@ export function removeSubscription(endpoint) {
 export function getSubscriptionsForUser(userId) {
   return db.prepare(`SELECT * FROM push_subscriptions WHERE user_id = ?`).all(userId);
 }
+
+export function removeSubscriptionsForUser(userId) {
+  db.prepare(`DELETE FROM push_subscriptions WHERE user_id = ?`).run(userId);
+}
