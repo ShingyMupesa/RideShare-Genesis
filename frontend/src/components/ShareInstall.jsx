@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 
 const SHARE_TEXT = 'Genesis — a human-centred ridesharing app that explains every match. Give it a try:';
+// Android TWA package id from android/twa-manifest.json — the native mobile app wrapping this PWA.
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.ridesharegenesis.app';
 
 function isStandalone() {
   return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -10,11 +12,16 @@ function isIos() {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 
+function isAndroid() {
+  return /android/i.test(window.navigator.userAgent);
+}
+
 export default function ShareInstall() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [installed, setInstalled] = useState(isStandalone());
   const [copied, setCopied] = useState(false);
   const [showIosHint, setShowIosHint] = useState(false);
+  const android = isAndroid();
 
   useEffect(() => {
     function onBeforeInstall(e) {
@@ -47,7 +54,7 @@ export default function ShareInstall() {
   }
 
   async function handleShare() {
-    const url = window.location.origin;
+    const url = android ? PLAY_STORE_URL : window.location.origin;
     if (navigator.share) {
       try {
         await navigator.share({ title: 'RideShare Genesis', text: SHARE_TEXT, url });
@@ -68,6 +75,16 @@ export default function ShareInstall() {
   return (
     <div style={{ marginTop: 16 }}>
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {!installed && android && (
+          <a
+            href={PLAY_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-secondary btn-sm"
+          >
+            🤖 Get it on Google Play
+          </a>
+        )}
         {!installed && (installPrompt || isIos()) && (
           <button type="button" className="btn btn-secondary btn-sm" onClick={handleInstall}>
             📲 Install app
