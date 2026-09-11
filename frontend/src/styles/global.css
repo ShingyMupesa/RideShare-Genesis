@@ -112,6 +112,95 @@ a {
   }
 }
 
+.navbar__toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.navbar__toggle span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--color-text);
+  border-radius: 2px;
+}
+
+.navbar__mobile-actions {
+  display: none;
+}
+
+.navbar__menu-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin: 0 0 8px;
+}
+
+/* Below this width the nav's link list wraps onto several lines, so it
+   collapses into a single ☰ toggle that reveals everything — including
+   the app-install/share options normally shown separately in the hero —
+   as one dropdown menu. */
+@media (max-width: 860px) {
+  .navbar__toggle {
+    display: flex;
+  }
+
+  .navbar__links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 16px;
+    right: 16px;
+    margin-top: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    padding: 12px;
+    z-index: 30;
+  }
+
+  .navbar__links.navbar__links--open {
+    display: flex;
+  }
+
+  .navbar__links a,
+  .navbar__links button {
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* .btn elements (Sign up, language toggle) keep their color/weight for
+     hierarchy, but line up with the plain links instead of centering. */
+  .navbar__links .btn {
+    justify-content: flex-start;
+  }
+
+  .navbar__mobile-actions {
+    display: block;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+  }
+}
+
 .card {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
@@ -308,6 +397,38 @@ textarea:focus {
 .btn-sm {
   padding: 6px 12px;
   font-size: 0.82rem;
+}
+
+.share-install {
+  margin-top: 16px;
+}
+
+.share-install__row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.share-install--menu {
+  margin-top: 0;
+}
+
+.share-install--menu .share-install__row {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.share-install--menu .btn {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  /* On mobile these same actions live in the ☰ nav menu instead. */
+  .hero-share-install {
+    display: none;
+  }
 }
 
 .pill {
