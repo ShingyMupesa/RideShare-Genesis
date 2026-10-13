@@ -19,6 +19,16 @@
 # project is ever corrected to `worker`, this file becomes redundant and
 # should be deleted — mirror any changes made to worker/wrangler.toml here
 # until then.
+#
+# The dashboard's "Build command" also needed fixing alongside this file:
+# it was `cd .. && npm install && npm run build:worker-frontend && cd
+# worker`, which only makes sense if Root Directory were `worker` (it isn't
+# — Root Directory is the repo root, confirmed by the ~345-package install
+# count in build logs matching the root workspaces' backend+frontend deps,
+# not worker/'s much smaller set). That `cd ..` escaped above the repo
+# entirely, so the chain silently produced no `worker/public`. Corrected to
+# just `npm run build:worker-frontend`, which runs correctly from the repo
+# root Workers Builds already uses.
 
 name = "rideshare-genesis"
 main = "worker/src/index.js"
