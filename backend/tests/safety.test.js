@@ -14,6 +14,7 @@ describe('safety centre + AI gateway', () => {
       email: 'safe@example.com',
       password: 'supersecret1',
       fullName: 'Safia User',
+      acceptedTerms: true,
     });
     token = reg.body.token;
   });

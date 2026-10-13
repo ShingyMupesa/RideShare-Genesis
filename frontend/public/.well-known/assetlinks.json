@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.ridesharegenesis.app",
+      "sha256_cert_fingerprints": [
+        "F3:52:67:9D:F9:85:BA:61:EC:0F:E2:B7:53:3B:21:CC:0D:09:C5:0B:84:02:BA:32:10:E2:BF:CE:1A:56:B8:DD"
+      ]
+    }
+  }
+]

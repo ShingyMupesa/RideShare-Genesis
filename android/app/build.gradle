@@ -1,0 +1,60 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.ridesharegenesis.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.ridesharegenesis.app"
+        minSdkVersion 21
+        targetSdkVersion 34
+        versionCode 1
+        versionName "1.0.0"
+
+        // Consumed by AndroidManifest.xml placeholders below — this is the
+        // one thing that ties the native shell to the live web app. Nothing
+        // else in this project needs to change if the domain stays the same.
+        manifestPlaceholders = [
+            hostName: "ridesharegenesis.app",
+            defaultUrl: "https://ridesharegenesis.app/",
+            launcherName: "Genesis",
+            appName: "RideShare Genesis"
+        ]
+    }
+
+    signingConfigs {
+        release {
+            def keystoreProps = new Properties()
+            def keystorePropsFile = rootProject.file('keystore.properties')
+            if (keystorePropsFile.exists()) {
+                keystoreProps.load(new FileInputStream(keystorePropsFile))
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (rootProject.file('keystore.properties').exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    buildFeatures {
+        viewBinding false
+    }
+}
+
+dependencies {
+    // Google's official Trusted Web Activity support library — this is what
+    // actually launches the PWA full-screen with no browser chrome and
+    // relays push/notification permission through to the web app.
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+}

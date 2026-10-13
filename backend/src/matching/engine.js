@@ -5,12 +5,16 @@ import { listJourneys, getJourneyById } from '../journeys/repository.js';
 import { getProfile } from '../users/repository.js';
 
 const DEFAULT_WEIGHTS = {
-  proximity: 0.35,
-  timing: 0.3,
-  price: 0.15,
-  preferences: 0.15,
-  reliability: 0.05,
+  proximity: 0.32,
+  timing: 0.28,
+  price: 0.13,
+  preferences: 0.13,
+  reliability: 0.06,
+  environmental: 0.08,
 };
+
+const CLEAN_VEHICLE_BONUS = { electric: 1, hybrid: 0.7, petrol: 0.4, diesel: 0.4, other: 0.4 };
+const VEHICLE_TYPE_LABELS = { electric: 'an electric', hybrid: 'a hybrid', petrol: 'a petrol', diesel: 'a diesel', other: 'an unspecified-fuel' };
 
 const MAX_DETOUR_KM = 8; // beyond this, proximity score collapses to 0
 const MAX_TIME_WINDOW_MIN = 90; // beyond this, timing score collapses to 0
@@ -38,14 +42,17 @@ export function scoreMatch(requestJourney, offerJourney, weights = DEFAULT_WEIGH
 
   const preferenceScore = comparePreferences(requestJourney.preferences, offerJourney.preferences);
 
-  const reliabilityScore = 0.8; // placeholder until trip-history-based reliability ships
+  const reliability = getDriverReliability(offerJourney.ownerId);
+
+  const environmental = scoreEnvironmentalImpact(requestJourney, offerJourney);
 
   const factors = {
     proximity: { score: round(proximityScore), weight: weights.proximity, detail: `${round(avgGapKm, 1)} km average origin/destination gap` },
     timing: { score: round(timingScore), weight: weights.timing, detail: `${Math.round(timeGapMin)} min apart on departure time` },
     price: { score: round(priceScore), weight: weights.price, detail: `Offer priced at ${offerJourney.currency} ${offerJourney.pricePerSeat} vs. your ${requestBudget}` },
     preferences: { score: round(preferenceScore), weight: weights.preferences, detail: describePreferenceMatch(requestJourney.preferences, offerJourney.preferences) },
-    reliability: { score: round(reliabilityScore), weight: weights.reliability, detail: 'Based on driver trip-completion history' },
+    reliability: { score: round(reliability.score), weight: weights.reliability, detail: reliability.detail },
+    environmental: { score: round(environmental.score), weight: weights.environmental ?? 0.08, detail: environmental.detail },
   };
 
   const totalWeight = Object.values(weights).reduce((sum, w) => sum + w, 0) || 1;
@@ -59,6 +66,22 @@ export function scoreMatch(requestJourney, offerJourney, weights = DEFAULT_WEIGH
   };
 }
 
+// A real, queried signal rather than an asserted one — Decision DNA never
+// shows a number it can't back up. New drivers start at a neutral baseline
+// (not penalized for having no history yet); each completed trip nudges the
+// score up, capping once a driver has a solid track record on the platform.
+function getDriverReliability(ownerId) {
+  const row = db
+    .prepare(`SELECT COUNT(*) AS n FROM bookings b JOIN journeys j ON b.journey_id = j.id WHERE j.owner_id = ? AND b.status = 'COMPLETED'`)
+    .get(ownerId);
+  const completedTrips = row?.n || 0;
+  const score = clamp01(0.6 + completedTrips * 0.05);
+  const detail = completedTrips > 0
+    ? `${completedTrips} completed trip${completedTrips === 1 ? '' : 's'} on Genesis`
+    : 'No completed trips on Genesis yet — starts at a neutral baseline';
+  return { score, detail };
+}
+
 function comparePreferences(a = {}, b = {}) {
   const keys = ['chattiness', 'music', 'smoking', 'pets_ok', 'luggage'];
   let matches = 0;
@@ -70,6 +93,26 @@ function comparePreferences(a = {}, b = {}) {
   }
   if (considered === 0) return 0.7; // neutral when preferences aren't set
   return matches / considered;
+}
+
+// A rough, explainable proxy for environmental fit: how much of this
+// vehicle's spare capacity the match would use (a fuller car means fewer
+// duplicate trips elsewhere) plus a bonus for lower-emission vehicle types.
+// This informs ranking only — see src/utils/impact.js for the actual
+// (also estimated) CO2e/fuel figures shown once a booking completes.
+function scoreEnvironmentalImpact(requestJourney, offerJourney) {
+  const requested = requestJourney.seatsTotal || 1;
+  const filledAfterMatch = Math.max(0, offerJourney.seatsTotal - offerJourney.seatsAvailable) + requested;
+  const utilization = clamp01(filledAfterMatch / Math.max(offerJourney.seatsTotal, 1));
+
+  const vehicleType = offerJourney.vehicleType && CLEAN_VEHICLE_BONUS[offerJourney.vehicleType] !== undefined
+    ? offerJourney.vehicleType
+    : 'other';
+  const cleanBonus = CLEAN_VEHICLE_BONUS[vehicleType];
+
+  const score = clamp01(0.6 * utilization + 0.4 * cleanBonus);
+  const detail = `Would fill ${Math.round(utilization * 100)}% of ${VEHICLE_TYPE_LABELS[vehicleType]} vehicle's seats`;
+  return { score, detail };
 }
 
 function describePreferenceMatch(a = {}, b = {}) {
@@ -96,8 +139,8 @@ function buildNarrative(factors, score) {
     `Genesis rated this match ${pct}/100. The strongest factor was ${topKey} ` +
     `(${top.detail}); the weakest was ${weakKey} (${weak.detail}). ` +
     `This score is a transparent weighted blend of proximity, timing, price fit, ` +
-    `stated preferences, and driver reliability — you can see and adjust these ` +
-    `weights in your Decision DNA settings.`
+    `stated preferences, driver reliability, and estimated environmental impact — ` +
+    `you can see and adjust these weights in your Decision DNA settings.`
   );
 }
 

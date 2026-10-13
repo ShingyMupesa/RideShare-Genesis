@@ -53,6 +53,11 @@ export function transitionBooking(id, nextStatus) {
   return getBookingById(id);
 }
 
+export function setBookingImpact(id, impact) {
+  db.prepare(`UPDATE bookings SET impact_json = ? WHERE id = ?`).run(JSON.stringify(impact), id);
+  return getBookingById(id);
+}
+
 function deserialize(row) {
   if (!row) return null;
   return {
@@ -65,6 +70,7 @@ function deserialize(row) {
     currency: row.currency,
     status: row.status,
     statusHistory: JSON.parse(row.status_history_json),
+    impact: JSON.parse(row.impact_json || '{}'),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

@@ -5,7 +5,8 @@
   "description": "RideShare Genesis V1 - a human-centred, explainable ridesharing platform",
   "workspaces": [
     "backend",
-    "frontend"
+    "frontend",
+    "worker"
   ],
   "scripts": {
     "dev:backend": "npm run dev --workspace backend",
@@ -14,7 +15,9 @@
     "start:backend": "npm run start --workspace backend",
     "test:backend": "npm test --workspace backend",
     "test": "npm run test:backend",
-    "lint": "npm run lint --workspace backend && npm run lint --workspace frontend"
+    "lint": "npm run lint --workspace backend && npm run lint --workspace frontend",
+    "build:worker-frontend": "VITE_API_URL=/api VITE_WS_MODE=native npm run build --workspace frontend -- --outDir ../worker/public --emptyOutDir",
+    "deploy:worker": "npm run build:worker-frontend && cd worker && npm run deploy"
   },
   "engines": {
     "node": ">=18"

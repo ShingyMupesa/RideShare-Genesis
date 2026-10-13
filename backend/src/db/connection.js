@@ -17,3 +17,8 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 export const schemaDir = path.resolve(__dirname, '../../../database/migrations');
+// Co-locates driver-verification document storage with wherever this
+// process's DB file actually lives — the real data dir in production, a
+// throwaway os.tmpdir() path in tests — so nothing extra needs wiring up
+// per-environment (see driverVerification/docStorage.js).
+export const dataDir = path.dirname(resolvedPath);

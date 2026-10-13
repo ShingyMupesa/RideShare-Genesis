@@ -1,0 +1,43 @@
+{
+  "packageId": "com.ridesharegenesis.app",
+  "host": "ridesharegenesis.app",
+  "name": "RideShare Genesis",
+  "launcherName": "Genesis",
+  "display": "standalone",
+  "orientation": "default",
+  "themeColor": "#5b4cff",
+  "themeColorDark": "#5b4cff",
+  "navigationColor": "#5b4cff",
+  "navigationColorDark": "#5b4cff",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#f6f5ff",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "webManifestUrl": "https://ridesharegenesis.app/manifest.webmanifest",
+  "iconUrl": "https://ridesharegenesis.app/icon-512.png",
+  "maskableIconUrl": "https://ridesharegenesis.app/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "ridesharegenesis"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "hand-authored (Bubblewrap CLI could not run interactively in the build sandbox; see android/README.md)",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://ridesharegenesis.app/",
+  "minSdkVersion": 21,
+  "protocolVersion": 2
+}

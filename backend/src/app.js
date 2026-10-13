@@ -9,6 +9,9 @@ import { router as messagingRouter } from './messaging/routes.js';
 import { router as safetyRouter } from './safety/routes.js';
 import { router as governanceRouter } from './governance/routes.js';
 import { router as aiRouter } from './ai/routes.js';
+import { router as feedbackRouter } from './feedback/routes.js';
+import { router as pushRouter } from './push/routes.js';
+import { router as driverVerificationRouter } from './driverVerification/routes.js';
 import { ApiError } from './utils/errors.js';
 
 export function createApp() {
@@ -19,7 +22,14 @@ export function createApp() {
       origin: process.env.CLIENT_ORIGIN || '*',
     })
   );
-  app.use(express.json({ limit: '1mb' }));
+  // Driver-verification document photos, base64-encoded, need far more
+  // room than the 1mb limit every other endpoint is happy with — sized
+  // per-path (rather than raising the limit globally) so this is the only
+  // JSON body parser that ever touches a given request.
+  app.use((req, res, next) => {
+    const limit = req.path.startsWith('/api/driver-verification') ? '14mb' : '1mb';
+    express.json({ limit })(req, res, next);
+  });
 
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', service: 'rideshare-genesis-backend', time: new Date().toISOString() });
@@ -34,6 +44,9 @@ export function createApp() {
   app.use('/api/safety', safetyRouter);
   app.use('/api/governance', governanceRouter);
   app.use('/api/ai', aiRouter);
+  app.use('/api/feedback', feedbackRouter);
+  app.use('/api/push', pushRouter);
+  app.use('/api/driver-verification', driverVerificationRouter);
 
   app.use((req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: `No route for ${req.method} ${req.path}` } });

@@ -74,11 +74,10 @@ a {
   color: var(--color-text);
 }
 
-.navbar__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+.navbar__mark {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 8px;
 }
 
 .navbar__links {
@@ -99,10 +98,107 @@ a {
   padding: 6px 4px;
 }
 
-.navbar__links a.active,
-.navbar__links a:hover,
-.navbar__links button:hover {
+.navbar__links a.active {
   color: var(--color-primary);
+}
+
+/* Gated behind (hover: hover) so touch devices never see :hover styles —
+   without this, iOS/Android treat the first tap as "hover" and the second
+   as the actual click, so links/buttons need two taps to register. */
+@media (hover: hover) and (pointer: fine) {
+  .navbar__links a:hover,
+  .navbar__links button:hover {
+    color: var(--color-primary);
+  }
+}
+
+.navbar__toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.navbar__toggle span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--color-text);
+  border-radius: 2px;
+}
+
+.navbar__mobile-actions {
+  display: none;
+}
+
+.navbar__menu-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin: 0 0 8px;
+}
+
+/* Below this width the nav's link list wraps onto several lines, so it
+   collapses into a single ☰ toggle that reveals everything — including
+   the app-install/share options normally shown separately in the hero —
+   as one dropdown menu. */
+@media (max-width: 860px) {
+  .navbar__toggle {
+    display: flex;
+  }
+
+  .navbar__links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 16px;
+    right: 16px;
+    margin-top: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    padding: 12px;
+    z-index: 30;
+  }
+
+  .navbar__links.navbar__links--open {
+    display: flex;
+  }
+
+  .navbar__links a,
+  .navbar__links button {
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* .btn elements (Sign up, language toggle) keep their color/weight for
+     hierarchy, but line up with the plain links instead of centering. */
+  .navbar__links .btn {
+    justify-content: flex-start;
+  }
+
+  .navbar__mobile-actions {
+    display: block;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+  }
 }
 
 .card {
@@ -156,6 +252,79 @@ h3 {
   color: var(--color-text-muted);
 }
 
+.location-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-soft);
+  margin-top: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.location-suggestions__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+}
+.location-suggestions__item:last-child {
+  border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .location-suggestions__item:hover {
+    background: var(--color-bg);
+  }
+}
+
+.location-suggestions__note {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.password-field {
+  position: relative;
+  width: 100%;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.password-field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .password-field__toggle:hover {
+    background: var(--color-border);
+  }
+}
+
 input,
 select,
 textarea {
@@ -203,8 +372,10 @@ textarea:focus {
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-dark);
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+  }
 }
 
 .btn-secondary {
@@ -226,6 +397,38 @@ textarea:focus {
 .btn-sm {
   padding: 6px 12px;
   font-size: 0.82rem;
+}
+
+.share-install {
+  margin-top: 16px;
+}
+
+.share-install__row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.share-install--menu {
+  margin-top: 0;
+}
+
+.share-install--menu .share-install__row {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.share-install--menu .btn {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  /* On mobile these same actions live in the ☰ nav menu instead. */
+  .hero-share-install {
+    display: none;
+  }
 }
 
 .pill {
@@ -253,6 +456,23 @@ textarea:focus {
 .pill-primary {
   background: rgba(91, 76, 255, 0.12);
   color: var(--color-primary);
+}
+
+.verified-driver-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(31, 157, 85, 0.12);
+  color: var(--color-success);
+  white-space: nowrap;
+}
+.verified-driver-badge svg {
+  flex-shrink: 0;
+  color: var(--color-success);
 }
 
 .alert {
@@ -288,6 +508,13 @@ textarea:focus {
 .hero {
   text-align: center;
   padding: 48px 16px 24px;
+}
+
+.hero-logo {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 16px;
+  display: block;
 }
 
 .hero h1 {
@@ -357,6 +584,28 @@ textarea:focus {
   background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
   color: white;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-close-btn {
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  line-height: 1;
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .panel-close-btn:hover {
+    background: rgba(255, 255, 255, 0.32);
+  }
 }
 
 .assistant-panel__messages {
@@ -396,6 +645,61 @@ textarea:focus {
 }
 .assistant-panel__input button {
   border-radius: 0;
+}
+
+.feedback-toggle {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: white;
+  font-size: 1.4rem;
+  border: none;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  z-index: 40;
+}
+
+.feedback-panel {
+  position: fixed;
+  bottom: 92px;
+  left: 24px;
+  width: min(320px, calc(100vw - 32px));
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-soft);
+  z-index: 40;
+  overflow: hidden;
+}
+
+.feedback-panel__header {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+  color: white;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.feedback-panel__body {
+  padding: 14px 16px;
+}
+
+.feedback-panel__body textarea,
+.feedback-panel__body input {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.feedback-panel__error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
 }
 
 .journey-list {

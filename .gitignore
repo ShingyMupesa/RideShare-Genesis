@@ -8,5 +8,10 @@ npm-debug.log*
 coverage/
 backend/data/*.sqlite
 backend/data/*.sqlite-journal
+backend/data/driver-docs/
 *.pid
 .vite/
+.wrangler/
+worker/public/
+worker/.dev.vars
+

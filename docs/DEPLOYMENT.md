@@ -50,6 +50,20 @@ Visit `http://localhost:8080`.
 | `VITE_API_URL`       | frontend (build) | Base API URL the SPA calls                                   |
 | `VITE_SOCKET_URL`    | frontend (build) | Socket.IO base URL                                             |
 
+## Cloudflare Workers (production)
+
+`worker/` is a full second deployment target: the same product ported onto
+Cloudflare Workers + D1 + Durable Objects (no Express, no Socket.IO, no
+container to run). See [`worker/README.md`](../worker/README.md) for the
+full architecture and one-time setup. Once secrets are configured:
+
+```bash
+npm run deploy:worker
+```
+
+This is the deployment actually used for the hosted production instance of
+this app; `docker-compose.yml` below remains the path for self-hosting.
+
 ## Cloud deployment sketch
 
 Any platform that runs a long-lived Node process + static hosting works:

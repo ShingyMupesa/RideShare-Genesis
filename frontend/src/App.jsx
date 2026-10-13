@@ -1,14 +1,24 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Link } from 'react-router-dom';
 import NavBar from './components/NavBar.jsx';
+import { useLanguage } from './context/LanguageContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import GenesisAssistant from './components/GenesisAssistant.jsx';
+import FeedbackWidget from './components/FeedbackWidget.jsx';
 
 import Welcome from './pages/Welcome.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
+import TermsAndConditions from './pages/TermsAndConditions.jsx';
+import PrivacyPolicy from './pages/PrivacyPolicy.jsx';
+import TrustAndSafety from './pages/TrustAndSafety.jsx';
+import DataDeletion from './pages/DataDeletion.jsx';
+import ConfirmDeletion from './pages/ConfirmDeletion.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import Profile from './pages/Profile.jsx';
 import FindJourney from './pages/FindJourney.jsx';
 import OfferJourney from './pages/OfferJourney.jsx';
+import BrowseJourneys from './pages/BrowseJourneys.jsx';
 import MatchResults from './pages/MatchResults.jsx';
 import JourneyDetails from './pages/JourneyDetails.jsx';
 import Booking from './pages/Booking.jsx';
@@ -18,6 +28,7 @@ import SafetyCentre from './pages/SafetyCentre.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 export default function App() {
+  const { t } = useLanguage();
   return (
     <div className="app-shell">
       <NavBar />
@@ -26,6 +37,13 @@ export default function App() {
           <Route path="/" element={<Welcome />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/terms" element={<TermsAndConditions />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/trust" element={<TrustAndSafety />} />
+          <Route path="/data-deletion" element={<DataDeletion />} />
+          <Route path="/confirm-deletion" element={<ConfirmDeletion />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/profile"
             element={
@@ -34,6 +52,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/browse" element={<BrowseJourneys />} />
           <Route path="/find" element={<FindJourney />} />
           <Route path="/offer" element={<OfferJourney />} />
           <Route
@@ -73,8 +92,16 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <footer className="footer-note">RideShare Genesis V1 — built human-centred, explained end-to-end.</footer>
+      <footer className="footer-note">
+        {t('footer.tagline')} ·{' '}
+        <Link to="/trust">{t('footer.trust')}</Link> · <Link to="/privacy">{t('footer.privacy')}</Link> ·{' '}
+        <Link to="/data-deletion">{t('footer.deleteData')}</Link> ·{' '}
+        <a href="https://wa.me/447449494405?text=Hi%21%20I%20have%20feedback%20on%20RideShare%20Genesis." target="_blank" rel="noopener">
+          {t('footer.feedback')}
+        </a>
+      </footer>
       <GenesisAssistant />
+      <FeedbackWidget />
     </div>
   );
 }
