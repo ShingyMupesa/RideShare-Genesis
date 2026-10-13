@@ -1,0 +1,79 @@
+# Workers Builds (Cloudflare's Git-integrated CI/CD) currently runs its
+# deploy command — `npx wrangler versions upload`, Cloudflare's own default
+# for non-production branches — from the repository root rather than
+# `worker/`, so it never finds `worker/wrangler.toml` and fails before even
+# resolving an entry point. Workers Builds has no way to read that "Root
+# Directory" setting from a file in the repo — it's dashboard-only — so this
+# file exists purely to give the deploy command *something* to find at the
+# cwd it actually runs from.
+#
+# This mirrors worker/wrangler.toml with paths rewritten to be relative to
+# the repo root instead of worker/. Everything else (bindings, routes, vars)
+# is identical because those are Cloudflare account resource identifiers,
+# not filesystem paths, so there's nothing to keep in sync beyond what's
+# already duplicated here.
+#
+# worker/wrangler.toml remains the source of truth for local development
+# (`cd worker && npm run dev`) and for `npm run deploy:worker`. If the
+# Cloudflare dashboard's Workers Builds "Root Directory" setting for this
+# project is ever corrected to `worker`, this file becomes redundant and
+# should be deleted — mirror any changes made to worker/wrangler.toml here
+# until then.
+#
+# The dashboard's "Build command" also needed fixing alongside this file:
+# it was `cd .. && npm install && npm run build:worker-frontend && cd
+# worker`, which only makes sense if Root Directory were `worker` (it isn't
+# — Root Directory is the repo root, confirmed by the ~345-package install
+# count in build logs matching the root workspaces' backend+frontend deps,
+# not worker/'s much smaller set). That `cd ..` escaped above the repo
+# entirely, so the chain silently produced no `worker/public`. Corrected to
+# just `npm run build:worker-frontend`, which runs correctly from the repo
+# root Workers Builds already uses.
+
+name = "rideshare-genesis"
+main = "worker/src/index.js"
+compatibility_date = "2024-11-01"
+
+[[routes]]
+pattern = "ridesharegenesis.app"
+custom_domain = true
+
+[[routes]]
+pattern = "www.ridesharegenesis.app"
+custom_domain = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "rideshare-genesis"
+database_id = "72ff4368-4de1-4df5-b540-e3d576fd1727"
+
+[[durable_objects.bindings]]
+name = "BOOKING_ROOMS"
+class_name = "BookingRoom"
+
+[[kv_namespaces]]
+binding = "DRIVER_DOCS"
+id = "973b85361f5a4953b1f1438ec4a7305b"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BookingRoom"]
+
+[assets]
+directory = "./worker/public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/ws/*", "/admin*"]
+
+[vars]
+CLIENT_ORIGIN = "*"
+PAYMENTS_MODE = "sandbox"
+JWT_EXPIRES_IN_SECONDS = "604800"
+PLATFORM_COMMISSION_PCT = "0"
+STRIPE_PUBLISHABLE_KEY = "pk_test_51U3eBgAinwPSkE66HuIIknHlHgDp5qulB9MilDNO6cMSbcw3bZNlpDQBiVmdNrUVhWObJq8qWAOvSS85bLjHXjm600ICmVfmsJ"
+EMAIL_FROM = "RideShare Genesis <no-reply@ridesharegenesis.app>"
+VAPID_PUBLIC_KEY = "BHVBce2nZxnVMFoP6scjXebdMCUmjqh6pHFTNYMSVcXrDGdbQag8RdkhDsZG1oR47qyPFnDI7by3U6yQfU0JDJg"
+MPESA_ENV = "sandbox"
+
+# Secrets: set via `wrangler secret put <NAME>` against this same Worker —
+# see worker/wrangler.toml for the full list and what each one does.

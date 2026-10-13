@@ -5,7 +5,8 @@
   "description": "RideShare Genesis V1 - a human-centred, explainable ridesharing platform",
   "workspaces": [
     "backend",
-    "frontend"
+    "frontend",
+    "worker"
   ],
   "scripts": {
     "dev:backend": "npm run dev --workspace backend",

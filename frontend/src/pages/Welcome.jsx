@@ -48,7 +48,9 @@ export default function Welcome() {
             {t('welcome.ctaOffer')}
           </Link>
         </div>
-        <ShareInstall />
+        <div className="hero-share-install">
+          <ShareInstall />
+        </div>
       </section>
 
       <section>
