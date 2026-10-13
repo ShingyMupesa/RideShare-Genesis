@@ -43,6 +43,44 @@ npx wrangler secret put ANTHROPIC_API_KEY   # optional
 npm run deploy:worker
 ```
 
+## Cloudflare Workers Builds (CI/CD)
+
+Pushes to this repo also trigger Cloudflare's own Git-integrated CI/CD
+("Workers Builds"), which deploys automatically — separately from, and in
+addition to, the `frontend-build`/`backend-tests` GitHub Actions checks and
+the manual `npm run deploy:worker` above. Its settings live **only** in the
+Cloudflare dashboard (Workers & Pages → `rideshare-genesis` → Settings →
+Build) — nothing in this repo controls them, so they're recorded here as
+the source of truth to diff the dashboard against if a build ever fails
+unexpectedly:
+
+| Setting | Value |
+|---|---|
+| Root Directory | `worker` |
+| Build command | `cd .. && npm install && npm run build:worker-frontend && cd worker` |
+| Deploy command | *(default)* `npx wrangler versions upload` on non-production branches, `npx wrangler deploy` on the production branch |
+
+The `worker-deploy-dryrun` job in `.github/workflows/ci.yml` runs this
+exact sequence (plus `wrangler versions upload --dry-run`, which needs no
+Cloudflare credentials) on every push, so a Root Directory, Build command,
+or Deploy command mismatch shows up as a normal failing CI check within
+seconds — instead of only on Cloudflare's own check, or going unnoticed
+until someone happens to look.
+
+**If a Cloudflare build fails, the error names which setting drifted:**
+
+- `Missing entry-point to Worker script or to assets directory` — the
+  deploy command ran from a directory with no `wrangler.toml` in it. Root
+  Directory has drifted from `worker` (or wrangler.toml moved/was deleted).
+- `The directory specified by the "assets.directory" field ... does not
+  exist: .../worker/public` — the build command didn't run, or didn't
+  produce `worker/public`, before the deploy command ran. Check the Build
+  command field matches the table above exactly — a stray `cd ..` without
+  the matching `&& cd worker`, or a script name typo, breaks silently
+  here. If `worker-deploy-dryrun` is green in GitHub Actions but Cloudflare
+  still fails, the dashboard settings themselves have diverged from this
+  table — fix them there first, then update this table to match.
+
 ## Local development
 
 ```bash

@@ -32,3 +32,26 @@ jobs:
         run: npm install
       - name: Build frontend
         run: npm run build:frontend
+
+  # Mirrors the Cloudflare Workers Builds pipeline exactly (see the "Cloudflare
+  # Workers Builds (CI/CD)" section in worker/README.md for the actual
+  # dashboard settings this reproduces), so a Root Directory, Build command, or
+  # Deploy command mismatch shows up here in ~30s instead of only surfacing on
+  # Cloudflare's own check — or going unnoticed for weeks.
+  # --dry-run needs no Cloudflare credentials; it only bundles and validates.
+  worker-deploy-dryrun:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install worker dependencies (Root Directory = worker)
+        working-directory: worker
+        run: npm ci
+      - name: Run the configured Build command
+        working-directory: worker
+        run: cd .. && npm install && npm run build:worker-frontend && cd worker
+      - name: Dry-run the configured Deploy command
+        working-directory: worker
+        run: npx wrangler versions upload --dry-run
