@@ -363,9 +363,26 @@ const PAGE = `<!doctype html>
     }).join('');
   }
 
+  // HTTP header values can only contain ISO-8859-1 (Latin-1) characters —
+  // a token pasted through something that "smartens" punctuation (curly
+  // quotes, an em dash, a non-breaking space, an emoji) otherwise crashes
+  // fetch() itself with an opaque "non ISO-8859-1 code point" TypeError
+  // before any request is even sent. Catch it here with a message that
+  // actually names the problem.
+  function hasNonLatin1Char(s) {
+    for (let i = 0; i < s.length; i++) {
+      if (s.charCodeAt(i) > 255) return true;
+    }
+    return false;
+  }
+
   document.getElementById('loginBtn').addEventListener('click', function () {
     const t = tokenInput.value.trim();
     if (!t) return;
+    if (hasNonLatin1Char(t)) {
+      showGate('That token contains a character your browser can’t send as a header (e.g. a smart quote, em dash, or emoji) — re-copy it from its plain-text source, or generate a new one with `openssl rand -hex 32`.');
+      return;
+    }
     setToken(t);
     loadStats();
   });
