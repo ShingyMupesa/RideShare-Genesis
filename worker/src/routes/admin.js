@@ -380,7 +380,7 @@ const PAGE = `<!doctype html>
     const t = tokenInput.value.trim();
     if (!t) return;
     if (hasNonLatin1Char(t)) {
-      showGate('That token contains a character your browser can’t send as a header (e.g. a smart quote, em dash, or emoji) — re-copy it from its plain-text source, or generate a new one with `openssl rand -hex 32`.');
+      showGate('That token contains a character your browser can’t send as a header (e.g. a smart quote, em dash, or emoji) — re-copy it from its plain-text source, or generate a new one with openssl rand -hex 32.');
       return;
     }
     setToken(t);
