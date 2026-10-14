@@ -148,6 +148,7 @@ const PAGE = `<!doctype html>
       const res = await fetch('/api/tracking/stats', { headers: { 'x-admin-token': token } });
       if (res.status === 401) { clearToken(); showGate('Invalid token.'); return; }
       const data = await res.json();
+      if (!res.ok) { showGate(data?.error?.message || ('Server error (' + res.status + ').')); return; }
       renderStats(data);
       gate.style.display = 'none';
       app.style.display = 'block';
