@@ -42,7 +42,7 @@ export function script() {
     gateError.textContent = msg;
   }
 
-  const SCREEN_TITLES = { dashboard: 'Dashboard', driverVerification: 'Driver Verification', disputes: 'Disputes' };
+  const SCREEN_TITLES = { dashboard: 'Dashboard', driverVerification: 'Driver Verification', disputes: 'Disputes', liveMap: 'Live Map' };
 
   function showScreen(name) {
     document.querySelectorAll('.screen').forEach(function (el) {

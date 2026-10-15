@@ -65,6 +65,17 @@ export function shellStyles() {
 `;
 }
 
+// External CDN tags the admin shell's <head> needs — currently just
+// Leaflet, for the Live Map screen's marker map. Kept here (not inline in
+// screens/liveMap.js) so every third-party tag the shell loads lives in one
+// place, pinned to an exact version like every other CDN script this repo
+// loads.
+export function externalHeadTags() {
+  return `
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>`;
+}
+
 export function gateMarkup() {
   return `
   <div class="gate" id="gate">
@@ -88,6 +99,7 @@ export function shellMarkup(screensHtml) {
       <div class="sb-section">Operations</div>
       <div class="sb-item" data-screen="driverVerification">Driver Verification</div>
       <div class="sb-item" data-screen="disputes">Disputes</div>
+      <div class="sb-item" data-screen="liveMap">Live Map</div>
     </nav>
     <div class="main">
       <div class="topbar">

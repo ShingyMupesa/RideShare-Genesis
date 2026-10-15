@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
 import { whatsAppShareUrl } from '../utils/whatsapp.js';
+import { getSocket } from '../services/socket.js';
 
 const FLOW = ['REQUESTED', 'MATCHED', 'BOOKING_REQUESTED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'];
 
@@ -55,6 +56,12 @@ export default function Booking() {
   const [selectedMethod, setSelectedMethod] = useState('card');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [geoUnsupported, setGeoUnsupported] = useState(false);
+
+  // Computed early (rather than after the loading guard below) so it can
+  // be used as a dependency of the geolocation-broadcast effect, which —
+  // like every other hook — has to run on every render in the same order.
+  const isOwner = user?.id === journey?.ownerId;
 
   const stripeObjRef = useRef(null);
   const cardElementRef = useRef(null);
@@ -86,6 +93,41 @@ export default function Booking() {
   }, [load, user?.phone]);
 
   useEffect(() => () => clearInterval(mpesaPollRef.current), []);
+
+  // While the driver (journey owner) has a trip in progress, broadcast
+  // their position over the booking's socket so the passenger can see a
+  // live view, and so the admin live-map (via the Durable Object's/Socket.IO
+  // server's throttled D1/sqlite write) has something to show. Never blocks
+  // the existing trip-action buttons — a browser without geolocation, or one
+  // where the user declines the permission prompt, just silently no-ops.
+  useEffect(() => {
+    if (!(isOwner && booking?.status === 'IN_PROGRESS')) {
+      setGeoUnsupported(false);
+      return;
+    }
+    if (!('geolocation' in navigator)) {
+      setGeoUnsupported(true);
+      return;
+    }
+    setGeoUnsupported(false);
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        getSocket(id)?.emit('location:ping', {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          heading: pos.coords.heading,
+        });
+      },
+      () => {
+        // Permission denied / position unavailable / timeout — never block
+        // the existing trip-action buttons over this.
+      },
+      { enableHighAccuracy: false, maximumAge: 10000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [booking?.status, isOwner, id]);
 
   // Mount the Stripe Card Element only once "Card (Stripe)" is selected —
   // Stripe.js owns that DOM node directly, outside React's render cycle.
@@ -196,7 +238,6 @@ export default function Booking() {
   if (!booking || !journey) return <p className="muted">Loading booking…</p>;
 
   const isPassenger = user?.id === booking.passengerId;
-  const isOwner = user?.id === journey.ownerId;
   const hasCaptured = payments.some((p) => p.status === 'CAPTURED');
   const nonTerminal = !['COMPLETED', 'CANCELLED'].includes(booking.status);
 
@@ -275,6 +316,11 @@ export default function Booking() {
               </Link>
             )}
           </div>
+          {isOwner && booking.status === 'IN_PROGRESS' && geoUnsupported && (
+            <p className="muted" style={{ marginTop: 10, fontSize: '0.8rem' }}>
+              Live location sharing isn't supported in this browser.
+            </p>
+          )}
         </div>
 
         <div className="card">
