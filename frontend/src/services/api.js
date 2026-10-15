@@ -128,6 +128,10 @@ export const api = {
   myDriverVerification: () => request('/driver-verification/me'),
   submitDriverVerification: (payload) => request('/driver-verification', { method: 'POST', body: payload }),
   driverVerificationPhotoBlob: (submissionId, which) => requestBlob(`/driver-verification/${submissionId}/photo/${which}`),
+
+  // Disputes
+  fileDispute: (bookingId, payload) => request('/disputes', { method: 'POST', body: { bookingId, ...payload } }),
+  myDisputes: () => request('/disputes/mine'),
 };
 
 export { ApiError };

@@ -14,6 +14,7 @@ const MIGRATIONS = [
   '0009_driver_verification_photos.sql',
   '0010_driver_verification_insurance.sql',
   '0011_account_deletion.sql',
+  '0012_disputes.sql',
 ];
 
 export function runMigrations() {

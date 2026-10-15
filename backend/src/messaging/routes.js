@@ -8,7 +8,7 @@ import { notifyUser } from '../push/notify.js';
 
 export const router = Router();
 
-async function assertBookingAccess(bookingId, userId) {
+export async function assertBookingAccess(bookingId, userId) {
   const booking = Bookings.getBookingById(bookingId);
   if (!booking) throw NotFound('Booking not found');
   const journey = Journeys.getJourneyById(booking.journeyId);

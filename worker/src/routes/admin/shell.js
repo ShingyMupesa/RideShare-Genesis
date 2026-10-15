@@ -87,6 +87,7 @@ export function shellMarkup(screensHtml) {
       <div class="sb-item active" data-screen="dashboard">Dashboard</div>
       <div class="sb-section">Operations</div>
       <div class="sb-item" data-screen="driverVerification">Driver Verification</div>
+      <div class="sb-item" data-screen="disputes">Disputes</div>
     </nav>
     <div class="main">
       <div class="topbar">

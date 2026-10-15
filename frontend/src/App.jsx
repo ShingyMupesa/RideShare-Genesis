@@ -22,6 +22,8 @@ import BrowseJourneys from './pages/BrowseJourneys.jsx';
 import MatchResults from './pages/MatchResults.jsx';
 import JourneyDetails from './pages/JourneyDetails.jsx';
 import Booking from './pages/Booking.jsx';
+import FileDispute from './pages/FileDispute.jsx';
+import MyDisputes from './pages/MyDisputes.jsx';
 import MyJourneys from './pages/MyJourneys.jsx';
 import BookingThread from './pages/BookingThread.jsx';
 import SafetyCentre from './pages/SafetyCentre.jsx';
@@ -81,10 +83,26 @@ export default function App() {
             }
           />
           <Route
+            path="/bookings/:id/dispute"
+            element={
+              <ProtectedRoute>
+                <FileDispute />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/my-journeys"
             element={
               <ProtectedRoute>
                 <MyJourneys />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-disputes"
+            element={
+              <ProtectedRoute>
+                <MyDisputes />
               </ProtectedRoute>
             }
           />
