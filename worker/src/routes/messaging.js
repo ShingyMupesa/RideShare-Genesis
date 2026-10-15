@@ -15,7 +15,7 @@ export async function assertBookingAccess(db, bookingId, userId) {
   if (booking.passengerId !== userId && journey.ownerId !== userId) {
     throw Forbidden('You do not have access to this conversation');
   }
-  return booking;
+  return { booking, journey };
 }
 
 export async function createMessage(db, { bookingId, senderId, body }) {

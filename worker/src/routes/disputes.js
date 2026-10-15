@@ -4,7 +4,6 @@ import { requireAdmin } from '../lib/adminAuth.js';
 import { newId } from '../lib/ids.js';
 import { BadRequest, NotFound } from '../lib/errors.js';
 import { assertBookingAccess } from './messaging.js';
-import { getJourneyById } from './journeys.js';
 import { recordAuditEvent } from '../lib/audit.js';
 import { refundPayment } from '../lib/stripe.js';
 
@@ -63,8 +62,7 @@ disputes.post('/', requireAuth, async (c) => {
 
   // Confirms the filer is the passenger or the journey owner on this
   // booking (throws NotFound/Forbidden otherwise).
-  const booking = await assertBookingAccess(db, bookingId, authUser.id);
-  const journey = await getJourneyById(db, booking.journeyId);
+  const { booking, journey } = await assertBookingAccess(db, bookingId, authUser.id);
   const counterpartyId = authUser.id === booking.passengerId ? journey.ownerId : booking.passengerId;
 
   // Default currency/amount from the booking's most recent payment when the

@@ -148,7 +148,7 @@ export function script() {
     body.innerHTML = plans.map(function (p) {
       return '<tr data-id="' + p.id + '">' +
         '<td>' + escapeHtml(p.name) + (p.description ? '<br><span class="muted">' + escapeHtml(p.description) + '</span>' : '') + '</td>' +
-        '<td>' + escapeHtml(p.currency) + ' ' + p.priceAmount + '</td>' +
+        '<td>' + formatMoney(p.currency, p.priceAmount) + '</td>' +
         '<td>' + escapeHtml(p.billingPeriod) + '</td>' +
         '<td>' + escapeHtml((p.perks || []).join(', ') || '—') + '</td>' +
         '<td>' + (p.subscriberCount || 0) + '</td>' +

@@ -81,7 +81,7 @@ export function script() {
     body.innerHTML = items.map(function (d) {
       // Currency is per-row, never summed — each amount is shown with its
       // own currency rather than rolled into one aggregate figure.
-      const amount = d.disputedAmount != null ? (escapeHtml(d.currency || '') + ' ' + d.disputedAmount) : '—';
+      const amount = d.disputedAmount != null ? formatMoney(d.currency, d.disputedAmount) : '—';
       const resolved = d.status.indexOf('resolved_') === 0;
       return '<tr data-id="' + d.id + '">' +
         '<td>' + escapeHtml(d.bookingId.slice(0, 12)) + '…</td>' +

@@ -22,6 +22,17 @@ export function script() {
     });
   }
 
+  // Shared money display across every screen — never used to sum amounts
+  // across different currencies, only to format one already-grouped figure.
+  // Thousands separator + fixed 2 decimals, e.g. "KES 1,234.50".
+  function formatMoney(currency, amount) {
+    const n = Number(amount);
+    const formatted = Number.isFinite(n)
+      ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : String(amount == null ? '0.00' : amount);
+    return escapeHtml(currency || '') + ' ' + formatted;
+  }
+
   // HTTP header values can only contain ISO-8859-1 (Latin-1) characters —
   // a token pasted through something that "smartens" punctuation (curly
   // quotes, an em dash, a non-breaking space, an emoji) otherwise crashes

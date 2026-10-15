@@ -128,8 +128,8 @@ export function script() {
     document.getElementById('revenueGrid').innerHTML = byCurrency.length
       ? byCurrency.map(function (r) {
           return (
-            '<div class="stat"><div class="val">' + escapeHtml(r.currency) + ' ' + r.grossCaptured + '</div><div class="lbl">Gross captured (' + escapeHtml(r.currency) + ')</div></div>' +
-            '<div class="stat"><div class="val">' + escapeHtml(r.currency) + ' ' + r.commissionCollected + '</div><div class="lbl">Commission collected (' + escapeHtml(r.currency) + ')</div></div>'
+            '<div class="stat"><div class="val">' + formatMoney(r.currency, r.grossCaptured) + '</div><div class="lbl">Gross captured (' + escapeHtml(r.currency) + ')</div></div>' +
+            '<div class="stat"><div class="val">' + formatMoney(r.currency, r.commissionCollected) + '</div><div class="lbl">Commission collected (' + escapeHtml(r.currency) + ')</div></div>'
           );
         }).join('')
       : '<div class="stat"><div class="val">—</div><div class="lbl">No captured payments yet</div></div>';

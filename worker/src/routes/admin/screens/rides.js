@@ -66,7 +66,7 @@ export function script() {
       return '<tr>' +
         '<td>' + escapeHtml(r.originLabel) + ' &rarr; ' + escapeHtml(r.destinationLabel) + '</td>' +
         '<td>' + escapeHtml(r.type) + '</td>' +
-        '<td>' + escapeHtml(r.currency) + ' ' + r.pricePerSeat + '</td>' +
+        '<td>' + formatMoney(r.currency, r.pricePerSeat) + '</td>' +
         '<td>' + r.seatsAvailable + '/' + r.seatsTotal + '</td>' +
         '<td>' + escapeHtml(r.status) + '</td>' +
         '<td>' + escapeHtml(r.owner.fullName) + '<br><span class="muted">' + escapeHtml(r.owner.email) + '</span></td>' +

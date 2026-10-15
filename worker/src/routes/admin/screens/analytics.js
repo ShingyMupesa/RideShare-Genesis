@@ -64,7 +64,7 @@ export function script() {
     const ordered = rows.slice().reverse();
     body.innerHTML = ordered.length
       ? ordered.map(function (r) {
-          return '<tr><td>' + r.day + '</td><td>' + escapeHtml(r.currency) + '</td><td>' + escapeHtml(r.currency) + ' ' + r.grossCaptured + '</td></tr>';
+          return '<tr><td>' + r.day + '</td><td>' + escapeHtml(r.currency) + '</td><td>' + formatMoney(r.currency, r.grossCaptured) + '</td></tr>';
         }).join('')
       : '<tr><td colspan="3" style="color:#9490ab;">No captured payments in the last 14 days.</td></tr>';
   }

@@ -64,7 +64,7 @@ export function script() {
     // One stat per currency — never a single figure summed across them.
     document.getElementById('paymentsTotalsGrid').innerHTML = totals.length
       ? totals.map(function (t) {
-          return '<div class="stat"><div class="val">' + escapeHtml(t.currency) + ' ' + t.total + '</div><div class="lbl">' + t.count + ' payment(s) (' + escapeHtml(t.currency) + ')</div></div>';
+          return '<div class="stat"><div class="val">' + formatMoney(t.currency, t.total) + '</div><div class="lbl">' + t.count + ' payment(s) (' + escapeHtml(t.currency) + ')</div></div>';
         }).join('')
       : '<div class="stat"><div class="val">—</div><div class="lbl">No payments match this filter</div></div>';
   }
@@ -75,7 +75,7 @@ export function script() {
       return '<tr>' +
         '<td>' + escapeHtml(p.payerFullName || (p.payerId || '').slice(0, 12) + '…') + '<br><span class="muted">' + escapeHtml(p.payerEmail || '') + '</span></td>' +
         '<td>' + escapeHtml(p.method) + '</td>' +
-        '<td>' + escapeHtml(p.currency) + ' ' + p.amount + '</td>' +
+        '<td>' + formatMoney(p.currency, p.amount) + '</td>' +
         '<td>' + escapeHtml(p.status) + '</td>' +
         '<td>' + escapeHtml((p.bookingId || '').slice(0, 12)) + '…</td>' +
         '<td>' + new Date(p.createdAt).toLocaleString() + '</td>' +
