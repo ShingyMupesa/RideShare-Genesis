@@ -269,6 +269,11 @@ export default function Booking() {
             <Link to={`/bookings/${id}/messages`} className="btn btn-ghost btn-sm">
               Message
             </Link>
+            {(hasCaptured || ['COMPLETED', 'CANCELLED'].includes(booking.status)) && (
+              <Link to={`/bookings/${id}/dispute`} className="btn btn-ghost btn-sm">
+                Dispute
+              </Link>
+            )}
           </div>
         </div>
 

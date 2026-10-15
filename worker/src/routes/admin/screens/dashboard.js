@@ -51,6 +51,7 @@ export function script() {
       app.style.display = 'block';
       loadFeedback(token);
       loadDriverVerification(token);
+      loadDisputes(token);
     } catch (err) {
       showGate('Could not reach the API: ' + err.message);
     }

@@ -10,6 +10,7 @@ const PREFIXES = {
   safety: 'sfy',
   audit: 'adt',
   reset: 'rst',
+  dispute: 'dsp',
 };
 
 export function newId(kind) {
