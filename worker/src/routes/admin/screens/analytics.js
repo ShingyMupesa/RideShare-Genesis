@@ -7,21 +7,22 @@ export function markup() {
   return `
   <div class="screen" id="screen-analytics">
     <h2 style="font-size:1rem;">Analytics</h2>
+    <p class="muted" id="analyticsNote" style="margin:10px 0;">Loading…</p>
 
     <section style="margin-top:12px;">
       <h3 style="font-size:0.9rem;">Page views by page</h3>
-      <table id="analyticsPageTable"><thead><tr><th>Page</th><th>Views</th></tr></thead><tbody></tbody></table>
+      <div class="table-wrap"><table id="analyticsPageTable"><thead><tr><th>Page</th><th>Views</th></tr></thead><tbody></tbody></table></div>
     </section>
 
     <section>
       <h3 style="font-size:0.9rem;">CTA clicks by label</h3>
-      <table id="analyticsCtaTable"><thead><tr><th>Label</th><th>Clicks</th></tr></thead><tbody></tbody></table>
+      <div class="table-wrap"><table id="analyticsCtaTable"><thead><tr><th>Label</th><th>Clicks</th></tr></thead><tbody></tbody></table></div>
     </section>
 
     <section>
       <h3 style="font-size:0.9rem;">Revenue trend (last 14 days, by currency)</h3>
       <p class="muted" style="margin-bottom:8px;">Never summed across currencies — each row is one currency's own captured total for that day.</p>
-      <table id="analyticsRevenueTable"><thead><tr><th>Day</th><th>Currency</th><th>Gross captured</th></tr></thead><tbody></tbody></table>
+      <div class="table-wrap"><table id="analyticsRevenueTable"><thead><tr><th>Day</th><th>Currency</th><th>Gross captured</th></tr></thead><tbody></tbody></table></div>
     </section>
   </div>`;
 }
@@ -31,13 +32,14 @@ export function script() {
   async function loadAnalytics(token) {
     try {
       const res = await fetch('/api/tracking/stats', { headers: { 'x-admin-token': token } });
-      if (!res.ok) return;
+      if (!res.ok) { document.getElementById('analyticsNote').textContent = 'Could not load analytics.'; return; }
       const data = await res.json();
+      document.getElementById('analyticsNote').textContent = '';
       renderAnalyticsPages(data.pageBreakdown || []);
       renderAnalyticsCta(data.ctaByLabel || []);
       renderAnalyticsRevenue((data.revenue && data.revenue.dailySeries) || []);
     } catch {
-      // non-fatal — the rest of the admin panel still works
+      document.getElementById('analyticsNote').textContent = 'Could not reach the API.';
     }
   }
 

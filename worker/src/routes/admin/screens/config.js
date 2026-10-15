@@ -28,7 +28,7 @@ export function markup() {
         <p class="muted" style="font-size:0.78rem; margin:4px 0 10px;">${meta.help}</p>
         <div class="toggle-row" style="margin:0;">
           <input type="text" class="reviewer-input" id="configInput-${key}" style="width:200px;">
-          <button class="btn-tiny" data-save="${key}" style="background:#7c6fef;color:#fff;">Save</button>
+          <button class="btn-tiny btn-primary" data-save="${key}">Save</button>
           <span class="muted" id="configStatus-${key}" style="font-size:0.78rem;"></span>
         </div>
       </div>`;
@@ -42,7 +42,7 @@ export function markup() {
       hardcoded or environment-variable default (marked "using default" below) — nothing changes just because this
       screen exists.
     </p>
-    <p class="muted" id="configNote" style="margin-bottom:10px;"></p>
+    <p class="muted" id="configNote" style="margin-bottom:10px;">Loading…</p>
     ${rows}
   </div>`;
 }

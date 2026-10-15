@@ -27,12 +27,22 @@ export function shellStyles() {
   .reviewer-input { padding: 6px 10px; border-radius: 6px; border: 1px solid #3a3750; background: #1a1826; color: #eceaf5; font-size: 0.82rem; }
   .btn-tiny { padding: 5px 10px; border-radius: 6px; border: none; font-weight: 600; font-size: 0.78rem; cursor: pointer; margin-right: 6px; }
   .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; background: #3a3750; color: #cfcadf; }
+  .badge-active { background: rgba(31, 157, 85, 0.25); color: #6fe3a0; }
   .btn-approve { background: #1f9d55; color: white; }
   .btn-reject { background: #d64545; color: white; }
+  .btn-neutral { background: #3a3750; color: #eceaf5; }
+  .btn-primary { background: #7c6fef; color: #fff; }
   @media (hover: hover) and (pointer: fine) {
     .btn-approve:hover { background: #24b862; }
     .btn-reject:hover { background: #e35a5a; }
+    .btn-neutral:hover { background: #46425f; }
+    .btn-primary:hover { background: #8f83ff; }
   }
+  /* Shared scroll wrapper for every data table — keeps a wide table's
+     horizontal overflow contained to itself (with normal column alignment,
+     since the <table> stays intact) instead of forcing the whole page to
+     scroll sideways on a narrow viewport. */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin: 24px 0; }
   .stat { background: #1a1826; border: 1px solid #2c2940; border-radius: 10px; padding: 16px 18px; }
   .stat .val { font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -60,7 +70,10 @@ export function shellStyles() {
   .screen.active { display: block; }
   @media (max-width: 640px) {
     .layout { flex-direction: column; margin: 0; }
-    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #2c2940; padding: 4px 0 10px; }
+    /* 17 nav items across 6 sections is too tall to stack above the main
+       content on a phone — cap the sidebar's height and let IT scroll,
+       rather than pushing the dashboard itself below the fold. */
+    .sidebar { width: 100%; max-height: 38vh; overflow-y: auto; border-right: none; border-bottom: 1px solid #2c2940; padding: 4px 0 10px; }
     .main { padding: 0; }
   }
 `;

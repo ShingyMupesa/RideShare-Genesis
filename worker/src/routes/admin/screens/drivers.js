@@ -11,15 +11,17 @@ export function markup() {
       A "driver" here is anyone who has posted at least one offered journey, or has started/completed driver
       verification — the schema has no separate driver role, so this is derived from activity rather than a stored flag.
     </p>
-    <p class="muted" id="driversNote" style="margin:10px 0;"></p>
+    <p class="muted" id="driversNote" style="margin:10px 0;">Loading…</p>
+    <div class="table-wrap">
     <table id="driversTable">
       <thead><tr><th>Name / Email</th><th>Role</th><th>Driver verification</th><th>Passenger?</th><th>Joined</th></tr></thead>
       <tbody></tbody>
     </table>
+    </div>
     <div class="toggle-row" style="margin-top:10px;">
-      <button class="btn-tiny" id="driversPrevPage" style="background:#3a3750;color:#eceaf5;">Prev</button>
+      <button class="btn-tiny btn-neutral" id="driversPrevPage">Prev</button>
       <span class="muted" id="driversPageLabel"></span>
-      <button class="btn-tiny" id="driversNextPage" style="background:#3a3750;color:#eceaf5;">Next</button>
+      <button class="btn-tiny btn-neutral" id="driversNextPage">Next</button>
     </div>
   </div>`;
 }

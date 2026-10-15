@@ -9,12 +9,12 @@ export function markup() {
 
     <section>
       <h2 style="font-size:1rem;">CTA clicks by type</h2>
-      <table id="ctaTable"><thead><tr><th>Label</th><th>Clicks</th></tr></thead><tbody></tbody></table>
+      <div class="table-wrap"><table id="ctaTable"><thead><tr><th>Label</th><th>Clicks</th></tr></thead><tbody></tbody></table></div>
     </section>
 
     <section>
       <h2 style="font-size:1rem;">Last 14 days</h2>
-      <table id="dailyTable"><thead><tr><th>Day</th><th>Page views</th><th>CTA clicks</th></tr></thead><tbody></tbody></table>
+      <div class="table-wrap"><table id="dailyTable"><thead><tr><th>Day</th><th>Page views</th><th>CTA clicks</th></tr></thead><tbody></tbody></table></div>
     </section>
 
     <section>
@@ -31,7 +31,7 @@ export function markup() {
 
     <section>
       <h2 style="font-size:1rem;">Feedback</h2>
-      <table id="feedbackTable"><thead><tr><th>When</th><th>Message</th><th>Email</th><th>Page</th></tr></thead><tbody></tbody></table>
+      <div class="table-wrap"><table id="feedbackTable"><thead><tr><th>When</th><th>Message</th><th>Email</th><th>Page</th></tr></thead><tbody></tbody></table></div>
     </section>
   </div>`;
 }

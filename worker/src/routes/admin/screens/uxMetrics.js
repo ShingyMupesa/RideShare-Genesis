@@ -26,7 +26,7 @@ export function markup() {
         <option value="90">Last 90 days</option>
       </select>
     </div>
-    <p class="muted" id="uxMetricsNote" style="margin-bottom:12px;"></p>
+    <p class="muted" id="uxMetricsNote" style="margin-bottom:12px;">Loading…</p>
     <div id="uxFunnelChart"></div>
   </div>`;
 }

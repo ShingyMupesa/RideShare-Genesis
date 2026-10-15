@@ -7,19 +7,21 @@ export function markup() {
     <h2 style="font-size:1rem;">Users</h2>
     <div class="toggle-row" style="margin-top:12px;">
       <input type="text" id="usersSearch" class="reviewer-input" placeholder="Search name or email" style="width:220px;">
-      <button class="btn-tiny" id="usersSearchBtn" style="background:#3a3750;color:#eceaf5;">Search</button>
-      <button class="btn-tiny" id="usersExportBtn" style="background:#7c6fef;color:#fff;">Export CSV</button>
+      <button class="btn-tiny btn-neutral" id="usersSearchBtn">Search</button>
+      <button class="btn-tiny btn-primary" id="usersExportBtn">Export CSV</button>
       <span class="muted" id="usersExportStatus" style="font-size:0.78rem;"></span>
     </div>
-    <p class="muted" id="usersNote" style="margin:10px 0;"></p>
+    <p class="muted" id="usersNote" style="margin:10px 0;">Loading…</p>
+    <div class="table-wrap">
     <table id="usersTable">
       <thead><tr><th>Name / Email</th><th>Role</th><th>Driver verification</th><th>Passenger?</th><th>Joined</th></tr></thead>
       <tbody></tbody>
     </table>
+    </div>
     <div class="toggle-row" style="margin-top:10px;">
-      <button class="btn-tiny" id="usersPrevPage" style="background:#3a3750;color:#eceaf5;">Prev</button>
+      <button class="btn-tiny btn-neutral" id="usersPrevPage">Prev</button>
       <span class="muted" id="usersPageLabel"></span>
-      <button class="btn-tiny" id="usersNextPage" style="background:#3a3750;color:#eceaf5;">Next</button>
+      <button class="btn-tiny btn-neutral" id="usersNextPage">Next</button>
     </div>
   </div>`;
 }

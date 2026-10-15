@@ -16,13 +16,15 @@ export function markup() {
         <option value="100" selected>100</option>
         <option value="250">250</option>
       </select>
-      <button class="btn-tiny" id="logsFilterBtn" style="background:#3a3750;color:#eceaf5;">Apply</button>
+      <button class="btn-tiny btn-neutral" id="logsFilterBtn">Apply</button>
     </div>
-    <p class="muted" id="logsNote" style="margin:10px 0;"></p>
+    <p class="muted" id="logsNote" style="margin:10px 0;">Loading…</p>
+    <div class="table-wrap">
     <table id="logsTable">
       <thead><tr><th>When</th><th>Event</th><th>Entity</th><th>Actor</th><th>Metadata</th></tr></thead>
       <tbody></tbody>
     </table>
+    </div>
   </div>`;
 }
 

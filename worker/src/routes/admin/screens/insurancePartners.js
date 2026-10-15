@@ -25,17 +25,19 @@ export function markup() {
       </div>
       <div class="toggle-row" style="margin:0;">
         <label class="muted" style="font-size:0.8rem;"><input type="checkbox" id="ipActive" style="margin-right:4px;">Active</label>
-        <button class="btn-tiny" id="ipSaveBtn" style="background:#7c6fef;color:#fff;">Add partner</button>
-        <button class="btn-tiny" id="ipCancelEditBtn" style="background:#3a3750;color:#eceaf5;display:none;">Cancel edit</button>
+        <button class="btn-tiny btn-primary" id="ipSaveBtn">Add partner</button>
+        <button class="btn-tiny btn-neutral" id="ipCancelEditBtn" style="display:none;">Cancel edit</button>
         <span class="muted" id="ipFormStatus" style="font-size:0.78rem;"></span>
       </div>
     </div>
 
-    <p class="muted" id="insurancePartnersNote" style="margin:10px 0;"></p>
+    <p class="muted" id="insurancePartnersNote" style="margin:10px 0;">Loading…</p>
+    <div class="table-wrap">
     <table id="insurancePartnersTable">
       <thead><tr><th>Partner</th><th>Contact</th><th>Product</th><th>Status</th><th>Action</th></tr></thead>
       <tbody></tbody>
     </table>
+    </div>
   </div>`;
 }
 
@@ -107,8 +109,8 @@ export function script() {
         '<td>' + escapeHtml(p.name) + '</td>' +
         '<td>' + contact + '</td>' +
         '<td>' + escapeHtml(p.productDesc || '—') + '</td>' +
-        '<td>' + (p.active ? '<span class="badge" style="background:rgba(31,157,85,0.25);color:#6fe3a0;">Active</span>' : '<span class="badge">Inactive</span>') + '</td>' +
-        '<td><button class="btn-tiny" data-action="edit" style="background:#3a3750;color:#eceaf5;">Edit</button>' +
+        '<td>' + (p.active ? '<span class="badge badge-active">Active</span>' : '<span class="badge">Inactive</span>') + '</td>' +
+        '<td><button class="btn-tiny btn-neutral" data-action="edit">Edit</button>' +
           (p.active ? '<button class="btn-tiny btn-reject" data-action="deactivate">Deactivate</button>' : '') +
         '</td></tr>';
     }).join('') || '<tr><td colspan="5" style="color:#9490ab;">No insurance partners defined yet.</td></tr>';
