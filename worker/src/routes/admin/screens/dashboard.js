@@ -52,6 +52,7 @@ export function script() {
       loadFeedback(token);
       loadDriverVerification(token);
       loadDisputes(token);
+      loadLiveMap(token);
     } catch (err) {
       showGate('Could not reach the API: ' + err.message);
     }

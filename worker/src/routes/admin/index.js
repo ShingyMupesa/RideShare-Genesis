@@ -1,20 +1,22 @@
 import { Hono } from 'hono';
-import { shellStyles, gateMarkup, shellMarkup } from './shell.js';
+import { shellStyles, externalHeadTags, gateMarkup, shellMarkup } from './shell.js';
 import * as dashboard from './screens/dashboard.js';
 import * as driverVerification from './screens/driverVerification.js';
 import * as disputes from './screens/disputes.js';
+import * as liveMap from './screens/liveMap.js';
 import * as clientApp from './client/app.js';
 
 export const admin = new Hono();
 
 function renderPage() {
-  const screensHtml = [dashboard.markup(), driverVerification.markup(), disputes.markup()].join('\n');
+  const screensHtml = [dashboard.markup(), driverVerification.markup(), disputes.markup(), liveMap.markup()].join('\n');
 
   const scriptBody = [
     clientApp.script(),
     dashboard.script(),
     driverVerification.script(),
     disputes.script(),
+    liveMap.script(),
   ].join('\n');
 
   return `<!doctype html>
@@ -24,6 +26,7 @@ function renderPage() {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Genesis Admin</title>
 <style>${shellStyles()}</style>
+${externalHeadTags()}
 </head>
 <body>
 ${gateMarkup()}

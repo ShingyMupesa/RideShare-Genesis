@@ -13,6 +13,7 @@ import { router as feedbackRouter } from './feedback/routes.js';
 import { router as pushRouter } from './push/routes.js';
 import { router as driverVerificationRouter } from './driverVerification/routes.js';
 import { router as disputesRouter } from './disputes/routes.js';
+import { router as liveLocationsRouter } from './liveLocations/routes.js';
 import { ApiError } from './utils/errors.js';
 
 export function createApp() {
@@ -49,6 +50,7 @@ export function createApp() {
   app.use('/api/push', pushRouter);
   app.use('/api/driver-verification', driverVerificationRouter);
   app.use('/api/disputes', disputesRouter);
+  app.use('/api/admin/live-map', liveLocationsRouter);
 
   app.use((req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: `No route for ${req.method} ${req.path}` } });
