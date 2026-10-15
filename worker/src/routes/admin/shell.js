@@ -101,6 +101,10 @@ export function shellMarkup(screensHtml) {
       <div class="sb-item" data-screen="driverVerification">Driver Verification</div>
       <div class="sb-item" data-screen="disputes">Disputes</div>
       <div class="sb-item" data-screen="liveMap">Live Map</div>
+      <div class="sb-section">Monetisation</div>
+      <div class="sb-item" data-screen="monetisation">Subscriptions</div>
+      <div class="sb-item" data-screen="adSlots">Ad Slots</div>
+      <div class="sb-item" data-screen="insurancePartners">Insurance Partners</div>
       <div class="sb-section">Settings</div>
       <div class="sb-item" data-screen="config">Config</div>
     </nav>

@@ -16,6 +16,8 @@ const MIGRATIONS = [
   '0011_account_deletion.sql',
   '0012_disputes.sql',
   '0013_live_locations.sql',
+  '0014_driver_subscriptions.sql',
+  '0015_monetization_config.sql',
 ];
 
 export function runMigrations() {
