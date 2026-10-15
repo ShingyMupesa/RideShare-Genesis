@@ -26,6 +26,7 @@ export function shellStyles() {
   .toggle-switch input:disabled + .toggle-slider { opacity: 0.5; cursor: default; }
   .reviewer-input { padding: 6px 10px; border-radius: 6px; border: 1px solid #3a3750; background: #1a1826; color: #eceaf5; font-size: 0.82rem; }
   .btn-tiny { padding: 5px 10px; border-radius: 6px; border: none; font-weight: 600; font-size: 0.78rem; cursor: pointer; margin-right: 6px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; background: #3a3750; color: #cfcadf; }
   .btn-approve { background: #1f9d55; color: white; }
   .btn-reject { background: #d64545; color: white; }
   @media (hover: hover) and (pointer: fine) {
@@ -100,6 +101,8 @@ export function shellMarkup(screensHtml) {
       <div class="sb-item" data-screen="driverVerification">Driver Verification</div>
       <div class="sb-item" data-screen="disputes">Disputes</div>
       <div class="sb-item" data-screen="liveMap">Live Map</div>
+      <div class="sb-section">Settings</div>
+      <div class="sb-item" data-screen="config">Config</div>
     </nav>
     <div class="main">
       <div class="topbar">

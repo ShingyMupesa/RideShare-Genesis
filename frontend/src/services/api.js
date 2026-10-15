@@ -132,6 +132,12 @@ export const api = {
   // Disputes
   fileDispute: (bookingId, payload) => request('/disputes', { method: 'POST', body: { bookingId, ...payload } }),
   myDisputes: () => request('/disputes/mine'),
+
+  // Surge advisory — purely informational (see worker/src/lib/surge.js);
+  // never allowed to send a token-gated request, since it's a public,
+  // read-only lookup a driver can call before even signing in to publish.
+  surgeSuggestion: ({ lat, lng, departureTime }) =>
+    request(`/journeys/surge-suggestion?${new URLSearchParams({ lat, lng, departureTime }).toString()}`, { auth: false }),
 };
 
 export { ApiError };

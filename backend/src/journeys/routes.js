@@ -5,6 +5,7 @@ import * as Journeys from './repository.js';
 import { generateMatchesForJourney } from '../matching/engine.js';
 import { VEHICLE_TYPES } from '../utils/impact.js';
 import * as DriverVerification from '../driverVerification/repository.js';
+import { estimateDemand } from './surge.js';
 
 const VERIFICATION_MESSAGES = {
   unverified: 'Complete driver verification before posting a journey. Add your details on your profile — an admin will review them shortly.',
@@ -93,6 +94,32 @@ router.get(
     if (mine === 'true' && !req.user) throw Forbidden('Sign in to view your own journeys');
     const journeys = Journeys.listJourneys({ type, status, ownerId }).map((j) => redactIfPrivateRequest(j, req.user?.id));
     res.json({ journeys });
+  })
+);
+
+// Public, read-only, informational only — no auth required, matching the
+// other read-only lookups in this file. This route must NEVER be wired to
+// write journeys.price_per_seat, now or in the future: Genesis's product
+// promise is a driver-set, known-upfront flat price, and this endpoint only
+// ever suggests a price to the driver before they publish; it never
+// changes one. Placed before the GET '/:id' route so '/surge-suggestion'
+// isn't swallowed by the ':id' param match.
+router.get(
+  '/surge-suggestion',
+  asyncHandler(async (req, res) => {
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    const departureTime = req.query.departureTime;
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      throw BadRequest('lat and lng are required and must be numbers');
+    }
+    if (!departureTime || Number.isNaN(Date.parse(departureTime))) {
+      throw BadRequest('departureTime must be a valid ISO date string');
+    }
+
+    const result = estimateDemand({ lat, lng, departureTime });
+    res.json(result);
   })
 );
 
