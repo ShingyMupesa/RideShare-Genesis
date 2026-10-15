@@ -8,6 +8,7 @@ import { recordAuditEvent } from '../lib/audit.js';
 import { createPaymentIntent, retrievePaymentIntent } from '../lib/stripe.js';
 import { initiateStkPush, queryStkPushStatus, parseCallbackMetadata } from '../lib/mpesa.js';
 import { mpesaLimiter } from '../lib/rateLimit.js';
+import { ensurePlatformSettingsTable, getSetting } from '../lib/platformSettings.js';
 
 export const payments = new Hono();
 
@@ -56,11 +57,17 @@ async function ensureCommissionColumns(db) {
 
 // The rider always pays the full fare; commission is the platform's cut of
 // that fare, deducted from the driver's payout rather than added on top.
-// Defaults to 0% (see wrangler.toml) for the early-bird period — flipping
-// PLATFORM_COMMISSION_PCT later applies only to payments made after the
-// change, since the rate actually charged is stored per-payment.
-function commissionRateFromEnv(env) {
-  const pct = Number(env.PLATFORM_COMMISSION_PCT ?? 0);
+// Reads the admin-configurable `commission_rate_pct` platform setting first
+// (takes effect immediately, no deploy needed); falls back to the
+// PLATFORM_COMMISSION_PCT env var (see wrangler.toml) — 0% by default for
+// the early-bird period — when nothing has been explicitly stored yet.
+// Either way, flipping the rate later applies only to payments made after
+// the change, since the rate actually charged is stored per-payment.
+async function commissionRateFromSettings(db, env) {
+  await ensurePlatformSettingsTable(db);
+  const stored = await getSetting(db, 'commission_rate_pct');
+  const storedPct = stored !== null ? Number(stored) : NaN;
+  const pct = Number.isFinite(storedPct) ? storedPct : Number(env.PLATFORM_COMMISSION_PCT ?? 0);
   return Number.isFinite(pct) && pct > 0 ? pct / 100 : 0;
 }
 
@@ -114,7 +121,7 @@ payments.post('/', requireAuth, async (c) => {
   if (booking.passengerId !== authUser.id) throw Forbidden('Only the passenger can pay for this booking');
 
   await ensureCommissionColumns(db);
-  const commissionRate = commissionRateFromEnv(c.env);
+  const commissionRate = await commissionRateFromSettings(db, c.env);
   const payment = await createPayment(db, {
     bookingId,
     payerId: authUser.id,
@@ -171,7 +178,7 @@ payments.post('/stripe/intent', requireAuth, async (c) => {
     method: 'card_stripe',
     amount: booking.totalPrice,
     currency: booking.currency,
-    commissionRate: commissionRateFromEnv(c.env),
+    commissionRate: await commissionRateFromSettings(db, c.env),
   });
 
   let intent;
@@ -251,7 +258,7 @@ payments.post('/mpesa/stk-push', requireAuth, mpesaLimiter, async (c) => {
     method: 'mpesa',
     amount: booking.totalPrice,
     currency: booking.currency,
-    commissionRate: commissionRateFromEnv(c.env),
+    commissionRate: await commissionRateFromSettings(db, c.env),
   });
 
   let stk;
