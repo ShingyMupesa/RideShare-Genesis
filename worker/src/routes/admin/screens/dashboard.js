@@ -53,6 +53,9 @@ export function script() {
       loadDriverVerification(token);
       loadDisputes(token);
       loadLiveMap(token);
+      loadMonetisation(token);
+      loadAdSlots(token);
+      loadInsurancePartners(token);
       loadConfig(token);
     } catch (err) {
       showGate('Could not reach the API: ' + err.message);

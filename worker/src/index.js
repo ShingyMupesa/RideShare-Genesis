@@ -20,6 +20,9 @@ import { driverVerification } from './routes/driverVerification.js';
 import { platformSettings } from './routes/platformSettings.js';
 import { disputes } from './routes/disputes.js';
 import { liveLocations } from './routes/liveLocations.js';
+import { monetizationPublic, subscriptionPlans, subscriptions } from './routes/monetization.js';
+import { adSlots } from './routes/adSlots.js';
+import { insurancePartners } from './routes/insurancePartners.js';
 
 export { BookingRoom } from './durable-objects/BookingRoom.js';
 
@@ -48,6 +51,11 @@ app.route('/api/driver-verification', driverVerification);
 app.route('/api/admin/platform-settings', platformSettings);
 app.route('/api/disputes', disputes);
 app.route('/api/admin/live-map', liveLocations);
+app.route('/api/monetization', monetizationPublic);
+app.route('/api/admin/subscription-plans', subscriptionPlans);
+app.route('/api/admin/subscriptions', subscriptions);
+app.route('/api/admin/ad-slots', adSlots);
+app.route('/api/admin/insurance-partners', insurancePartners);
 app.route('/admin', admin);
 
 // Real-time messaging: browsers can't set custom headers on a WebSocket
