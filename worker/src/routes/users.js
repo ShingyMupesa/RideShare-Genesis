@@ -4,6 +4,7 @@ import { requireAuth, signToken } from '../lib/auth.js';
 import { newId } from '../lib/ids.js';
 import { BadRequest, Conflict, NotFound, Unauthorized } from '../lib/errors.js';
 import { recordAuditEvent } from '../lib/audit.js';
+import { recordFunnelEvent } from '../lib/funnelEvents.js';
 import { generateResetToken, hashResetToken } from '../lib/resetToken.js';
 import { sendEmail, resetPasswordEmailHtml, confirmDeletionEmailHtml } from '../lib/resend.js';
 import { loginLimiter, registerLimiter, forgotPasswordLimiter, deletionRequestLimiter } from '../lib/rateLimit.js';
@@ -112,6 +113,7 @@ users.post('/register', registerLimiter, async (c) => {
   const profile = await getProfile(db, id);
 
   await recordAuditEvent(db, { actorId: id, eventType: 'user.registered', entityType: 'user', entityId: id });
+  await recordFunnelEvent(db, { eventType: 'signup_completed', userId: id });
 
   const token = await signToken(c.env, user);
   return c.json({ token, user: publicUser(user, profile) }, 201);

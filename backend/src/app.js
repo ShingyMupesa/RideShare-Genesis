@@ -17,6 +17,11 @@ import { router as liveLocationsRouter } from './liveLocations/routes.js';
 import { publicRouter as monetizationPublicRouter, plansRouter as subscriptionPlansRouter, subscriptionsRouter } from './monetization/routes.js';
 import { router as adSlotsRouter } from './adSlots/routes.js';
 import { router as insurancePartnersRouter } from './insurancePartners/routes.js';
+import { router as trackingRouter } from './tracking/routes.js';
+import { router as adminUsersRouter } from './adminUsers/routes.js';
+import { router as adminRidesRouter } from './adminRides/routes.js';
+import { router as adminPaymentsRouter } from './adminPayments/routes.js';
+import { router as funnelStatsRouter } from './funnelStats/routes.js';
 import { ApiError } from './utils/errors.js';
 
 export function createApp() {
@@ -59,6 +64,11 @@ export function createApp() {
   app.use('/api/admin/subscriptions', subscriptionsRouter);
   app.use('/api/admin/ad-slots', adSlotsRouter);
   app.use('/api/admin/insurance-partners', insurancePartnersRouter);
+  app.use('/api/tracking', trackingRouter);
+  app.use('/api/admin/users', adminUsersRouter);
+  app.use('/api/admin/rides', adminRidesRouter);
+  app.use('/api/admin/payments', adminPaymentsRouter);
+  app.use('/api/admin/funnel-stats', funnelStatsRouter);
 
   app.use((req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: `No route for ${req.method} ${req.path}` } });

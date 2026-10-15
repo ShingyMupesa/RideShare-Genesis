@@ -6,6 +6,7 @@ import { generateMatchesForJourney } from '../lib/matching.js';
 import { VEHICLE_TYPES } from '../lib/impact.js';
 import * as DriverVerification from '../lib/driverVerification.js';
 import { estimateDemand } from '../lib/surge.js';
+import { recordFunnelEvent } from '../lib/funnelEvents.js';
 
 export const journeys = new Hono();
 
@@ -146,6 +147,12 @@ journeys.post('/', requireAuth, async (c) => {
     }
   }
 
+  // Funnel instrumentation: "first journey posted" is a one-time milestone,
+  // of any journey type (offer or request) — checked before the insert so
+  // the count reflects journeys this user had *before* this one.
+  const priorJourneyCount = await db.prepare('SELECT COUNT(*) AS n FROM journeys WHERE owner_id = ?').bind(authUser.id).first();
+  const isFirstJourney = (priorJourneyCount?.n || 0) === 0;
+
   const id = newId('journey');
   await db
     .prepare(
@@ -174,6 +181,10 @@ journeys.post('/', requireAuth, async (c) => {
       body.type === 'offer' ? body.vehicleType ?? null : null
     )
     .run();
+
+  if (isFirstJourney) {
+    await recordFunnelEvent(db, { eventType: 'first_journey_posted', userId: authUser.id });
+  }
 
   const journey = await getJourneyById(db, id);
   let matches = [];

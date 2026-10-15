@@ -44,12 +44,21 @@ export function script() {
 
   const SCREEN_TITLES = {
     dashboard: 'Dashboard',
+    analytics: 'Analytics',
+    uxMetrics: 'UX Metrics',
     driverVerification: 'Driver Verification',
     disputes: 'Disputes',
     liveMap: 'Live Map',
+    users: 'Users',
+    drivers: 'Drivers',
+    passengers: 'Passengers',
+    rides: 'Rides',
+    payments: 'Payments',
     monetisation: 'Subscriptions',
     adSlots: 'Ad Slots',
     insurancePartners: 'Insurance Partners',
+    systemLogs: 'System Logs',
+    goToMarket: 'Go-to-market',
     config: 'Config',
   };
 

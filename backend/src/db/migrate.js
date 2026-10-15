@@ -18,6 +18,7 @@ const MIGRATIONS = [
   '0013_live_locations.sql',
   '0014_driver_subscriptions.sql',
   '0015_monetization_config.sql',
+  '0016_funnel_events.sql',
 ];
 
 export function runMigrations() {

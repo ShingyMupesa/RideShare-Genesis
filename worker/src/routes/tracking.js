@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { newId } from '../lib/ids.js';
 import { requireAdmin } from '../lib/adminAuth.js';
+import { optionalAuth } from '../lib/auth.js';
+import { FUNNEL_EVENT_TYPES, recordFunnelEvent } from '../lib/funnelEvents.js';
 
 export const tracking = new Hono();
 
@@ -73,6 +75,28 @@ tracking.get('/go', async (c) => {
   return c.redirect(destination, 302);
 });
 
+// Real signup/booking funnel instrumentation — a separate concern from the
+// page_events above (which are anonymous pitch-page analytics). These
+// events are authenticated-context: optionalAuth attaches user_id whenever
+// a session exists, null otherwise (e.g. "signup_started", fired before an
+// account exists yet). See worker/src/lib/funnelEvents.js.
+tracking.post('/funnel', optionalAuth, async (c) => {
+  const db = c.env.DB;
+  const authUser = c.get('user');
+  const body = await c.req.json().catch(() => ({}));
+  const { eventType, visitorId } = body;
+
+  if (!FUNNEL_EVENT_TYPES.includes(eventType)) {
+    return c.json(
+      { error: { code: 'BAD_REQUEST', message: `eventType must be one of: ${FUNNEL_EVENT_TYPES.join(', ')}` } },
+      400
+    );
+  }
+
+  await recordFunnelEvent(db, { eventType, userId: authUser?.id || null, visitorId });
+  return c.json({ ok: true }, 201);
+});
+
 // Everything below requires the admin token.
 tracking.use('/stats', requireAdmin);
 
@@ -80,7 +104,7 @@ tracking.get('/stats', async (c) => {
   const db = c.env.DB;
   await ensureTable(db);
 
-  const [pageViews, ctaClicks, byLabel, byDay, users, bookings, safetyCases, impact, cleanVehicles, revenue] = await Promise.all([
+  const [pageViews, ctaClicks, byLabel, byDay, byPage, users, bookings, safetyCases, impact, cleanVehicles, revenue, revenueByDay] = await Promise.all([
     db.prepare(`SELECT COUNT(*) AS n FROM page_events WHERE event_type = 'page_view'`).first(),
     db.prepare(`SELECT COUNT(*) AS n FROM page_events WHERE event_type = 'cta_click'`).first(),
     db
@@ -95,6 +119,14 @@ tracking.get('/stats', async (c) => {
          WHERE created_at >= datetime('now', '-14 days')
          GROUP BY day, event_type
          ORDER BY day ASC`
+      )
+      .all(),
+    // Powers the Analytics screen's "views by page" breakdown — reuses the
+    // same page_events table/columns as the queries above, just grouped
+    // differently, rather than introducing a second source of truth.
+    db
+      .prepare(
+        `SELECT page, COUNT(*) AS n FROM page_events WHERE event_type = 'page_view' GROUP BY page ORDER BY n DESC`
       )
       .all(),
     db.prepare(`SELECT COUNT(*) AS n FROM users`).first(),
@@ -137,6 +169,19 @@ tracking.get('/stats', async (c) => {
       )
       .all()
       .catch(() => ({ results: [] })),
+    // Same CAPTURED-payments source as the revenue query above, broken down
+    // by day *and* currency for the Analytics screen's revenue trend — never
+    // summed across currencies, same rule as the aggregate above.
+    db
+      .prepare(
+        `SELECT substr(created_at, 1, 10) AS day, currency, COALESCE(SUM(amount), 0) AS grossCaptured
+         FROM payments
+         WHERE status = 'CAPTURED' AND created_at >= datetime('now', '-14 days')
+         GROUP BY day, currency
+         ORDER BY day ASC`
+      )
+      .all()
+      .catch(() => ({ results: [] })),
   ]);
 
   return c.json({
@@ -144,6 +189,7 @@ tracking.get('/stats', async (c) => {
     ctaClicks: ctaClicks?.n || 0,
     ctaByLabel: byLabel.results || [],
     dailySeries: byDay.results || [],
+    pageBreakdown: byPage.results || [],
     productMetrics: {
       totalUsers: users?.n || 0,
       totalBookings: bookings?.n || 0,
@@ -156,6 +202,7 @@ tracking.get('/stats', async (c) => {
         commissionCollected: round1(r.commissionCollected),
       })),
       note: 'Commission rate defaults to 0% during the early-bird period; the rate charged is stored per-payment, so past totals stay accurate if the rate changes. Broken down by currency — journeys can be posted in any currency, so totals are never mixed together.',
+      dailySeries: (revenueByDay.results || []).map((r) => ({ day: r.day, currency: r.currency, grossCaptured: round1(r.grossCaptured) })),
     },
     environmentalImpact: {
       sharedJourneysCompleted: impact?.sharedJourneysCompleted || 0,
