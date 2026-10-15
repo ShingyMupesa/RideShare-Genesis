@@ -35,6 +35,23 @@ router.get(
   })
 );
 
+// Sibling of the route above — mirrors worker/src/routes/governance.js's
+// GET /audit-events-admin (there, a second gate for the ADMIN_TOKEN-only
+// admin HTML panel). This backend has no ADMIN_TOKEN concept, so it reuses
+// the same JWT role==='admin' gate as /audit-events above; kept as its own
+// route rather than folded into it, for parity with the worker's route
+// shape and so the admin-list-endpoint test coverage has a stable target.
+router.get(
+  '/audit-events-admin',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    if (req.user.role !== 'admin') throw Forbidden('Admin access required');
+    const { entityType, entityId, limit } = req.query;
+    const events = listAuditEvents({ entityType, entityId, limit: limit ? Number(limit) : undefined });
+    res.json({ events });
+  })
+);
+
 // Admin-configurable platform settings (commission rate, surge cap, min
 // fare, payout threshold) — mirrors worker/src/routes/platformSettings.js's
 // two endpoints, using this backend's own requireAuth + role==='admin' gate

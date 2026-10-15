@@ -57,6 +57,14 @@ export function script() {
       loadAdSlots(token);
       loadInsurancePartners(token);
       loadConfig(token);
+      loadAnalytics(token);
+      loadUsers(token);
+      loadDrivers(token);
+      loadPassengers(token);
+      loadRides(token);
+      loadPayments(token);
+      loadUxMetrics(token);
+      loadSystemLogs(token);
     } catch (err) {
       showGate('Could not reach the API: ' + err.message);
     }

@@ -97,15 +97,26 @@ export function shellMarkup(screensHtml) {
       <div class="sidebar-brand">Genesis Admin</div>
       <div class="sb-section">Overview</div>
       <div class="sb-item active" data-screen="dashboard">Dashboard</div>
+      <div class="sb-item" data-screen="analytics">Analytics</div>
+      <div class="sb-item" data-screen="uxMetrics">UX Metrics</div>
       <div class="sb-section">Operations</div>
       <div class="sb-item" data-screen="driverVerification">Driver Verification</div>
       <div class="sb-item" data-screen="disputes">Disputes</div>
       <div class="sb-item" data-screen="liveMap">Live Map</div>
+      <div class="sb-section">People</div>
+      <div class="sb-item" data-screen="users">Users</div>
+      <div class="sb-item" data-screen="drivers">Drivers</div>
+      <div class="sb-item" data-screen="passengers">Passengers</div>
+      <div class="sb-section">Marketplace</div>
+      <div class="sb-item" data-screen="rides">Rides</div>
+      <div class="sb-item" data-screen="payments">Payments</div>
       <div class="sb-section">Monetisation</div>
       <div class="sb-item" data-screen="monetisation">Subscriptions</div>
       <div class="sb-item" data-screen="adSlots">Ad Slots</div>
       <div class="sb-item" data-screen="insurancePartners">Insurance Partners</div>
       <div class="sb-section">Settings</div>
+      <div class="sb-item" data-screen="systemLogs">System Logs</div>
+      <div class="sb-item" data-screen="goToMarket">Go-to-market</div>
       <div class="sb-item" data-screen="config">Config</div>
     </nav>
     <div class="main">

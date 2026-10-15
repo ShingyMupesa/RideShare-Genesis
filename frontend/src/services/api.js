@@ -138,6 +138,20 @@ export const api = {
   // read-only lookup a driver can call before even signing in to publish.
   surgeSuggestion: ({ lat, lng, departureTime }) =>
     request(`/journeys/surge-suggestion?${new URLSearchParams({ lat, lng, departureTime }).toString()}`, { auth: false }),
+
+  // Funnel instrumentation — fire-and-forget. Never throws and never blocks
+  // the calling code: a failed beacon (offline, ad-blocker, server hiccup)
+  // must not break the real feature it's attached to. Most funnel events
+  // are recorded server-side where a "first time?" check already needs a DB
+  // query anyway (see worker/src/routes/journeys.js, bookings.js); this is
+  // used for "signup_started", which has no natural server-side moment.
+  trackFunnelEvent: (eventType, visitorId) => {
+    try {
+      request('/tracking/funnel', { method: 'POST', body: { eventType, visitorId }, auth: true }).catch(() => {});
+    } catch {
+      // swallow — instrumentation must never break the calling flow
+    }
+  },
 };
 
 export { ApiError };

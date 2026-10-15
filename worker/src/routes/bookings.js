@@ -9,6 +9,7 @@ import { recordAuditEvent } from '../lib/audit.js';
 import { estimateBookingImpact } from '../lib/impact.js';
 import { getProfile } from './users.js';
 import { notifyUser } from '../lib/notify.js';
+import { recordFunnelEvent } from '../lib/funnelEvents.js';
 
 export const bookings = new Hono();
 
@@ -68,6 +69,12 @@ bookings.post('/', requireAuth, async (c) => {
     if (match.requestJourney.ownerId !== authUser.id) throw Forbidden('This match does not belong to you');
   }
 
+  // Funnel instrumentation: "first booking made" is a one-time milestone —
+  // checked before the insert so the count reflects bookings this
+  // passenger had *before* this one.
+  const priorBookingCount = await db.prepare('SELECT COUNT(*) AS n FROM bookings WHERE passenger_id = ?').bind(authUser.id).first();
+  const isFirstBooking = (priorBookingCount?.n || 0) === 0;
+
   const id = newId('booking');
   const totalPrice = Number((journey.pricePerSeat * seats).toFixed(2));
   const initialStatus = match ? 'MATCHED' : 'REQUESTED';
@@ -78,6 +85,10 @@ bookings.post('/', requireAuth, async (c) => {
     )
     .bind(id, journeyId, authUser.id, matchId || null, seats, totalPrice, journey.currency, initialStatus, JSON.stringify([{ status: initialStatus, at: new Date().toISOString() }]))
     .run();
+
+  if (isFirstBooking) {
+    await recordFunnelEvent(db, { eventType: 'first_booking_made', userId: authUser.id });
+  }
 
   const booking = await getBookingById(db, id);
 
@@ -171,6 +182,12 @@ function transitionRoute(nextStatus, { requireOwner = false, requirePassenger = 
       });
       await db.prepare('UPDATE bookings SET impact_json = ? WHERE id = ?').bind(JSON.stringify(impact), booking.id).run();
       updated = await getBookingById(db, booking.id);
+
+      // "booking_completed" tracks a repeatable funnel step (every
+      // completion, not just the passenger's first) — fired here rather
+      // than relying on a frontend call after the "complete trip" button,
+      // which is simpler and can't be silently missed.
+      await recordFunnelEvent(db, { eventType: 'booking_completed', userId: booking.passengerId });
     }
 
     await recordAuditEvent(db, {

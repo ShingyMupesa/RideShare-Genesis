@@ -6,6 +6,8 @@ import { generateMatchesForJourney } from '../matching/engine.js';
 import { VEHICLE_TYPES } from '../utils/impact.js';
 import * as DriverVerification from '../driverVerification/repository.js';
 import { estimateDemand } from './surge.js';
+import { db } from '../db/connection.js';
+import { recordFunnelEvent } from '../tracking/funnelEvents.js';
 
 const VERIFICATION_MESSAGES = {
   unverified: 'Complete driver verification before posting a journey. Add your details on your profile — an admin will review them shortly.',
@@ -62,7 +64,17 @@ router.post(
       }
     }
 
+    // Funnel instrumentation: "first journey posted" is a one-time
+    // milestone, of any journey type — checked before the insert so the
+    // count reflects journeys this user had *before* this one.
+    const { n: priorJourneyCount } = db.prepare('SELECT COUNT(*) AS n FROM journeys WHERE owner_id = ?').get(req.user.id);
+    const isFirstJourney = priorJourneyCount === 0;
+
     const journey = Journeys.createJourney(req.user.id, req.body);
+
+    if (isFirstJourney) {
+      recordFunnelEvent({ eventType: 'first_journey_posted', userId: req.user.id });
+    }
 
     let matches = [];
     if (journey.type === 'request') {
