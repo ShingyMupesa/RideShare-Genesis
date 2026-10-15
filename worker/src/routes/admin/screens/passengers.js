@@ -9,15 +9,17 @@ export function markup() {
       A "passenger" here is anyone who has ever made a booking — not mutually exclusive with "driver": many drivers
       also book rides as passengers.
     </p>
-    <p class="muted" id="passengersNote" style="margin:10px 0;"></p>
+    <p class="muted" id="passengersNote" style="margin:10px 0;">Loading…</p>
+    <div class="table-wrap">
     <table id="passengersTable">
       <thead><tr><th>Name / Email</th><th>Role</th><th>Driver verification</th><th>Passenger?</th><th>Joined</th></tr></thead>
       <tbody></tbody>
     </table>
+    </div>
     <div class="toggle-row" style="margin-top:10px;">
-      <button class="btn-tiny" id="passengersPrevPage" style="background:#3a3750;color:#eceaf5;">Prev</button>
+      <button class="btn-tiny btn-neutral" id="passengersPrevPage">Prev</button>
       <span class="muted" id="passengersPageLabel"></span>
-      <button class="btn-tiny" id="passengersNextPage" style="background:#3a3750;color:#eceaf5;">Next</button>
+      <button class="btn-tiny btn-neutral" id="passengersNextPage">Next</button>
     </div>
   </div>`;
 }

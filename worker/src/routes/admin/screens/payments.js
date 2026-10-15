@@ -18,18 +18,20 @@ export function markup() {
       </select>
       <label class="muted" for="paymentsCurrencyFilter" style="font-size:0.8rem;">Currency:</label>
       <input type="text" id="paymentsCurrencyFilter" class="reviewer-input" placeholder="e.g. KES" style="width:90px;">
-      <button class="btn-tiny" id="paymentsFilterBtn" style="background:#3a3750;color:#eceaf5;">Apply</button>
+      <button class="btn-tiny btn-neutral" id="paymentsFilterBtn">Apply</button>
     </div>
     <div class="grid" id="paymentsTotalsGrid" style="margin-top:14px;"></div>
-    <p class="muted" id="paymentsNote" style="margin:10px 0;"></p>
+    <p class="muted" id="paymentsNote" style="margin:10px 0;">Loading…</p>
+    <div class="table-wrap">
     <table id="paymentsTable">
       <thead><tr><th>Payer</th><th>Method</th><th>Amount</th><th>Status</th><th>Booking</th><th>When</th></tr></thead>
       <tbody></tbody>
     </table>
+    </div>
     <div class="toggle-row" style="margin-top:10px;">
-      <button class="btn-tiny" id="paymentsPrevPage" style="background:#3a3750;color:#eceaf5;">Prev</button>
+      <button class="btn-tiny btn-neutral" id="paymentsPrevPage">Prev</button>
       <span class="muted" id="paymentsPageLabel"></span>
-      <button class="btn-tiny" id="paymentsNextPage" style="background:#3a3750;color:#eceaf5;">Next</button>
+      <button class="btn-tiny btn-neutral" id="paymentsNextPage">Next</button>
     </div>
   </div>`;
 }

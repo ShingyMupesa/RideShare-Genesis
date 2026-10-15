@@ -22,15 +22,17 @@ export function markup() {
         <option value="completed">Completed</option>
       </select>
     </div>
-    <p class="muted" id="ridesNote" style="margin:10px 0;"></p>
+    <p class="muted" id="ridesNote" style="margin:10px 0;">Loading…</p>
+    <div class="table-wrap">
     <table id="ridesTable">
       <thead><tr><th>Route</th><th>Type</th><th>Price</th><th>Seats</th><th>Status</th><th>Owner</th><th>Posted</th></tr></thead>
       <tbody></tbody>
     </table>
+    </div>
     <div class="toggle-row" style="margin-top:10px;">
-      <button class="btn-tiny" id="ridesPrevPage" style="background:#3a3750;color:#eceaf5;">Prev</button>
+      <button class="btn-tiny btn-neutral" id="ridesPrevPage">Prev</button>
       <span class="muted" id="ridesPageLabel"></span>
-      <button class="btn-tiny" id="ridesNextPage" style="background:#3a3750;color:#eceaf5;">Next</button>
+      <button class="btn-tiny btn-neutral" id="ridesNextPage">Next</button>
     </div>
   </div>`;
 }

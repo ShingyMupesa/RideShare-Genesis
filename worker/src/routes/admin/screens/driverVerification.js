@@ -27,11 +27,13 @@ export function markup() {
       <label class="muted" for="dvReviewerName" style="font-size:0.8rem;">Reviewing as:</label>
       <input type="text" id="dvReviewerName" class="reviewer-input" placeholder="Your name" style="width:160px;">
     </div>
-    <p class="muted" id="dvQueueNote" style="margin-bottom:10px;"></p>
+    <p class="muted" id="dvQueueNote" style="margin-bottom:10px;">Loading…</p>
+    <div class="table-wrap">
     <table id="dvQueueTable">
       <thead><tr><th>Applicant</th><th>License</th><th>Vehicle</th><th>Documents</th><th>Submitted</th><th>Action</th></tr></thead>
       <tbody></tbody>
     </table>
+    </div>
   </div>`;
 }
 
@@ -72,9 +74,9 @@ export function script() {
     const body = document.querySelector('#dvQueueTable tbody');
     body.innerHTML = submissions.map(function (s) {
       const docButtons =
-        (s.license_photo_key ? '<button class="btn-tiny" data-view="license" style="background:#3a3750;color:#eceaf5;">License photo</button>' : '<span class="muted">No license photo</span>') +
-        (s.vehicle_reg_photo_key ? '<button class="btn-tiny" data-view="vehicleReg" style="background:#3a3750;color:#eceaf5;">Reg photo</button>' : '') +
-        (s.insurance_photo_key ? '<button class="btn-tiny" data-view="insurance" style="background:#3a3750;color:#eceaf5;">Insurance photo</button>' : '<span class="muted">No insurance photo</span>');
+        (s.license_photo_key ? '<button class="btn-tiny btn-neutral" data-view="license">License photo</button>' : '<span class="muted">No license photo</span>') +
+        (s.vehicle_reg_photo_key ? '<button class="btn-tiny btn-neutral" data-view="vehicleReg">Reg photo</button>' : '') +
+        (s.insurance_photo_key ? '<button class="btn-tiny btn-neutral" data-view="insurance">Insurance photo</button>' : '<span class="muted">No insurance photo</span>');
       return '<tr data-id="' + s.id + '">' +
         '<td>' + escapeHtml(s.applicant_name) + '<br><span class="muted">' + escapeHtml(s.applicant_email) + '</span></td>' +
         '<td>' + escapeHtml(s.license_number) + (s.license_expiry ? '<br><span class="muted">exp ' + escapeHtml(s.license_expiry) + '</span>' : '') + '</td>' +

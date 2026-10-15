@@ -22,17 +22,19 @@ export function markup() {
       <input type="text" id="disputeReviewerName" class="reviewer-input" placeholder="Your name" style="width:140px;">
     </div>
 
-    <p class="muted" id="disputesNote" style="margin:10px 0;"></p>
+    <p class="muted" id="disputesNote" style="margin:10px 0;">Loading…</p>
+    <div class="table-wrap">
     <table id="disputesTable">
       <thead>
         <tr><th>Booking</th><th>Filed by</th><th>Category</th><th>Amount</th><th>Status</th><th>Filed</th><th>Action</th></tr>
       </thead>
       <tbody></tbody>
     </table>
+    </div>
     <div class="toggle-row" style="margin-top:10px;">
-      <button class="btn-tiny" id="disputesPrevPage" style="background:#3a3750;color:#eceaf5;">Prev</button>
+      <button class="btn-tiny btn-neutral" id="disputesPrevPage">Prev</button>
       <span class="muted" id="disputesPageLabel"></span>
-      <button class="btn-tiny" id="disputesNextPage" style="background:#3a3750;color:#eceaf5;">Next</button>
+      <button class="btn-tiny btn-neutral" id="disputesNextPage">Next</button>
     </div>
   </div>`;
 }

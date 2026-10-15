@@ -9,7 +9,7 @@ export function markup() {
   return `
   <div class="screen" id="screen-liveMap">
     <h2 style="font-size:1rem;">Live map</h2>
-    <p class="muted" id="liveMapNote" style="margin-bottom:10px;"></p>
+    <p class="muted" id="liveMapNote" style="margin-bottom:10px;">Loading…</p>
     <div id="liveMapEmpty" class="muted" style="display:none; padding:50px 0; text-align:center; border:1px solid #2c2940; border-radius:10px;">
       No active rides right now.
     </div>

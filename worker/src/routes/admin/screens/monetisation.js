@@ -38,29 +38,33 @@ export function markup() {
       </div>
       <div class="toggle-row" style="margin:0;">
         <label class="muted" style="font-size:0.8rem;"><input type="checkbox" id="planActive" checked style="margin-right:4px;">Active</label>
-        <button class="btn-tiny" id="planSaveBtn" style="background:#7c6fef;color:#fff;">Create plan</button>
-        <button class="btn-tiny" id="planCancelEditBtn" style="background:#3a3750;color:#eceaf5;display:none;">Cancel edit</button>
+        <button class="btn-tiny btn-primary" id="planSaveBtn">Create plan</button>
+        <button class="btn-tiny btn-neutral" id="planCancelEditBtn" style="display:none;">Cancel edit</button>
         <span class="muted" id="planFormStatus" style="font-size:0.78rem;"></span>
       </div>
     </div>
 
+    <div class="table-wrap">
     <table id="plansTable">
       <thead><tr><th>Name</th><th>Price</th><th>Billing</th><th>Perks</th><th>Subscribers</th><th>Status</th><th>Action</th></tr></thead>
       <tbody></tbody>
     </table>
+    </div>
 
     <h3 style="font-size:0.9rem; margin-top:28px;">Subscriptions</h3>
-    <p class="muted" id="subscriptionsNote" style="margin-bottom:10px;"></p>
+    <p class="muted" id="subscriptionsNote" style="margin-bottom:10px;">Loading…</p>
     <div class="toggle-row" style="margin-bottom:10px;">
       <input type="text" id="subUserId" class="reviewer-input" placeholder="Driver user ID" style="width:220px;">
       <select id="subPlanSelect" class="reviewer-input"></select>
-      <button class="btn-tiny" id="subAssignBtn" style="background:#7c6fef;color:#fff;">Assign</button>
+      <button class="btn-tiny btn-primary" id="subAssignBtn">Assign</button>
       <span class="muted" id="subAssignStatus" style="font-size:0.78rem;"></span>
     </div>
+    <div class="table-wrap">
     <table id="subscriptionsTable">
       <thead><tr><th>Driver</th><th>Plan</th><th>Status</th><th>Started</th><th>Ended</th></tr></thead>
       <tbody></tbody>
     </table>
+    </div>
   </div>`;
 }
 
@@ -148,8 +152,8 @@ export function script() {
         '<td>' + escapeHtml(p.billingPeriod) + '</td>' +
         '<td>' + escapeHtml((p.perks || []).join(', ') || '—') + '</td>' +
         '<td>' + (p.subscriberCount || 0) + '</td>' +
-        '<td>' + (p.active ? '<span class="badge" style="background:rgba(31,157,85,0.25);color:#6fe3a0;">Active</span>' : '<span class="badge">Inactive</span>') + '</td>' +
-        '<td><button class="btn-tiny" data-action="edit" style="background:#3a3750;color:#eceaf5;">Edit</button>' +
+        '<td>' + (p.active ? '<span class="badge badge-active">Active</span>' : '<span class="badge">Inactive</span>') + '</td>' +
+        '<td><button class="btn-tiny btn-neutral" data-action="edit">Edit</button>' +
           (p.active ? '<button class="btn-tiny btn-reject" data-action="deactivate">Deactivate</button>' : '') +
         '</td></tr>';
     }).join('') || '<tr><td colspan="7" style="color:#9490ab;">No plans defined yet.</td></tr>';
