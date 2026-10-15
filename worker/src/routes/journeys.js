@@ -5,6 +5,7 @@ import { ApiError, BadRequest, Forbidden, NotFound } from '../lib/errors.js';
 import { generateMatchesForJourney } from '../lib/matching.js';
 import { VEHICLE_TYPES } from '../lib/impact.js';
 import * as DriverVerification from '../lib/driverVerification.js';
+import { estimateDemand } from '../lib/surge.js';
 
 export const journeys = new Hono();
 
@@ -206,6 +207,29 @@ journeys.get('/', optionalAuth, async (c) => {
 
   const results = await listJourneys(c.env.DB, { type, status, ownerId });
   return c.json({ journeys: results.map((j) => redactIfPrivateRequest(j, authUser?.id)) });
+});
+
+// Public, read-only, informational only — no auth required, matching the
+// other read-only lookups in this file. This route must NEVER be wired to
+// write journeys.price_per_seat, now or in the future: Genesis's product
+// promise is a driver-set, known-upfront flat price, and this endpoint only
+// ever suggests a price to the driver before they publish; it never
+// changes one. Placed before the GET '/:id' route so '/surge-suggestion'
+// isn't swallowed by the ':id' param match.
+journeys.get('/surge-suggestion', async (c) => {
+  const lat = Number(c.req.query('lat'));
+  const lng = Number(c.req.query('lng'));
+  const departureTime = c.req.query('departureTime');
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    throw BadRequest('lat and lng are required and must be numbers');
+  }
+  if (!departureTime || Number.isNaN(Date.parse(departureTime))) {
+    throw BadRequest('departureTime must be a valid ISO date string');
+  }
+
+  const result = await estimateDemand(c.env.DB, { lat, lng, departureTime });
+  return c.json(result);
 });
 
 journeys.get('/:id', optionalAuth, async (c) => {

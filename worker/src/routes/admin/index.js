@@ -4,12 +4,13 @@ import * as dashboard from './screens/dashboard.js';
 import * as driverVerification from './screens/driverVerification.js';
 import * as disputes from './screens/disputes.js';
 import * as liveMap from './screens/liveMap.js';
+import * as config from './screens/config.js';
 import * as clientApp from './client/app.js';
 
 export const admin = new Hono();
 
 function renderPage() {
-  const screensHtml = [dashboard.markup(), driverVerification.markup(), disputes.markup(), liveMap.markup()].join('\n');
+  const screensHtml = [dashboard.markup(), driverVerification.markup(), disputes.markup(), liveMap.markup(), config.markup()].join('\n');
 
   const scriptBody = [
     clientApp.script(),
@@ -17,6 +18,7 @@ function renderPage() {
     driverVerification.script(),
     disputes.script(),
     liveMap.script(),
+    config.script(),
   ].join('\n');
 
   return `<!doctype html>

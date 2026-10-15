@@ -32,6 +32,8 @@ export default function OfferJourney() {
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [verificationEnforced, setVerificationEnforced] = useState(false);
+  const [surgeInfo, setSurgeInfo] = useState(null);
+  const [surgeDismissed, setSurgeDismissed] = useState(false);
 
   useEffect(() => {
     api
@@ -39,6 +41,34 @@ export default function OfferJourney() {
       .then((s) => setVerificationEnforced(s.enforced))
       .catch(() => {}); // non-fatal — worst case the form allows a submit the server then blocks
   }, []);
+
+  // Once origin coordinates and a valid departure time are both filled in,
+  // debounce-fetch the (public, read-only) surge-suggestion endpoint so the
+  // driver sees a demand signal before they pick a price. This is purely
+  // advisory — see worker/src/lib/surge.js — and must never auto-fill or
+  // overwrite pricePerSeat; it only ever renders a dismissible note below.
+  useEffect(() => {
+    const lat = Number(origin.lat);
+    const lng = Number(origin.lng);
+    const departureDate = departureTime ? new Date(departureTime) : null;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !departureDate || Number.isNaN(departureDate.getTime())) {
+      setSurgeInfo(null);
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      api
+        .surgeSuggestion({ lat, lng, departureTime: departureDate.toISOString() })
+        .then((data) => {
+          setSurgeInfo(data);
+          // A fresh suggestion for a changed area/time is worth surfacing
+          // again even if an earlier one was dismissed.
+          setSurgeDismissed(false);
+        })
+        .catch(() => {}); // non-fatal — purely advisory, never blocks publishing
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [origin.lat, origin.lng, departureTime]);
 
   const driverStatus = user?.profile?.driverVerificationStatus || 'unverified';
   const blockedByVerification = verificationEnforced && driverStatus !== 'verified';
@@ -173,6 +203,24 @@ export default function OfferJourney() {
             </p>
           </div>
         </div>
+
+        {surgeInfo?.suggested && !surgeDismissed && (
+          <div className="alert alert-info" style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <span style={{ flex: 1 }}>
+              Demand is high in this area around this time — consider pricing above the usual rate. This never changes a
+              price you or a passenger has already agreed to.
+            </span>
+            <button
+              type="button"
+              className="pill"
+              style={{ cursor: 'pointer', border: 'none', flexShrink: 0 }}
+              onClick={() => setSurgeDismissed(true)}
+              aria-label="Dismiss demand advisory"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         <h3>Journey preferences</h3>
         <div className="grid-2">
