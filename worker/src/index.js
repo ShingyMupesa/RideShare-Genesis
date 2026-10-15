@@ -13,7 +13,7 @@ import { safety } from './routes/safety.js';
 import { governance } from './routes/governance.js';
 import { ai } from './routes/ai.js';
 import { tracking } from './routes/tracking.js';
-import { admin } from './routes/admin.js';
+import { admin } from './routes/admin/index.js';
 import { feedback } from './routes/feedback.js';
 import { push } from './routes/push.js';
 import { driverVerification } from './routes/driverVerification.js';
