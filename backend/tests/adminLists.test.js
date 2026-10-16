@@ -185,4 +185,28 @@ describe('admin list endpoints (Phase 7)', () => {
       assert.equal(res.body.items.length, 0);
     });
   });
+
+  describe('GET /api/admin/user-locations', () => {
+    test('requires admin', async () => {
+      const res = await request(app).get('/api/admin/user-locations').set('Authorization', `Bearer ${riderToken}`);
+      assert.equal(res.status, 403);
+    });
+
+    test("includes the driver's most recent journey origin, not a live position", async () => {
+      const res = await request(app).get('/api/admin/user-locations').set('Authorization', `Bearer ${adminToken}`);
+      assert.equal(res.status, 200);
+      assert.ok(Array.isArray(res.body.locations));
+      const pin = res.body.locations.find((l) => l.userId === driverId);
+      assert.ok(pin, 'expected a pin for the user who posted a journey');
+      assert.equal(pin.lat, 0);
+      assert.equal(pin.lng, 0);
+      assert.equal(pin.label, 'Origin');
+    });
+
+    test('excludes a user who has never posted a journey', async () => {
+      const res = await request(app).get('/api/admin/user-locations').set('Authorization', `Bearer ${adminToken}`);
+      assert.equal(res.status, 200);
+      assert.ok(!res.body.locations.some((l) => l.fullName === 'Al Rider'));
+    });
+  });
 });

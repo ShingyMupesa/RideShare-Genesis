@@ -25,6 +25,7 @@ import { adSlots } from './routes/adSlots.js';
 import { insurancePartners } from './routes/insurancePartners.js';
 import { adminUsers } from './routes/adminUsers.js';
 import { adminRides } from './routes/adminRides.js';
+import { adminUserLocations } from './routes/adminUserLocations.js';
 import { adminPayments } from './routes/adminPayments.js';
 import { funnelStats } from './routes/funnelStats.js';
 
@@ -61,6 +62,7 @@ app.route('/api/admin/subscriptions', subscriptions);
 app.route('/api/admin/ad-slots', adSlots);
 app.route('/api/admin/insurance-partners', insurancePartners);
 app.route('/api/admin/users', adminUsers);
+app.route('/api/admin/user-locations', adminUserLocations);
 app.route('/api/admin/rides', adminRides);
 app.route('/api/admin/payments', adminPayments);
 app.route('/api/admin/funnel-stats', funnelStats);

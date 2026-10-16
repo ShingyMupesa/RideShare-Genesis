@@ -8,6 +8,18 @@ export function markup() {
     <div class="grid" id="statGrid"></div>
 
     <section>
+      <h2 style="font-size:1rem;">Where our users are</h2>
+      <p class="muted" id="userLocationsNote" style="margin-bottom:10px;">Loading…</p>
+      <p class="muted" style="font-size:0.78rem; margin-top:-6px; margin-bottom:10px;">
+        Each pin is a user's most recent journey origin — not live tracking. A user who hasn't posted a journey has no pin.
+      </p>
+      <div id="userLocationsEmpty" class="muted" style="display:none; padding:50px 0; text-align:center; border:1px solid #2c2940; border-radius:10px;">
+        No journeys with a location on file yet.
+      </div>
+      <div id="userLocationsContainer" style="display:none; height:360px; border-radius:10px; overflow:hidden; border:1px solid #2c2940;"></div>
+    </section>
+
+    <section>
       <h2 style="font-size:1rem;">CTA clicks by type</h2>
       <div class="table-wrap"><table id="ctaTable"><thead><tr><th>Label</th><th>Clicks</th></tr></thead><tbody></tbody></table></div>
     </section>
@@ -50,6 +62,7 @@ export function script() {
       gate.style.display = 'none';
       app.style.display = 'block';
       loadFeedback(token);
+      loadUserLocations(token);
       loadDriverVerification(token);
       loadDisputes(token);
       loadLiveMap(token);
@@ -85,6 +98,80 @@ export function script() {
     } catch {
       // non-fatal — the rest of the dashboard still works
     }
+  }
+
+  var userLocationsMapInstance = null;
+  var userLocationsMarkers = {};
+
+  function ensureUserLocationsMap() {
+    if (userLocationsMapInstance) return userLocationsMapInstance;
+    if (typeof L === 'undefined') return null;
+    userLocationsMapInstance = L.map('userLocationsContainer').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(userLocationsMapInstance);
+    return userLocationsMapInstance;
+  }
+
+  async function loadUserLocations(token) {
+    try {
+      const res = await fetch('/api/admin/user-locations', { headers: { 'x-admin-token': token } });
+      if (!res.ok) { document.getElementById('userLocationsNote').textContent = 'Could not load user locations.'; return; }
+      const data = await res.json();
+      renderUserLocations(data.locations || []);
+    } catch {
+      document.getElementById('userLocationsNote').textContent = 'Could not reach the API.';
+    }
+  }
+
+  function renderUserLocations(locations) {
+    document.getElementById('userLocationsNote').textContent = locations.length
+      ? locations.length + ' user' + (locations.length === 1 ? '' : 's') + ' with a known location.'
+      : '';
+
+    const emptyEl = document.getElementById('userLocationsEmpty');
+    const mapEl = document.getElementById('userLocationsContainer');
+
+    if (!locations.length) {
+      emptyEl.style.display = 'block';
+      mapEl.style.display = 'none';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    mapEl.style.display = 'block';
+
+    const map = ensureUserLocationsMap();
+    if (!map) { document.getElementById('userLocationsNote').textContent = 'Map library failed to load.'; return; }
+    setTimeout(function () { map.invalidateSize(); }, 0);
+
+    const seen = {};
+    locations.forEach(function (loc) {
+      seen[loc.userId] = true;
+      const latlng = [loc.lat, loc.lng];
+      let marker = userLocationsMarkers[loc.userId];
+      if (!marker) {
+        marker = L.marker(latlng).addTo(map);
+        userLocationsMarkers[loc.userId] = marker;
+      } else {
+        marker.setLatLng(latlng);
+      }
+      marker.bindPopup(
+        '<strong>' + escapeHtml(loc.fullName) + '</strong><br>' +
+        escapeHtml(loc.label || '') + '<br>' +
+        '<span style="color:#666;">Last posted ' + new Date(loc.lastActivityAt).toLocaleDateString() + '</span>'
+      );
+    });
+
+    Object.keys(userLocationsMarkers).forEach(function (userId) {
+      if (!seen[userId]) {
+        map.removeLayer(userLocationsMarkers[userId]);
+        delete userLocationsMarkers[userId];
+      }
+    });
+
+    const bounds = L.latLngBounds(locations.map(function (loc) { return [loc.lat, loc.lng]; }));
+    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
   }
 
   function renderStats(data) {

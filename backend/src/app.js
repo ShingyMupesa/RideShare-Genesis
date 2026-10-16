@@ -19,6 +19,7 @@ import { router as adSlotsRouter } from './adSlots/routes.js';
 import { router as insurancePartnersRouter } from './insurancePartners/routes.js';
 import { router as trackingRouter } from './tracking/routes.js';
 import { router as adminUsersRouter } from './adminUsers/routes.js';
+import { router as adminUserLocationsRouter } from './adminUserLocations/routes.js';
 import { router as adminRidesRouter } from './adminRides/routes.js';
 import { router as adminPaymentsRouter } from './adminPayments/routes.js';
 import { router as funnelStatsRouter } from './funnelStats/routes.js';
@@ -66,6 +67,7 @@ export function createApp() {
   app.use('/api/admin/insurance-partners', insurancePartnersRouter);
   app.use('/api/tracking', trackingRouter);
   app.use('/api/admin/users', adminUsersRouter);
+  app.use('/api/admin/user-locations', adminUserLocationsRouter);
   app.use('/api/admin/rides', adminRidesRouter);
   app.use('/api/admin/payments', adminPaymentsRouter);
   app.use('/api/admin/funnel-stats', funnelStatsRouter);
