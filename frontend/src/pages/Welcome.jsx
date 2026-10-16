@@ -53,6 +53,28 @@ export default function Welcome() {
         </div>
       </section>
 
+      <section className="cofounder-banner">
+        <p className="eyebrow">{t('cofounder.eyebrow')}</p>
+        <h2>{t('cofounder.headline')}</h2>
+        <p className="muted">{t('cofounder.body')}</p>
+        <div className="cofounder-banner__actions">
+          <a
+            className="btn btn-secondary"
+            href="https://claude.ai/code/artifact/483c8e4d-d5b8-44e0-a01e-cc3f7b57a9eb#ask"
+            target="_blank"
+            rel="noopener"
+          >
+            {t('cofounder.ctaLearnMore')}
+          </a>
+          <a
+            className="btn btn-ghost"
+            href="mailto:mupesashingy@gmail.com?subject=RideShare%20Genesis%20%E2%80%94%20co-founder%2Finvestor%20conversation"
+          >
+            {t('cofounder.ctaContact')}
+          </a>
+        </div>
+      </section>
+
       <section>
         <h2 style={{ textAlign: 'center' }}>{t('welcome.principlesHeading')}</h2>
         <div className="principles-grid">
