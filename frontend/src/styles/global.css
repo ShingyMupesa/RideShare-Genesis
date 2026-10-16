@@ -547,6 +547,52 @@ textarea:focus {
   font-size: 1.6rem;
 }
 
+.role-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+  max-width: 920px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.role-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  text-decoration: none;
+  color: var(--color-text);
+  transition: transform 0.1s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.role-option h3 {
+  margin: 4px 0 2px;
+}
+
+.role-option__icon {
+  font-size: 2rem;
+}
+
+.role-option__cta {
+  margin-top: 12px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .role-option:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-soft);
+    border-color: var(--color-primary);
+  }
+}
+
 .assistant-toggle {
   position: fixed;
   bottom: 24px;

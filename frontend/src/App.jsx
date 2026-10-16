@@ -6,6 +6,7 @@ import GenesisAssistant from './components/GenesisAssistant.jsx';
 import FeedbackWidget from './components/FeedbackWidget.jsx';
 
 import Welcome from './pages/Welcome.jsx';
+import GetStarted from './pages/GetStarted.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import TermsAndConditions from './pages/TermsAndConditions.jsx';
@@ -35,6 +36,7 @@ export default function App() {
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Welcome />} />
+          <Route path="/get-started" element={<GetStarted />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/terms" element={<TermsAndConditions />} />
