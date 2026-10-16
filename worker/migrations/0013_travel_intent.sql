@@ -1,0 +1,11 @@
+-- Captures the role a user said they wanted at signup (driver | passenger |
+-- both), set from the /get-started campaign page's selector and carried
+-- through registration as `?intent=`. Purely informational — it doesn't
+-- gate anything a user can do, and is null for anyone who registered
+-- without passing through that page.
+--
+-- Not required against the existing production database: users.js
+-- self-provisions this same column lazily (ensureTravelIntentColumn), the
+-- same way it already does for accepted_terms_at. This file exists for
+-- local dev parity with `wrangler d1 migrations apply --local`.
+ALTER TABLE users ADD COLUMN travel_intent TEXT;

@@ -1,11 +1,20 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import PasswordField from '../components/PasswordField.jsx';
+
+const INTENT_COPY = {
+  driver: { icon: '🚗', label: 'Driver — you have a spare seat', redirect: '/offer' },
+  passenger: { icon: '🙋', label: 'Passenger — you need a seat', redirect: '/find' },
+  both: { icon: '🔁', label: 'Both, depending on the day', redirect: '/profile' },
+};
 
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const intentParam = searchParams.get('intent');
+  const intent = Object.prototype.hasOwnProperty.call(INTENT_COPY, intentParam) ? intentParam : null;
   const [form, setForm] = useState({ fullName: '', email: '', password: '', phone: '' });
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState('');
@@ -20,8 +29,8 @@ export default function Register() {
     setError('');
     setSubmitting(true);
     try {
-      await register({ ...form, acceptedTerms });
-      navigate('/profile');
+      await register({ ...form, acceptedTerms, travelIntent: intent });
+      navigate(intent ? INTENT_COPY[intent].redirect : '/profile');
     } catch (err) {
       setError(err.message || 'Could not create account');
     } finally {
@@ -33,6 +42,11 @@ export default function Register() {
     <div className="card" style={{ maxWidth: 420, margin: '0 auto' }}>
       <p className="eyebrow">Join Genesis</p>
       <h1>Create your account</h1>
+      {intent && (
+        <p className="pill" style={{ marginBottom: 16 }}>
+          {INTENT_COPY[intent].icon} Signing up as: {INTENT_COPY[intent].label}
+        </p>
+      )}
       {error && <div className="alert alert-error">{error}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-field">
