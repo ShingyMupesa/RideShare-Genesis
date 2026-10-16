@@ -1,4 +1,4 @@
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import NavBar from './components/NavBar.jsx';
 import { useLanguage } from './context/LanguageContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -28,15 +28,34 @@ import BookingThread from './pages/BookingThread.jsx';
 import SafetyCentre from './pages/SafetyCentre.jsx';
 import NotFound from './pages/NotFound.jsx';
 
+// Campaign landing pages are a dedicated conversion funnel, not part of the
+// regular app shell — no nav to browse away through, no footer links, no
+// floating widgets. The only way off the page is picking an option.
+const FOCUSED_ROUTES = ['/get-started'];
+
 export default function App() {
   const { t } = useLanguage();
+  const location = useLocation();
+  const focused = FOCUSED_ROUTES.includes(location.pathname);
+
+  if (focused) {
+    return (
+      <div className="app-shell">
+        <main className="app-main">
+          <Routes>
+            <Route path="/get-started" element={<GetStarted />} />
+          </Routes>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <NavBar />
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Welcome />} />
-          <Route path="/get-started" element={<GetStarted />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/terms" element={<TermsAndConditions />} />

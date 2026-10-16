@@ -25,7 +25,8 @@ export default function GetStarted() {
   return (
     <div>
       <section className="hero">
-        <img className="hero-logo" src="/brand-logo.png" alt="RideShare Genesis logo" width="96" height="96" />
+        <img className="hero-logo" src="/brand-logo.png" alt="" width="72" height="72" />
+        <p className="campaign-brand">RideShare Genesis</p>
         <p className="eyebrow">Join Genesis</p>
         <h1>Got a spare seat — or need one?</h1>
         <p>

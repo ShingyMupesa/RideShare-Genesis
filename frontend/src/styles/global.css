@@ -529,6 +529,12 @@ textarea:focus {
   margin: 0 auto;
 }
 
+.campaign-brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: 0 0 12px;
+}
+
 .principles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

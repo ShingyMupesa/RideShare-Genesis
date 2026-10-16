@@ -23,11 +23,13 @@ const DEFAULT_DECISION_DNA = {
   },
 };
 
-export function createUser({ email, passwordHash, fullName, phone }) {
+const TRAVEL_INTENTS = new Set(['driver', 'passenger', 'both']);
+
+export function createUser({ email, passwordHash, fullName, phone, travelIntent }) {
   const id = newId('user');
   db.prepare(
-    `INSERT INTO users (id, email, password_hash, full_name, phone, accepted_terms_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
-  ).run(id, email, passwordHash, fullName, phone || null);
+    `INSERT INTO users (id, email, password_hash, full_name, phone, accepted_terms_at, travel_intent) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`
+  ).run(id, email, passwordHash, fullName, phone || null, TRAVEL_INTENTS.has(travelIntent) ? travelIntent : null);
 
   db.prepare(
     `INSERT INTO profiles (user_id, preferences_json, decision_dna_json) VALUES (?, ?, ?)`
@@ -110,6 +112,7 @@ export function publicUser(user, profile) {
     fullName: user.full_name,
     phone: user.phone,
     role: user.role,
+    travelIntent: user.travel_intent || null,
     createdAt: user.created_at,
     profile: profile
       ? {
