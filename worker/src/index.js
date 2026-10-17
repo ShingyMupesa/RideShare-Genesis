@@ -23,7 +23,13 @@ export { BookingRoom } from './durable-objects/BookingRoom.js';
 const app = new Hono();
 
 app.use('*', async (c, next) => {
-  const corsMiddleware = cors({ origin: c.env.CLIENT_ORIGIN || '*' });
+  // CLIENT_ORIGIN is a comma-separated allowlist (e.g.
+  // "https://ridesharegenesis.app,https://www.ridesharegenesis.app"), or
+  // "*" during early development when no fixed origin exists yet.
+  const allowedOrigins = (c.env.CLIENT_ORIGIN || '*').split(',').map((o) => o.trim()).filter(Boolean);
+  const corsMiddleware = cors({
+    origin: allowedOrigins.includes('*') ? '*' : (origin) => (allowedOrigins.includes(origin) ? origin : undefined),
+  });
   return corsMiddleware(c, next);
 });
 
