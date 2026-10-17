@@ -43,7 +43,12 @@ not_found_handling = "single-page-application"
 run_worker_first = ["/api/*", "/ws/*", "/admin*"]
 
 [vars]
-CLIENT_ORIGIN = "*"
+# Comma-separated allowlist of origins allowed to call the API with
+# fetch()/XHR. The app is served from the same origin as the API (see the
+# routes above), so this only matters for browser-based cross-origin
+# callers — the Android wrapper loads the live site directly and isn't a
+# separate origin either.
+CLIENT_ORIGIN = "https://ridesharegenesis.app,https://www.ridesharegenesis.app"
 PAYMENTS_MODE = "sandbox"
 JWT_EXPIRES_IN_SECONDS = "604800"
 # Platform commission, as a percent (e.g. "10" = 10%). Kept at 0 for the

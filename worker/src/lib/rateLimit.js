@@ -67,6 +67,13 @@ export const deletionRequestLimiter = rateLimit({
   message: 'Too many account deletion requests. Please try again later.',
 });
 
+export const resendVerificationLimiter = rateLimit({
+  name: 'resend-verification',
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: 'Too many verification emails requested. Please try again later.',
+});
+
 export const assistantLimiter = rateLimit({
   name: 'assistant',
   windowMs: 60 * 1000,

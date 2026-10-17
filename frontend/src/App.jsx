@@ -1,5 +1,6 @@
 import { Routes, Route, Link } from 'react-router-dom';
 import NavBar from './components/NavBar.jsx';
+import BetaBanner from './components/BetaBanner.jsx';
 import { useLanguage } from './context/LanguageContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import GenesisAssistant from './components/GenesisAssistant.jsx';
@@ -15,6 +16,7 @@ import DataDeletion from './pages/DataDeletion.jsx';
 import ConfirmDeletion from './pages/ConfirmDeletion.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import VerifyEmail from './pages/VerifyEmail.jsx';
 import Profile from './pages/Profile.jsx';
 import FindJourney from './pages/FindJourney.jsx';
 import OfferJourney from './pages/OfferJourney.jsx';
@@ -31,6 +33,7 @@ export default function App() {
   const { t } = useLanguage();
   return (
     <div className="app-shell">
+      <BetaBanner />
       <NavBar />
       <main className="app-main">
         <Routes>
@@ -44,6 +47,7 @@ export default function App() {
           <Route path="/confirm-deletion" element={<ConfirmDeletion />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route
             path="/profile"
             element={
