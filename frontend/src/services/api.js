@@ -102,6 +102,14 @@ export const api = {
   mpesaStkPush: (bookingId, phone) => request('/payments/mpesa/stk-push', { method: 'POST', body: { bookingId, phone } }),
   mpesaPaymentStatus: (paymentId) => request(`/payments/mpesa/${paymentId}/status`),
 
+  // Pro Driver subscriptions
+  proPlans: () => request('/pro/plans', { auth: false }),
+  proMe: () => request('/pro/me'),
+  proStripeCheckout: (planId) => request('/pro/checkout/stripe', { method: 'POST', body: { planId } }),
+  proStripeConfirm: (paymentId) => request(`/pro/checkout/stripe/${paymentId}/confirm`, { method: 'POST' }),
+  proMpesaCheckout: (planId, phone) => request('/pro/checkout/mpesa', { method: 'POST', body: { planId, phone } }),
+  proMpesaStatus: (paymentId) => request(`/pro/checkout/mpesa/${paymentId}/status`),
+
   // Messaging
   listMessages: (bookingId) => request(`/messages/booking/${bookingId}`),
   sendMessage: (bookingId, body) => request(`/messages/booking/${bookingId}`, { method: 'POST', body: { body } }),

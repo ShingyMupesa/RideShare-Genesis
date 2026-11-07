@@ -9,6 +9,7 @@ import { createPaymentIntent, retrievePaymentIntent } from '../lib/stripe.js';
 import { initiateStkPush, queryStkPushStatus, parseCallbackMetadata } from '../lib/mpesa.js';
 import { mpesaLimiter } from '../lib/rateLimit.js';
 import { ensurePlatformSettingsTable, getSetting } from '../lib/platformSettings.js';
+import { subscriberCommissionPct } from './driverBilling.js';
 
 export const payments = new Hono();
 
@@ -71,6 +72,18 @@ async function commissionRateFromSettings(db, env) {
   return Number.isFinite(pct) && pct > 0 ? pct / 100 : 0;
 }
 
+// The rate for a specific booking: the platform rate, lowered to the
+// driver's plan rate when the journey's driver holds a current Pro Driver
+// subscription (see driverBilling.js). Never higher than the platform rate.
+async function commissionRateForBooking(db, env, booking) {
+  const platformRate = await commissionRateFromSettings(db, env);
+  if (platformRate === 0) return 0;
+  const journey = await db.prepare('SELECT owner_id FROM journeys WHERE id = ?').bind(booking.journeyId).first();
+  const planPct = await subscriberCommissionPct(db, journey?.owner_id);
+  if (planPct === null || !Number.isFinite(planPct)) return platformRate;
+  return Math.min(platformRate, Math.max(planPct, 0) / 100);
+}
+
 async function createPayment(db, { bookingId, payerId, method, amount, currency, commissionRate }) {
   const id = newId('payment');
   const commissionAmount = Math.round(amount * commissionRate * 100) / 100;
@@ -121,7 +134,7 @@ payments.post('/', requireAuth, async (c) => {
   if (booking.passengerId !== authUser.id) throw Forbidden('Only the passenger can pay for this booking');
 
   await ensureCommissionColumns(db);
-  const commissionRate = await commissionRateFromSettings(db, c.env);
+  const commissionRate = await commissionRateForBooking(db, c.env, booking);
   const payment = await createPayment(db, {
     bookingId,
     payerId: authUser.id,
@@ -178,7 +191,7 @@ payments.post('/stripe/intent', requireAuth, async (c) => {
     method: 'card_stripe',
     amount: booking.totalPrice,
     currency: booking.currency,
-    commissionRate: await commissionRateFromSettings(db, c.env),
+    commissionRate: await commissionRateForBooking(db, c.env, booking),
   });
 
   let intent;
@@ -258,7 +271,7 @@ payments.post('/mpesa/stk-push', requireAuth, mpesaLimiter, async (c) => {
     method: 'mpesa',
     amount: booking.totalPrice,
     currency: booking.currency,
-    commissionRate: await commissionRateFromSettings(db, c.env),
+    commissionRate: await commissionRateForBooking(db, c.env, booking),
   });
 
   let stk;

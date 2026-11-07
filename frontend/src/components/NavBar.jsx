@@ -17,6 +17,7 @@ export default function NavBar() {
     { to: '/find', label: t('nav.find') },
     { to: '/offer', label: t('nav.offer') },
     { to: '/my-journeys', label: t('nav.myJourneys') },
+    { to: '/pro', label: t('nav.pro') },
     { to: '/safety', label: t('nav.safety') },
   ];
 
