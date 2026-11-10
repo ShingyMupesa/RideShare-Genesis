@@ -50,14 +50,17 @@ async function stripeRequest(path, { method = 'GET', body, secretKey } = {}) {
  * the frontend collects it directly into Stripe via Elements and confirms
  * this intent client-side.
  */
-export async function createPaymentIntent({ amount, currency, bookingId, secretKey }) {
+export async function createPaymentIntent({ amount, currency, bookingId, metadata = {}, description, secretKey }) {
+  const meta = { ...(bookingId ? { bookingId } : {}), ...metadata };
+  const metaFields = Object.fromEntries(Object.entries(meta).map(([k, v]) => [`metadata[${k}]`, v]));
   return stripeRequest('/payment_intents', {
     method: 'POST',
     secretKey,
     body: {
       amount: toStripeAmount(amount, currency),
       currency: currency.toLowerCase(),
-      'metadata[bookingId]': bookingId,
+      description,
+      ...metaFields,
       'automatic_payment_methods[enabled]': 'true',
     },
   });

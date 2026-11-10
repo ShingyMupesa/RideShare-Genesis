@@ -46,10 +46,10 @@ run_worker_first = ["/api/*", "/ws/*", "/admin*"]
 CLIENT_ORIGIN = "*"
 PAYMENTS_MODE = "sandbox"
 JWT_EXPIRES_IN_SECONDS = "604800"
-# Platform commission, as a percent (e.g. "10" = 10%). Kept at 0 for the
-# early-bird period; the rate actually charged is stored per-payment, so
+# Platform commission, as a percent (e.g. "10" = 10%). Live at 10%; Pro
+# Driver subscribers pay their plan's lower rate. Stored per-payment, so
 # flipping this later only affects payments made after the change.
-PLATFORM_COMMISSION_PCT = "0"
+PLATFORM_COMMISSION_PCT = "10"
 # Stripe's publishable key is not secret by Stripe's own design — safe to
 # expose client-side, safe to commit. Test-mode key; swap for a pk_live_
 # key (and the matching sk_live_ secret) only when actually taking real

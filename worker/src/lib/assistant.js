@@ -30,7 +30,7 @@ const INTENTS = [
     name: 'payments',
     test: /payment|pay(ing)?|refund|card|mobile money|cash|\bcost\b|\bprice\b|currency|\bkes\b|shilling|commission|platform fee|take a cut/i,
     reply: () =>
-      'You can pay by card, mobile money, wallet balance, or arrange cash directly with your driver — pick whichever suits you at checkout. Every price is shown in the currency its owner actually chose, never assumed. Genesis currently takes 0% commission during the early-bird period; whatever rate applies is fixed at the moment of payment, so it never changes retroactively.',
+      'You can pay by card, mobile money, wallet balance, or arrange cash directly with your driver — pick whichever suits you at checkout. Every price is shown in the currency its owner actually chose, never assumed. Genesis takes a 10% commission from the driver\'s share (Pro Driver subscribers pay less); whatever rate applies is fixed at the moment of payment, so it never changes retroactively.',
   },
   {
     name: 'safety',

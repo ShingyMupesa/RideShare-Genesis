@@ -27,6 +27,7 @@ import MyDisputes from './pages/MyDisputes.jsx';
 import MyJourneys from './pages/MyJourneys.jsx';
 import BookingThread from './pages/BookingThread.jsx';
 import SafetyCentre from './pages/SafetyCentre.jsx';
+import DriverPro from './pages/DriverPro.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 export default function App() {
@@ -103,6 +104,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <MyDisputes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pro"
+            element={
+              <ProtectedRoute>
+                <DriverPro />
               </ProtectedRoute>
             }
           />

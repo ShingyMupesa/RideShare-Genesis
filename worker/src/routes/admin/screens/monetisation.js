@@ -8,14 +8,15 @@ export function markup() {
   <div class="screen" id="screen-monetisation">
     <h2 style="font-size:1rem;">Monetisation — driver subscriptions</h2>
     <p class="muted" style="margin-bottom:6px;">
-      Designed and ready, but inert by default — these plans are data an admin can define and assign, not a live
-      product. There is no payment processing or billing behind any of this yet: a driver is never charged, and
-      nothing here moves money. Flip it on for real once a billing integration exists.
+      Live. Drivers buy a plan themselves on the in-app <strong>Pro Driver</strong> page (/pro), paying by card
+      (Stripe) or M-Pesa. A subscription only activates once the provider confirms the payment server-side, and
+      each payment buys one billing period. A plan's commission perk is applied automatically to every ride the
+      subscriber drives while the subscription is current.
     </p>
     <p class="muted" style="margin-bottom:10px; font-size:0.78rem;">
-      Subscriptions are admin-assigned only — there is no self-serve driver sign-up flow, since there is no billing
-      to drive one.
+      Manual assignment below is still available for comps and partners. It charges nothing and never expires.
     </p>
+    <div class="grid" id="revenueStatGrid"></div>
     <div class="grid" id="monetisationStatGrid"></div>
 
     <h3 style="font-size:0.9rem; margin-top:24px;">Plans</h3>
@@ -111,7 +112,28 @@ export function script() {
     document.getElementById('planCancelEditBtn').style.display = 'inline-block';
   }
 
+  async function loadRevenue(token) {
+    try {
+      const res = await fetch('/api/admin/revenue', { headers: { 'x-admin-token': token } });
+      if (!res.ok) return;
+      const data = await res.json();
+      function tiles(rows, label) {
+        if (!rows || !rows.length) return '<div class="stat"><div class="val">0</div><div class="lbl">' + label + '</div></div>';
+        return rows.map(function (r) {
+          return '<div class="stat"><div class="val">' + formatMoney(r.currency, r.total || 0) + '</div><div class="lbl">' + label +
+            ' (30d: ' + formatMoney(r.currency, r.last30 || 0) + ')</div></div>';
+        }).join('');
+      }
+      document.getElementById('revenueStatGrid').innerHTML =
+        tiles(data.subscriptions, 'Subscription revenue') + tiles(data.commission, 'Ride commission') +
+        '<div class="stat"><div class="val">' + (data.activeSubscribers || 0) + '</div><div class="lbl">Current paying/comped subscribers</div></div>';
+    } catch {
+      // revenue tiles are best-effort; the plan table below still loads
+    }
+  }
+
   async function loadMonetisation(token) {
+    await loadRevenue(token);
     try {
       const res = await fetch('/api/admin/subscription-plans', { headers: { 'x-admin-token': token } });
       if (!res.ok) { document.getElementById('planFormStatus').textContent = 'Could not load plans.'; return; }
