@@ -827,3 +827,7 @@ textarea:focus {
   .poster { border: none; padding: 0; }
   @page { size: A4; margin: 14mm; }
 }
+
+/* ---- Investor / co-founder invitation (Welcome) ---- */
+.cofounder-banner { text-align: center; max-width: 720px; margin: 32px auto 0; padding: 24px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); border-top: 3px solid var(--color-accent); }
+.cofounder-banner__actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
