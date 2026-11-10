@@ -8,6 +8,7 @@ import { initiateStkPush, queryStkPushStatus, parseCallbackMetadata } from '../l
 import { mpesaLimiter } from '../lib/rateLimit.js';
 import { ensureSubscriptionTables } from './monetization.js';
 import { requireAdmin } from '../lib/adminAuth.js';
+import { ensurePlatformSettingsTable } from '../lib/platformSettings.js';
 
 // Self-serve, paid driver subscriptions ("Genesis Pro Driver").
 //
@@ -28,6 +29,7 @@ const PERIOD_MODIFIER = { weekly: '+7 days', monthly: '+1 month', yearly: '+1 ye
 // them from the Monetisation screen like any other plan.
 const DEFAULT_PLANS = [
   {
+    id: 'plan_pro_monthly',
     name: 'Pro Driver — Monthly',
     description: 'Pay 5% commission instead of 10% on every ride you drive.',
     priceAmount: 500,
@@ -36,6 +38,7 @@ const DEFAULT_PLANS = [
     perks: ['5% commission instead of 10%', 'Keep 95% of every fare'],
   },
   {
+    id: 'plan_pro_yearly',
     name: 'Pro Driver — Yearly',
     description: 'Everything in Monthly, two months free.',
     priceAmount: 5000,
@@ -49,6 +52,7 @@ let billingEnsured = false;
 export async function ensureBillingTables(db) {
   await ensureSubscriptionTables(db);
   if (billingEnsured) return;
+  await ensurePlatformSettingsTable(db);
   try {
     await db.exec('ALTER TABLE driver_subscription_plans ADD COLUMN commission_rate_pct REAL');
   } catch (err) {
@@ -59,17 +63,29 @@ export async function ensureBillingTables(db) {
   );
   await db.exec('CREATE INDEX IF NOT EXISTS idx_subscription_payments_user ON subscription_payments(user_id)');
 
+  // Seed once, race-safe: concurrent first requests can all see an empty
+  // table, so the launch plans use fixed IDs and INSERT OR IGNORE — the
+  // losers of the race insert nothing instead of duplicating the plans.
+  // The platform_settings flag stops re-seeding after an admin deletes or
+  // replaces them.
+  const seeded = await db.prepare("SELECT value FROM platform_settings WHERE key = 'pro_plans_seeded'").first().catch(() => null);
   const { n } = await db.prepare('SELECT COUNT(*) AS n FROM driver_subscription_plans').first();
-  if (Number(n) === 0) {
+  if (!seeded && Number(n) === 0) {
     for (const p of DEFAULT_PLANS) {
       await db
         .prepare(
-          `INSERT INTO driver_subscription_plans (id, name, description, price_amount, currency, billing_period, perks_json, active, commission_rate_pct)
+          `INSERT OR IGNORE INTO driver_subscription_plans (id, name, description, price_amount, currency, billing_period, perks_json, active, commission_rate_pct)
            VALUES (?, ?, ?, ?, 'KES', ?, ?, 1, ?)`
         )
-        .bind(newId('plan'), p.name, p.description, p.priceAmount, p.billingPeriod, JSON.stringify(p.perks), p.commissionRatePct)
+        .bind(p.id, p.name, p.description, p.priceAmount, p.billingPeriod, JSON.stringify(p.perks), p.commissionRatePct)
         .run();
     }
+  }
+  if (!seeded) {
+    await db
+      .prepare("INSERT OR IGNORE INTO platform_settings (key, value) VALUES ('pro_plans_seeded', '1')")
+      .run()
+      .catch(() => {});
   }
   billingEnsured = true;
 }
