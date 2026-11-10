@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { getAttribution } from '../utils/attribution.js';
 import { api, getToken, setToken } from '../services/api.js';
 import { disconnectSocket } from '../services/socket.js';
 
@@ -37,7 +38,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const register = useCallback(async (payload) => {
-    const { token, user: newUser } = await api.register(payload);
+    const { token, user: newUser } = await api.register({ ...payload, attribution: getAttribution() });
     setToken(token);
     setUser(newUser);
     return newUser;

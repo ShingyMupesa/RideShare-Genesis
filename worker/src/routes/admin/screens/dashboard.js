@@ -80,6 +80,7 @@ export function script() {
         loadAnalytics(token);
         loadUxMetrics(token);
         loadSystemLogs(token);
+        loadGrowth(token);
       }
       if (canSee('disputes')) { loadFeedback(token); loadDisputes(token); }
       if (canSee('driverVerification')) loadDriverVerification(token);

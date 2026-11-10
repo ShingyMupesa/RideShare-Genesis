@@ -53,6 +53,24 @@ export default function Welcome() {
         </div>
       </section>
 
+      <section className="audience-tiles">
+        <Link to="/matatu" className="principle-card audience-tile">
+          <div className="icon">🚐</div>
+          <h3 style={{ margin: '8px 0 4px' }}>Matatu &amp; PSV drivers</h3>
+          <p className="muted">Fill empty seats. Keep 90% of every fare.</p>
+        </Link>
+        <Link to="/taxi" className="principle-card audience-tile">
+          <div className="icon">🚕</div>
+          <h3 style={{ margin: '8px 0 4px' }}>Airport &amp; taxi drivers</h3>
+          <p className="muted">Get booked before you reach the rank.</p>
+        </Link>
+        <Link to="/ride" className="principle-card audience-tile">
+          <div className="icon">🧍</div>
+          <h3 style={{ margin: '8px 0 4px' }}>Riders &amp; commuters</h3>
+          <p className="muted">Find a driver going your way.</p>
+        </Link>
+      </section>
+
       <section>
         <h2 style={{ textAlign: 'center' }}>{t('welcome.principlesHeading')}</h2>
         <div className="principles-grid">
