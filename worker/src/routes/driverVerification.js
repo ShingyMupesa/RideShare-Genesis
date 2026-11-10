@@ -3,6 +3,8 @@ import { requireAuth, optionalAuth } from '../lib/auth.js';
 import { requireAdmin } from '../lib/adminAuth.js';
 import { BadRequest, Conflict, Forbidden, NotFound } from '../lib/errors.js';
 import { recordAuditEvent } from '../lib/audit.js';
+import { resolveAdminPrincipal, canAccess } from '../lib/adminTeam.js';
+import { notifyOwner, ownerEmailHtml, appOrigin } from '../lib/ownerNotify.js';
 import { notifyUser } from '../lib/notify.js';
 import { storePhoto, readPhoto } from '../lib/driverDocs.js';
 import * as DriverVerification from '../lib/driverVerification.js';
@@ -106,6 +108,24 @@ driverVerification.post('/', requireAuth, async (c) => {
   });
 
   await recordAuditEvent(db, { actorId: authUser.id, eventType: 'driver_verification.submitted', entityType: 'driver_verification', entityId: submission.id });
+
+  const applicant = await db.prepare('SELECT email, full_name FROM users WHERE id = ?').bind(authUser.id).first();
+  notifyOwner(c, {
+    subject: `Driver verification to review: ${fullLegalName.trim()}`,
+    html: ownerEmailHtml({
+      heading: 'Driver verification request',
+      intro: 'A driver has submitted documents for verification and is waiting for your approval.',
+      rows: [
+        ['Legal name', fullLegalName.trim()],
+        ['Account', `${applicant?.full_name || ''} <${applicant?.email || authUser.email}>`],
+        ['Vehicle', [vehicleMakeModel?.trim(), vehiclePlate.trim()].filter(Boolean).join(' · ')],
+        ['Licence no.', licenseNumber.trim()],
+        ['Insurance', insurancePolicyNumber?.trim() ? `${insurancePolicyNumber.trim()} (expires ${insuranceExpiry || 'n/a'})` : 'Photo provided'],
+      ],
+      ctaUrl: `${appOrigin(c)}/admin#driverVerification`,
+      ctaLabel: 'Review and approve',
+    }),
+  });
   return c.json({ submission }, 201);
 });
 
@@ -116,8 +136,8 @@ driverVerification.get('/:id/photo/:which', optionalAuth, async (c) => {
   if (!submission) throw NotFound('Submission not found');
 
   const authUser = c.get('user');
-  const suppliedAdminToken = c.req.header('x-admin-token') || c.req.query('token');
-  const isAdmin = !!c.env.ADMIN_TOKEN && suppliedAdminToken === c.env.ADMIN_TOKEN;
+  const principal = await resolveAdminPrincipal(c);
+  const isAdmin = canAccess(principal, '/api/driver-verification', 'GET');
   const isOwner = authUser?.id === submission.user_id;
   if (!isAdmin && !isOwner) throw Forbidden('You do not have access to this document');
 

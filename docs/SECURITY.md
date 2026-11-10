@@ -72,3 +72,38 @@
 
 This is a V1 reference build. If you find a security issue, please open a
 private security advisory on the repository rather than a public issue.
+
+## Admin Team and dashboard access
+
+The admin dashboard (`/admin`) is restricted to the **Owner** and approved
+**Admin Team** members. The full model is documented at the top of
+`worker/src/lib/adminTeam.js`; in short:
+
+- **Owner** is one user account, pinned by user ID in the `platform_settings`
+  row `owner_user_id` (set directly in D1, never in the repo, never by email).
+  The Owner can't be suspended, removed or demoted through the API. Changing
+  the Owner is a deliberate database operation.
+- **Joining the team:** a signed-in user requests access from their Profile
+  ("Admin Dashboard" card). The Owner gets an email and approves or rejects
+  the request in *Admin Team*, choosing a role. Nothing is granted until then.
+- **Roles:** `super_admin` (Owner-appointed only; can manage the team except
+  the Owner and other Super Admins), `operations`, `verifier`, `support`,
+  `finance`, `viewer`. Each role grants read or write per area (analytics,
+  drivers, support, users, finance, config), enforced server-side in
+  `requireAdmin`. Unknown admin routes fail closed.
+- **Sign-in:** password re-entry issues an 8-hour admin session token, signed
+  with a key derived from `JWT_SECRET` that ordinary app tokens never use.
+  Five wrong passwords lock admin sign-in for that account for 15 minutes
+  (stored in D1).
+- **Revocation:** suspending, removing or changing a member's role bumps
+  their session version, which ends their open sessions on the next request.
+  Every member (and the Owner) can also sign out all their own sessions.
+- **Team changes** need the actor's password again and are written to
+  `audit_events` (`admin.*`). If a Super Admin makes a change, the Owner is
+  emailed.
+- **Break-glass:** the legacy `ADMIN_TOKEN` secret still opens the data
+  screens but can never manage the Admin Team. Rotate it with
+  `wrangler secret put ADMIN_TOKEN`, or delete it once the team is set up.
+- **Emails to the Owner** (driver verification submissions, access requests)
+  are sent through Resend to the Owner account's email and contain no
+  documents, only a link to the dashboard.

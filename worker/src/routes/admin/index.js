@@ -17,6 +17,7 @@ import * as payments from './screens/payments.js';
 import * as uxMetrics from './screens/uxMetrics.js';
 import * as systemLogs from './screens/systemLogs.js';
 import * as goToMarket from './screens/goToMarket.js';
+import * as adminTeam from './screens/adminTeam.js';
 import * as clientApp from './client/app.js';
 
 export const admin = new Hono();
@@ -40,6 +41,7 @@ function renderPage() {
     systemLogs.markup(),
     goToMarket.markup(),
     config.markup(),
+    adminTeam.markup(),
   ].join('\n');
 
   const scriptBody = [
@@ -61,6 +63,7 @@ function renderPage() {
     systemLogs.script(),
     goToMarket.script(),
     config.script(),
+    adminTeam.script(),
   ].join('\n');
 
   return `<!doctype html>
@@ -85,4 +88,13 @@ ${scriptBody}
 </html>`;
 }
 
-admin.get('/', (c) => c.html(renderPage()));
+// Strict headers: the admin page must never be framed (clickjacking),
+// cached, or leak its URL as a referrer.
+admin.get('/', (c) => {
+  c.header('X-Frame-Options', 'DENY');
+  c.header('Content-Security-Policy', "frame-ancestors 'none'");
+  c.header('Cache-Control', 'no-store');
+  c.header('Referrer-Policy', 'no-referrer');
+  c.header('X-Content-Type-Options', 'nosniff');
+  return c.html(renderPage());
+});
