@@ -4,6 +4,7 @@ import { requireAdmin } from '../lib/adminAuth.js';
 import { BadRequest, Conflict, Forbidden, NotFound } from '../lib/errors.js';
 import { recordAuditEvent } from '../lib/audit.js';
 import { resolveAdminPrincipal, canAccess } from '../lib/adminTeam.js';
+import { grantReferralReward } from '../lib/referrals.js';
 import { notifyOwner, ownerEmailHtml, appOrigin } from '../lib/ownerNotify.js';
 import { notifyUser } from '../lib/notify.js';
 import { storePhoto, readPhoto } from '../lib/driverDocs.js';
@@ -179,6 +180,14 @@ driverVerification.post('/:id/approve', requireAdmin, async (c) => {
     metadata: { userId: submission.user_id, reviewedBy: body.reviewerName?.trim() || 'admin' },
   });
   await notifyUser(db, c.env, submission.user_id);
+
+  // Referral reward: whoever invited this driver gets a free Pro month.
+  try {
+    const reward = await grantReferralReward(db, submission.user_id);
+    if (reward) await notifyUser(db, c.env, reward.referrerId);
+  } catch (err) {
+    console.error('[driver-verification] referral reward failed:', err.message);
+  }
   return c.json({ submission: updated });
 });
 

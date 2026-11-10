@@ -23,6 +23,8 @@ import { liveLocations } from './routes/liveLocations.js';
 import { monetizationPublic, subscriptionPlans, subscriptions } from './routes/monetization.js';
 import { driverBilling, revenueAdmin } from './routes/driverBilling.js';
 import { adminTeam } from './routes/adminTeam.js';
+import { referrals, growthAdmin } from './routes/referrals.js';
+import { landingMeta } from './routes/landingMeta.js';
 import { adSlots } from './routes/adSlots.js';
 import { insurancePartners } from './routes/insurancePartners.js';
 import { adminUsers } from './routes/adminUsers.js';
@@ -61,6 +63,8 @@ app.route('/api/admin/live-map', liveLocations);
 app.route('/api/monetization', monetizationPublic);
 app.route('/api/pro', driverBilling);
 app.route('/api/admin-team', adminTeam);
+app.route('/api/referrals', referrals);
+app.route('/api/admin/growth', growthAdmin);
 app.route('/api/admin/revenue', revenueAdmin);
 app.route('/api/admin/subscription-plans', subscriptionPlans);
 app.route('/api/admin/subscriptions', subscriptions);
@@ -72,6 +76,7 @@ app.route('/api/admin/rides', adminRides);
 app.route('/api/admin/payments', adminPayments);
 app.route('/api/admin/funnel-stats', funnelStats);
 app.route('/admin', admin);
+app.route('/', landingMeta);
 
 // Real-time messaging: browsers can't set custom headers on a WebSocket
 // handshake, so the token travels as a query param here instead of an

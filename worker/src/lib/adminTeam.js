@@ -86,6 +86,7 @@ const AREA_PREFIXES = [
   ['/api/admin/ad-slots', 'finance'],
   ['/api/admin/insurance-partners', 'finance'],
   ['/api/admin/funnel-stats', 'analytics'],
+  ['/api/admin/growth', 'analytics'],
   ['/api/admin/live-map', 'analytics'],
   ['/api/admin/user-locations', 'analytics'],
   ['/api/tracking', 'analytics'],

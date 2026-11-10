@@ -102,6 +102,9 @@ export const api = {
   mpesaStkPush: (bookingId, phone) => request('/payments/mpesa/stk-push', { method: 'POST', body: { bookingId, phone } }),
   mpesaPaymentStatus: (paymentId) => request(`/payments/mpesa/${paymentId}/status`),
 
+  // Referrals
+  myReferrals: () => request('/referrals/me'),
+
   // Admin Team
   adminTeamStatus: () => request('/admin-team/status'),
   requestAdminAccess: (reason) => request('/admin-team/request', { method: 'POST', body: { reason } }),

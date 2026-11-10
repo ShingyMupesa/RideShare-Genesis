@@ -8,6 +8,14 @@ export function markup() {
   return `
   <div class="screen" id="screen-goToMarket">
     <h2 style="font-size:1rem;">Go-to-market</h2>
+    <h3 style="font-size:0.9rem;">Growth: where signups come from</h3>
+    <p class="muted" style="font-size:0.8rem;">Live. Source/campaign come from <code>utm_*</code> tags on shared links and QR posters
+      (<code>/poster?for=taxi&amp;place=jkia</code>). Referrals come from personal invite links (<code>/r/CODE</code>).</p>
+    <div class="grid" id="growthLanding"></div>
+    <div class="table-wrap"><table id="growthSources"><thead><tr><th>Source</th><th>Campaign / place</th><th>Signups</th><th>Last 7 days</th></tr></thead><tbody></tbody></table></div>
+    <h3 style="font-size:0.9rem; margin-top:14px;">Top referrers</h3>
+    <div class="table-wrap"><table id="growthReferrers"><thead><tr><th>Name</th><th>Code</th><th>Joined via link</th><th>Verified drivers (free months)</th></tr></thead><tbody></tbody></table></div>
+    <hr style="border-color:#2c2940; margin:22px 0;">
     <p class="muted" style="margin-bottom:16px;">
       This is a roadmap and plan, not a committed fact or a forecast guarantee — it describes current stage and
       near-term intent, consistent with the language used in the investor package (docs/investor-package/).
@@ -59,6 +67,25 @@ export function markup() {
 }
 
 export function script() {
-  // Static screen — nothing to fetch, nothing to wire up.
-  return '';
+  return `
+  async function loadGrowth(token) {
+    try {
+      const res = await fetch('/api/admin/growth', { headers: { 'x-admin-token': token } });
+      if (!res.ok) return;
+      const d = await res.json();
+      document.getElementById('growthLanding').innerHTML = ['lp_matatu', 'lp_taxi', 'lp_ride'].map(function (pg) {
+        const v = (d.landingViews || []).find(function (x) { return x.page === pg; }) || { views: 0, last7: 0 };
+        return '<div class="stat"><div class="val">' + v.views + '</div><div class="lbl">' + escapeHtml(pg.replace('lp_', '/')) + ' views (7d: ' + (v.last7 || 0) + ')</div></div>';
+      }).join('');
+      document.querySelector('#growthSources tbody').innerHTML = (d.bySource || []).map(function (r) {
+        return '<tr><td>' + escapeHtml(r.source) + '</td><td>' + escapeHtml(r.campaign || '—') + '</td><td>' + r.signups + '</td><td>' + (r.last7 || 0) + '</td></tr>';
+      }).join('') || '<tr><td colspan="4" class="muted">No signups yet.</td></tr>';
+      document.querySelector('#growthReferrers tbody').innerHTML = (d.topReferrers || []).map(function (r) {
+        return '<tr><td>' + escapeHtml(r.name) + '</td><td>' + escapeHtml(r.code || '') + '</td><td>' + r.invited + '</td><td>' + r.verified + '</td></tr>';
+      }).join('') || '<tr><td colspan="4" class="muted">No referrals yet.</td></tr>';
+    } catch {
+      // best-effort
+    }
+  }
+`;
 }
