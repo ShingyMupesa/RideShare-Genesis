@@ -71,6 +71,29 @@ export default function Welcome() {
         </Link>
       </section>
 
+      <section className="cofounder-banner" id="invest">
+        <p className="eyebrow">{t('cofounder.eyebrow')}</p>
+        <h2>{t('cofounder.headline')}</h2>
+        <p className="muted">{t('cofounder.body')}</p>
+        <div className="cofounder-banner__actions">
+          <a
+            className="btn btn-primary"
+            href="mailto:founder@ridesharegenesis.app?subject=RideShare%20Genesis%20%E2%80%94%20investor%20%2F%20co-founder%20conversation"
+          >
+            {t('cofounder.ctaContact')}
+          </a>
+          <a
+            className="btn btn-secondary"
+            href="https://wa.me/447449494405?text=Hi%20Shingy%2C%20I%27m%20interested%20in%20RideShare%20Genesis%20as%20an%20investor%20or%20co-founder."
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            WhatsApp
+          </a>
+        </div>
+        <p className="muted" style={{ fontSize: '0.85rem', marginTop: 10 }}>founder@ridesharegenesis.app</p>
+      </section>
+
       <section>
         <h2 style={{ textAlign: 'center' }}>{t('welcome.principlesHeading')}</h2>
         <div className="principles-grid">
