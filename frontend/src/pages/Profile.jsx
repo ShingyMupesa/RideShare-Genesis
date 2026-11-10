@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { api, ApiError } from '../services/api.js';
 import PushNotificationToggle from '../components/PushNotificationToggle.jsx';
 import DriverVerificationCard from '../components/DriverVerificationCard.jsx';
+import AdminAccessCard from '../components/AdminAccessCard.jsx';
 import PasswordField from '../components/PasswordField.jsx';
 
 const WEIGHT_KEYS = ['proximity', 'timing', 'price', 'preferences', 'reliability'];
@@ -185,6 +186,8 @@ export default function Profile() {
       <div style={{ marginTop: 20 }}>
         <DriverVerificationCard />
       </div>
+
+      <AdminAccessCard />
 
       <div className="card" style={{ marginTop: 20, borderColor: 'var(--color-danger)' }}>
         <h3>Danger zone</h3>

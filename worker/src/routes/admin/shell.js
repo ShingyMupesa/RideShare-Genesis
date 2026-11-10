@@ -28,6 +28,8 @@ export function shellStyles() {
   .btn-tiny { padding: 5px 10px; border-radius: 6px; border: none; font-weight: 600; font-size: 0.78rem; cursor: pointer; margin-right: 6px; }
   .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; background: #3a3750; color: #cfcadf; }
   .badge-active { background: rgba(31, 157, 85, 0.25); color: #6fe3a0; }
+  .badge-pending { background: #6b5a1e; color: #ffe08a; }
+  .badge-rejected { background: #5a1e24; color: #ffb3b8; }
   .btn-approve { background: #1f9d55; color: white; }
   .btn-reject { background: #d64545; color: white; }
   .btn-neutral { background: #3a3750; color: #eceaf5; }
@@ -94,10 +96,15 @@ export function gateMarkup() {
   return `
   <div class="gate" id="gate">
     <h1>Genesis Admin</h1>
-    <p class="muted">Enter the admin token to view live results.</p>
-    <input type="password" id="tokenInput" placeholder="Admin token" autocomplete="off">
-    <div><button id="loginBtn">View dashboard</button></div>
+    <p class="muted">Admin Team only. Sign in with your Genesis account. Access is granted by the Owner.</p>
+    <input type="email" id="adminEmail" placeholder="Email" autocomplete="username">
+    <input type="password" id="adminPassword" placeholder="Password" autocomplete="current-password">
+    <div><button id="loginBtn">Sign in</button></div>
     <p class="error" id="gateError"></p>
+    <details style="margin-top:14px;"><summary class="muted" style="cursor:pointer;font-size:0.8rem;">Use break-glass token</summary>
+      <input type="password" id="tokenInput" placeholder="Admin token" autocomplete="off">
+      <div><button id="tokenLoginBtn">Use token</button></div>
+    </details>
   </div>`;
 }
 
@@ -131,11 +138,14 @@ export function shellMarkup(screensHtml) {
       <div class="sb-item" data-screen="systemLogs">System Logs</div>
       <div class="sb-item" data-screen="goToMarket">Go-to-market</div>
       <div class="sb-item" data-screen="config">Config</div>
+      <div class="sb-item" data-screen="adminTeam">Admin Team</div>
     </nav>
     <div class="main">
       <div class="topbar">
         <h1 id="pageTitle">Dashboard</h1>
+        <span class="muted" id="whoami" style="font-size:0.8rem;margin-left:auto;margin-right:10px;"></span>
         <button class="refresh" id="refreshBtn">Refresh</button>
+        <button class="refresh" id="logoutBtn">Sign out</button>
       </div>
       <p class="muted" id="generatedAt"></p>
       <p class="muted" id="autoRefreshNote" style="margin-top:-8px;">Auto-refreshing every 7s</p>

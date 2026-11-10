@@ -10,6 +10,36 @@ export function script() {
   const gate = document.getElementById('gate');
   const app = document.getElementById('app');
   const tokenInput = document.getElementById('tokenInput');
+  var adminPerms = null;
+
+  // Which permission area each sidebar screen needs (mirrors lib/adminTeam.js).
+  const SCREEN_AREAS = {
+    dashboard: 'analytics', analytics: 'analytics', uxMetrics: 'analytics', liveMap: 'analytics', systemLogs: 'analytics', goToMarket: 'analytics',
+    driverVerification: 'drivers', disputes: 'support',
+    users: 'users', drivers: 'users', passengers: 'users', rides: 'users',
+    payments: 'finance', monetisation: 'finance', adSlots: 'finance', insurancePartners: 'finance',
+    config: 'config', adminTeam: '__team',
+  };
+  function canSee(screen) {
+    if (!adminPerms) return false;
+    const area = SCREEN_AREAS[screen];
+    if (area === '__team') return !!adminPerms.manageTeam;
+    return !!(adminPerms.areas && adminPerms.areas[area]);
+  }
+  function canWrite(area) { return !!(adminPerms && adminPerms.areas && adminPerms.areas[area] === 'write'); }
+  function applyPermissions() {
+    document.querySelectorAll('.sb-item').forEach(function (el) {
+      el.style.display = canSee(el.getAttribute('data-screen')) ? '' : 'none';
+    });
+    const who = document.getElementById('whoami');
+    if (who && adminPerms) who.textContent = (adminPerms.name ? adminPerms.name + ' · ' : '') + (adminPerms.roleLabel || adminPerms.role);
+    const active = document.querySelector('.screen.active');
+    const activeName = active ? active.id.replace('screen-', '') : 'dashboard';
+    if (!canSee(activeName)) {
+      const first = Object.keys(SCREEN_AREAS).find(canSee);
+      if (first) showScreen(first);
+    }
+  }
   const gateError = document.getElementById('gateError');
 
   function getToken() { return sessionStorage.getItem('genesis_admin_token'); }
@@ -71,6 +101,7 @@ export function script() {
     systemLogs: 'System Logs',
     goToMarket: 'Go-to-market',
     config: 'Config',
+    adminTeam: 'Admin Team',
   };
 
   function showScreen(name) {
@@ -88,7 +119,39 @@ export function script() {
     el.addEventListener('click', function () { showScreen(el.getAttribute('data-screen')); });
   });
 
-  document.getElementById('loginBtn').addEventListener('click', function () {
+  document.getElementById('loginBtn').addEventListener('click', async function () {
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    if (!email || !password) { showGate('Enter your email and password.'); return; }
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/admin-team/session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: email, password: password }) });
+      const data = await res.json().catch(function () { return {}; });
+      if (!res.ok) { showGate((data.error && data.error.message) || 'Sign-in failed.'); return; }
+      document.getElementById('adminPassword').value = '';
+      setToken(data.token);
+      loadStats();
+    } catch (err) {
+      showGate('Could not reach the API: ' + err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  document.getElementById('adminPassword').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') document.getElementById('loginBtn').click();
+  });
+  document.getElementById('logoutBtn').addEventListener('click', function () {
+    clearToken();
+    adminPerms = null;
+    showGate('Signed out.');
+  });
+  window.addEventListener('hashchange', function () {
+    const h = location.hash.replace('#', '');
+    if (h && canSee(h)) showScreen(h);
+  });
+
+  document.getElementById('tokenLoginBtn').addEventListener('click', function () {
     const t = tokenInput.value.trim();
     if (!t) return;
     if (hasNonLatin1Char(t)) {
@@ -99,7 +162,7 @@ export function script() {
     loadStats();
   });
   tokenInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') document.getElementById('loginBtn').click();
+    if (e.key === 'Enter') document.getElementById('tokenLoginBtn').click();
   });
   document.getElementById('refreshBtn').addEventListener('click', loadStats);
 

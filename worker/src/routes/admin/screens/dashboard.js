@@ -54,30 +54,39 @@ export function script() {
     const token = getToken();
     if (!token) { showGate(''); return; }
     try {
-      const res = await fetch('/api/tracking/stats', { headers: { 'x-admin-token': token } });
-      if (res.status === 401) { clearToken(); showGate('Invalid token.'); return; }
-      const data = await res.json();
-      if (!res.ok) { showGate(data?.error?.message || ('Server error (' + res.status + ').')); return; }
-      renderStats(data);
+      // Who am I and what may I see? Re-checked on every refresh, so a
+      // suspension or role change takes effect within seconds.
+      const meRes = await fetch('/api/admin-team/session/me', { headers: { 'x-admin-token': token } });
+      if (meRes.status === 401) { clearToken(); adminPerms = null; showGate('Please sign in. Your admin session has expired or your access has changed.'); return; }
+      const me = await meRes.json();
+      if (!meRes.ok) { showGate((me.error && me.error.message) || ('Server error (' + meRes.status + ').')); return; }
+      const firstLoad = !adminPerms;
+      adminPerms = me;
       gate.style.display = 'none';
       app.style.display = 'block';
-      loadFeedback(token);
-      loadUserLocations(token);
-      loadDriverVerification(token);
-      loadDisputes(token);
-      loadLiveMap(token);
-      loadMonetisation(token);
-      loadAdSlots(token);
-      loadInsurancePartners(token);
-      loadConfig(token);
-      loadAnalytics(token);
-      loadUsers(token);
-      loadDrivers(token);
-      loadPassengers(token);
-      loadRides(token);
-      loadPayments(token);
-      loadUxMetrics(token);
-      loadSystemLogs(token);
+      applyPermissions();
+      if (firstLoad) {
+        const h = location.hash.replace('#', '');
+        if (h && canSee(h)) showScreen(h);
+      }
+
+      if (canSee('dashboard')) {
+        const res = await fetch('/api/tracking/stats', { headers: { 'x-admin-token': token } });
+        if (res.status === 401) { clearToken(); adminPerms = null; showGate('Please sign in again.'); return; }
+        const data = await res.json();
+        if (res.ok) renderStats(data);
+        loadUserLocations(token);
+        loadLiveMap(token);
+        loadAnalytics(token);
+        loadUxMetrics(token);
+        loadSystemLogs(token);
+      }
+      if (canSee('disputes')) { loadFeedback(token); loadDisputes(token); }
+      if (canSee('driverVerification')) loadDriverVerification(token);
+      if (canSee('monetisation')) { loadMonetisation(token); loadAdSlots(token); loadInsurancePartners(token); loadPayments(token); }
+      if (canSee('config')) loadConfig(token);
+      if (canSee('users')) { loadUsers(token); loadDrivers(token); loadPassengers(token); loadRides(token); }
+      if (canSee('adminTeam') && firstLoad) loadAdminTeam(token);
     } catch (err) {
       showGate('Could not reach the API: ' + err.message);
     }
