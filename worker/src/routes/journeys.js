@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requireAuth, optionalAuth } from '../lib/auth.js';
 import { newId } from '../lib/ids.js';
-import { ApiError, BadRequest, Forbidden, NotFound } from '../lib/errors.js';
+import { ApiError, BadRequest, Conflict, Forbidden, NotFound } from '../lib/errors.js';
 import { generateMatchesForJourney } from '../lib/matching.js';
 import { VEHICLE_TYPES } from '../lib/impact.js';
 import * as DriverVerification from '../lib/driverVerification.js';
@@ -74,27 +74,43 @@ export async function listJourneys(db, { type, status = 'active', ownerId } = {}
   return results.map(deserialize);
 }
 
+// The seats_available update is a single conditional UPDATE, not a
+// read-then-write, so two concurrent bookings for the same journey can't
+// both pass a seats-available check before either decrements (which would
+// silently overbook the journey). The `AND seats_available >= ?` guard
+// makes the DB itself the source of truth for whether seats were actually
+// available at the moment of the write.
 export async function decrementSeats(db, journeyId, seats) {
-  const journey = await getJourneyById(db, journeyId);
-  if (!journey) return null;
-  const nextAvailable = Math.max(journey.seatsAvailable - seats, 0);
-  const nextStatus = nextAvailable <= 0 ? 'full' : journey.status;
-  await db
-    .prepare('UPDATE journeys SET seats_available = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-    .bind(nextAvailable, nextStatus, journeyId)
+  const result = await db
+    .prepare(
+      `UPDATE journeys
+       SET seats_available = seats_available - ?,
+           status = CASE WHEN seats_available - ? <= 0 THEN 'full' ELSE status END,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND seats_available >= ?`
+    )
+    .bind(seats, seats, journeyId, seats)
     .run();
+  if (!result.meta.rows_written) {
+    const journey = await getJourneyById(db, journeyId);
+    if (!journey) return null;
+    throw Conflict('Not enough seats available');
+  }
   return getJourneyById(db, journeyId);
 }
 
 export async function restoreSeats(db, journeyId, seats) {
-  const journey = await getJourneyById(db, journeyId);
-  if (!journey) return null;
-  const nextAvailable = Math.min(journey.seatsTotal, journey.seatsAvailable + seats);
-  const nextStatus = nextAvailable > 0 && journey.status === 'full' ? 'active' : journey.status;
-  await db
-    .prepare('UPDATE journeys SET seats_available = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-    .bind(nextAvailable, nextStatus, journeyId)
+  const result = await db
+    .prepare(
+      `UPDATE journeys
+       SET seats_available = MIN(seats_total, seats_available + ?),
+           status = CASE WHEN MIN(seats_total, seats_available + ?) > 0 AND status = 'full' THEN 'active' ELSE status END,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`
+    )
+    .bind(seats, seats, journeyId)
     .run();
+  if (!result.meta.rows_written) return null;
   return getJourneyById(db, journeyId);
 }
 

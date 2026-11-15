@@ -101,6 +101,12 @@ router.post(
     if (resolution === 'resolved_refunded' && dispute.paymentId) {
       const payment = Payments.getPaymentById(dispute.paymentId);
       if (payment && payment.status !== 'REFUNDED') {
+        // A dispute can be for only part of the fare (see createDispute's
+        // disputedAmount), so refund what was actually disputed, not the
+        // full original payment — capped at the payment amount in case
+        // disputedAmount was set larger.
+        const refundAmount = Math.min(Number(dispute.disputedAmount ?? payment.amount), payment.amount);
+
         // Stripe is the only method here with a real refund API to call —
         // cash/mobile_money/wallet/M-Pesa sandbox payments have none, so for
         // those this is bookkeeping-only: just flip the stored status to
@@ -110,7 +116,7 @@ router.post(
           try {
             await refundPayment({
               paymentIntentId: payment.reference,
-              amount: payment.amount,
+              amount: refundAmount,
               currency: payment.currency,
               secretKey: process.env.STRIPE_SECRET_KEY,
             });
