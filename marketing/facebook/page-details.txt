@@ -1,0 +1,18 @@
+RideShare Genesis: Facebook Page details (copy and paste)
+
+Page name:      RideShare Genesis
+Category:       Transportation Service   (add "Taxi Service" as a second category)
+Bio (max 101):  Share rides across Kenya. Matatu & taxi drivers keep 90% of every fare. Free to join.
+Website:        https://ridesharegenesis.app
+Email:          founder@ridesharegenesis.app
+WhatsApp:       +44 7449 494405
+Service area:   Nairobi, Mombasa, Kisumu (no street address needed)
+Username:       @ridesharegenesis   (Settings → Page username; pick the closest free one)
+Action button:  "Sign up" → https://ridesharegenesis.app/ride
+Profile photo:  profile-picture.png
+Cover photo:    cover-photo.jpg
+
+About / Intro (longer description):
+RideShare Genesis is a Kenyan ride-sharing platform for matatu, PSV and taxi drivers and the people who ride with them. Drivers post their route, time and fare, and riders going the same way book a seat ahead. Drivers keep 90% of every fare (95% on Pro Driver). Fares are shown up front, drivers can earn a verified badge, and every trip has one-tap SOS. Free to join, in English and Kiswahili.
+
+Early-bird pre-seed investors and co-founders: founder@ridesharegenesis.app
