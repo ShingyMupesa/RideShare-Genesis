@@ -144,12 +144,10 @@ export default function Profile() {
             <label htmlFor="paymentMethod">Preferred payment method</label>
             <select
               id="paymentMethod"
-              value={preferences.payment_method || 'card'}
+              value={preferences.payment_method || 'mobile_money'}
               onChange={(e) => setPreferences({ ...preferences, payment_method: e.target.value })}
             >
-              <option value="card">Card</option>
               <option value="mobile_money">Mobile Money</option>
-              <option value="wallet">Wallet</option>
               <option value="cash">Cash</option>
             </select>
             <p className="muted" style={{ fontSize: '0.8rem' }}>
