@@ -53,7 +53,7 @@ export default function Booking() {
   const [mpesaPhone, setMpesaPhone] = useState('');
   const [mpesaStatus, setMpesaStatus] = useState(''); // '' | 'awaiting' | 'timeout'
   const [mpesaCustomerMessage, setMpesaCustomerMessage] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState('card');
+  const [selectedMethod, setSelectedMethod] = useState('cash');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [geoUnsupported, setGeoUnsupported] = useState(false);
@@ -337,7 +337,9 @@ export default function Booking() {
           ) : isPassenger ? (
             <>
               <div className="method-grid">
-                {methods.map((m) => (
+                {methods
+                  .filter((m) => m !== 'card' && m !== 'wallet') // simulated, no real money moves — see worker/src/lib/providers.js
+                  .map((m) => (
                   <div
                     key={m}
                     className={`method-card ${selectedMethod === m ? 'selected' : ''}`}

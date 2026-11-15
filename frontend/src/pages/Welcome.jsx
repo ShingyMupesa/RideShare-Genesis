@@ -112,7 +112,7 @@ export default function Welcome() {
         <ol style={{ paddingLeft: 20, lineHeight: 1.9 }}>
           <li>Tell Genesis where you're headed — as a rider requesting a seat, or a driver offering one.</li>
           <li>Genesis's matching engine scores candidates against your Decision DNA and shows its reasoning.</li>
-          <li>Book your seat with our pilot payment options, and message your match directly.</li>
+          <li>Book your seat — cash is available now, with mobile money (M-Pesa) and card coming soon — and message your match directly.</li>
           <li>Travel with the Safety Centre one tap away, and every step logged for accountability.</li>
         </ol>
       </section>
