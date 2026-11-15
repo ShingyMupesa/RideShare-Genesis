@@ -169,6 +169,12 @@ disputes.post('/:id/resolve', requireAdmin, async (c) => {
   if (resolution === 'resolved_refunded' && dispute.payment_id) {
     const payment = await db.prepare('SELECT * FROM payments WHERE id = ?').bind(dispute.payment_id).first();
     if (payment && payment.status !== 'REFUNDED') {
+      // A dispute can be for only part of the fare (see the "disputing only
+      // part of the fare" comment in disputes.post above), so refund what
+      // was actually disputed, not the full original payment — capped at
+      // the payment amount in case disputed_amount was set larger.
+      const refundAmount = Math.min(Number(dispute.disputed_amount ?? payment.amount), payment.amount);
+
       // Stripe is the only method here with a real refund API to call —
       // cash/mobile_money/wallet/M-Pesa sandbox payments have none, so for
       // those this is bookkeeping-only: just flip the stored status to
@@ -177,7 +183,7 @@ disputes.post('/:id/resolve', requireAdmin, async (c) => {
         try {
           await refundPayment({
             paymentIntentId: payment.reference,
-            amount: payment.amount,
+            amount: refundAmount,
             currency: payment.currency,
             secretKey: c.env.STRIPE_SECRET_KEY,
           });

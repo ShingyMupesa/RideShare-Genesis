@@ -157,9 +157,11 @@ function transitionRoute(nextStatus, { requireOwner = false, requirePassenger = 
       throw Forbidden('You do not have access to this booking');
     }
 
-    if (seatEffect === 'decrement' && journey.seatsAvailable < booking.seats) {
-      throw Conflict('Not enough seats available to confirm this booking');
-    }
+    // Reserve the seats (atomically, in SQL) before changing the booking's
+    // status, so a losing request in a race between two concurrent
+    // confirmations fails here with no state changed, instead of leaving a
+    // booking marked CONFIRMED with no seat actually held for it.
+    if (seatEffect === 'decrement') await decrementSeats(db, journey.id, booking.seats);
 
     let updated;
     try {
@@ -168,7 +170,6 @@ function transitionRoute(nextStatus, { requireOwner = false, requirePassenger = 
       throw BadRequest(err.message);
     }
 
-    if (seatEffect === 'decrement') await decrementSeats(db, journey.id, booking.seats);
     if (seatEffect === 'restore' && ['BOOKING_REQUESTED', 'CONFIRMED', 'IN_PROGRESS'].includes(booking.status)) {
       await restoreSeats(db, journey.id, booking.seats);
     }
