@@ -338,7 +338,7 @@ export default function Booking() {
             <>
               <div className="method-grid">
                 {methods
-                  .filter((m) => m !== 'card' && m !== 'wallet') // simulated, no real money moves — see worker/src/lib/providers.js
+                  .filter((m) => m !== 'card' && m !== 'wallet' && m !== 'mobile_money') // simulated, no real money moves — see worker/src/lib/providers.js
                   .map((m) => (
                   <div
                     key={m}
