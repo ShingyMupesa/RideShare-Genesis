@@ -110,7 +110,6 @@ export default function DriverVerificationCard() {
     return () => {
       createdObjectUrls.current.forEach((url) => URL.revokeObjectURL(url));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function submit(e) {
