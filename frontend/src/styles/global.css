@@ -831,3 +831,131 @@ textarea:focus {
 /* ---- Investor / co-founder invitation (Welcome) ---- */
 .cofounder-banner { text-align: center; max-width: 720px; margin: 32px auto 0; padding: 24px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); border-top: 3px solid var(--color-accent); }
 .cofounder-banner__actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+
+/* ---- Driver dashboard (dark stat cards) ----
+   Scoped to .driver-dashboard so the rest of the app keeps its light theme. */
+.driver-dashboard {
+  --dd-bg: #0b1220;
+  --dd-surface: #141e30;
+  --dd-surface-raised: #1b2740;
+  --dd-border: #243352;
+  --dd-text: #f3f5fa;
+  --dd-text-muted: #8c98b8;
+  --dd-green: #2ecc71;
+  --dd-green-soft: rgba(46, 204, 113, 0.14);
+  background: var(--dd-bg);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 20px;
+  color: var(--dd-text);
+}
+
+.driver-dashboard__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.driver-dashboard__heading h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--dd-text);
+}
+
+.driver-dashboard__heading span {
+  color: var(--dd-text-muted);
+  font-size: 0.78rem;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 560px) {
+  .stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stat-card {
+  background: var(--dd-surface);
+  border: 1px solid var(--dd-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stat-card__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--dd-green-soft);
+  color: var(--dd-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.stat-card__value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--dd-text);
+  line-height: 1.1;
+}
+
+.stat-card__label {
+  font-size: 0.76rem;
+  color: var(--dd-text-muted);
+}
+
+.stat-card--ring {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+
+.ring-progress {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+}
+
+.ring-progress svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-progress circle {
+  fill: none;
+  stroke-width: 5;
+}
+
+.ring-progress circle.ring-progress__track {
+  stroke: var(--dd-surface-raised);
+}
+
+.ring-progress circle.ring-progress__value {
+  stroke: var(--dd-green);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.ring-progress__label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--dd-text);
+}
