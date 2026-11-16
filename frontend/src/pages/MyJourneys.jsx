@@ -20,10 +20,33 @@ const BOOKING_PILL = {
   CANCELLED: 'pill-danger',
 };
 
+function RingProgress({ pct }) {
+  const r = 21;
+  const circumference = 2 * Math.PI * r;
+  const offset = circumference - (Math.min(100, Math.max(0, pct)) / 100) * circumference;
+  return (
+    <div className="ring-progress">
+      <svg viewBox="0 0 52 52">
+        <circle className="ring-progress__track" cx="26" cy="26" r={r} />
+        <circle
+          className="ring-progress__value"
+          cx="26"
+          cy="26"
+          r={r}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <span className="ring-progress__label">{pct}%</span>
+    </div>
+  );
+}
+
 export default function MyJourneys() {
   const [tab, setTab] = useState('bookings');
   const [journeys, setJourneys] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [proStatus, setProStatus] = useState(null);
   const [error, setError] = useState('');
 
   const completedImpact = bookings
@@ -36,6 +59,10 @@ export default function MyJourneys() {
       { co2eKg: 0, fuelL: 0 }
     );
 
+  const offeredJourneys = journeys.filter((j) => j.type === 'offer').length;
+  const completedBookings = bookings.filter((b) => b.status === 'COMPLETED').length;
+  const completionRatePct = bookings.length ? Math.round((completedBookings / bookings.length) * 100) : null;
+
   useEffect(() => {
     Promise.all([api.listJourneys('?mine=true&status='), api.myBookings()])
       .then(([journeyRes, bookingRes]) => {
@@ -43,6 +70,10 @@ export default function MyJourneys() {
         setBookings(bookingRes.bookings);
       })
       .catch((err) => setError(err.message || 'Could not load your journeys'));
+    // Pro Driver status is optional context for the dashboard — a passenger
+    // who never visited /pro still has a (null) subscription here, so a
+    // failure here must not block the rest of the page.
+    api.proMe().then((res) => setProStatus(res.subscription)).catch(() => {});
   }, []);
 
   return (
@@ -51,6 +82,50 @@ export default function MyJourneys() {
       <h1>Everything you're part of</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
+
+      <div className="driver-dashboard">
+        <div className="driver-dashboard__heading">
+          <h2>Your snapshot</h2>
+          <span>Based on your real activity</span>
+        </div>
+        <div className="stat-grid">
+          <div className="stat-card">
+            <div className="stat-card__icon">🚗</div>
+            <div className="stat-card__value">{offeredJourneys}</div>
+            <div className="stat-card__label">Journeys offered</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card__icon">✅</div>
+            <div className="stat-card__value">{completedBookings}</div>
+            <div className="stat-card__label">Completed trips</div>
+          </div>
+          {completionRatePct != null && (
+            <div className="stat-card stat-card--ring">
+              <RingProgress pct={completionRatePct} />
+              <div>
+                <div className="stat-card__value" style={{ fontSize: '1.15rem' }}>
+                  {completionRatePct}%
+                </div>
+                <div className="stat-card__label">Booking completion rate</div>
+              </div>
+            </div>
+          )}
+          <div className="stat-card">
+            <div className="stat-card__icon">🌍</div>
+            <div className="stat-card__value">{Math.round(completedImpact.co2eKg * 10) / 10 || 0}</div>
+            <div className="stat-card__label">kg CO2e avoided</div>
+          </div>
+          {proStatus && (
+            <div className="stat-card">
+              <div className="stat-card__icon">⭐</div>
+              <div className="stat-card__value" style={{ fontSize: '1.15rem' }}>
+                {proStatus.commissionRatePct}%
+              </div>
+              <div className="stat-card__label">Commission rate · {proStatus.planName}</div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {completedImpact.co2eKg > 0 && (
         <p className="muted" style={{ marginBottom: 12 }}>
