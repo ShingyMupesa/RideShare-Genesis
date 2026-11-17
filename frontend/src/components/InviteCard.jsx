@@ -40,10 +40,25 @@ export default function InviteCard() {
           {copied ? 'Copied' : 'Copy'}
         </button>
       </p>
-      <p className="muted" style={{ fontSize: '0.9rem' }}>
-        {info.invited} joined with your link · {info.verifiedDrivers} verified driver{info.verifiedDrivers === 1 ? '' : 's'} ·{' '}
-        {info.freeMonthsEarned} free month{info.freeMonthsEarned === 1 ? '' : 's'} earned
-      </p>
+      <div className="driver-dashboard" style={{ margin: '14px 0' }}>
+        <div className="stat-grid">
+          <div className="stat-card">
+            <div className="stat-card__icon">🔗</div>
+            <div className="stat-card__value">{info.invited}</div>
+            <div className="stat-card__label">Joined with your link</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card__icon">✅</div>
+            <div className="stat-card__value">{info.verifiedDrivers}</div>
+            <div className="stat-card__label">Verified driver{info.verifiedDrivers === 1 ? '' : 's'}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card__icon">⭐</div>
+            <div className="stat-card__value">{info.freeMonthsEarned}</div>
+            <div className="stat-card__label">Free month{info.freeMonthsEarned === 1 ? '' : 's'} earned</div>
+          </div>
+        </div>
+      </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <a
           className="btn btn-secondary"

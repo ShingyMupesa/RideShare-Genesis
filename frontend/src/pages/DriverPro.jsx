@@ -141,11 +141,29 @@ export default function DriverPro() {
       </p>
 
       {sub && (
-        <div className="alert alert-success">
-          You're on <strong>{sub.planName}</strong>
-          {sub.commissionRatePct != null && <> — paying {sub.commissionRatePct}% commission</>}
-          {sub.endsAt ? <> until {new Date(sub.endsAt.replace(' ', 'T') + 'Z').toLocaleDateString()}</> : null}. Paying again
-          extends your plan.
+        <div className="driver-dashboard" style={{ marginTop: 16 }}>
+          <div className="driver-dashboard__heading">
+            <h2>{sub.planName}</h2>
+            <span>Paying again extends your plan</span>
+          </div>
+          <div className="stat-grid">
+            {sub.commissionRatePct != null && (
+              <div className="stat-card">
+                <div className="stat-card__icon">💸</div>
+                <div className="stat-card__value">{sub.commissionRatePct}%</div>
+                <div className="stat-card__label">Commission rate</div>
+              </div>
+            )}
+            {sub.endsAt && (
+              <div className="stat-card">
+                <div className="stat-card__icon">📅</div>
+                <div className="stat-card__value" style={{ fontSize: '1.15rem' }}>
+                  {new Date(sub.endsAt.replace(' ', 'T') + 'Z').toLocaleDateString()}
+                </div>
+                <div className="stat-card__label">Active until</div>
+              </div>
+            )}
+          </div>
         </div>
       )}
       {notice && <div className="alert alert-success">{notice}</div>}
