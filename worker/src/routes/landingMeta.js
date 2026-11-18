@@ -28,6 +28,32 @@ export const LANDINGS = {
       'Book a seat with a verified driver across Kenya. See the fare up front, message your driver, and travel with one-tap SOS. Free to join, in English and Swahili.',
     image: '/og/og-ride.jpg',
   },
+  // Plain content pages listed in sitemap.xml. Without their own canonical
+  // they inherit index.html's canonical of "/", which tells Google they are
+  // duplicates of the home page, so Search Console reports them as
+  // "Alternate page with proper canonical tag" and never indexes them.
+  '/browse': {
+    title: 'Browse rides available right now | RideShare Genesis',
+    description:
+      'See the seats and ride requests open across Kenya right now. Book a seat with a verified driver, or offer the empty seats on a trip you are already making.',
+    image: '/og/og-ride.jpg',
+  },
+  '/trust': {
+    title: 'Trust & Safety: how RideShare Genesis keeps rides safe | RideShare Genesis',
+    description:
+      'How driver verification works, what the verified badge means, how payments and your data are protected, and how to report a concern.',
+    image: '/og/og-default.jpg',
+  },
+  '/terms': {
+    title: 'Terms & Conditions | RideShare Genesis',
+    description: 'The terms for riders and drivers using RideShare Genesis, the ride-sharing marketplace for Kenya.',
+    image: '/og/og-default.jpg',
+  },
+  '/privacy': {
+    title: 'Privacy Policy | RideShare Genesis',
+    description: 'What personal data RideShare Genesis collects, why, how long it is kept, and how to see or delete it.',
+    image: '/og/og-default.jpg',
+  },
   referral: {
     title: 'You have been invited to RideShare Genesis',
     description: 'Join free with this invite. Drivers keep 90% of every fare; riders find verified drivers going their way across Kenya.',
@@ -63,7 +89,7 @@ async function serve(c, meta, canonicalPath) {
   return new Response(res.body, { status: 200, headers });
 }
 
-for (const path of ['/matatu', '/taxi', '/ride']) {
+for (const path of ['/matatu', '/taxi', '/ride', '/browse', '/trust', '/terms', '/privacy']) {
   landingMeta.get(path, (c) => serve(c, LANDINGS[path], path));
 }
 // Referral links: never canonicalise to the personal code.
