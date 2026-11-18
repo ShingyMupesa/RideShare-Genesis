@@ -40,7 +40,12 @@ new_sqlite_classes = ["BookingRoom"]
 directory = "./public"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/api/*", "/ws/*", "/admin*", "/matatu", "/taxi", "/ride", "/r/*"]
+# Every page runs through the Worker first so it can (a) redirect
+# www.ridesharegenesis.app to the bare domain and (b) give sitemap pages
+# their own canonical URL (src/routes/landingMeta.js). Built JS/CSS under
+# /assets/ skips the Worker: those files are never indexed and are the bulk
+# of requests.
+run_worker_first = ["/*", "!/assets/*"]
 
 [vars]
 CLIENT_ORIGIN = "*"
