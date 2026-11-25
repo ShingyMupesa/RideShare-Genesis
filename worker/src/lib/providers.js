@@ -1,5 +1,11 @@
 // Payment-choice architecture: every payment method implements the same
 // authorize/capture contract, so the routes layer never branches on method.
+//
+// 'card' and 'wallet' were random-success sandbox stand-ins with no real
+// provider behind them — removed before launch so passengers only see
+// payment options that actually move money (mobile_money sandbox, cash,
+// plus the real card_stripe/mpesa flows in payments.js, which bypass this
+// module entirely).
 
 function makeSandboxProvider(name, { failureRate = 0.02 } = {}) {
   return {
@@ -25,9 +31,7 @@ function makeSandboxProvider(name, { failureRate = 0.02 } = {}) {
 }
 
 export const PROVIDERS = {
-  card: makeSandboxProvider('card'),
   mobile_money: makeSandboxProvider('mobile_money'),
-  wallet: makeSandboxProvider('wallet', { failureRate: 0 }),
   cash: {
     name: 'cash',
     async authorize({ amount, currency }) {
