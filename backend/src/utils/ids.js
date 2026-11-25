@@ -10,6 +10,11 @@ const PREFIXES = {
   safety: 'sfy',
   audit: 'adt',
   reset: 'rst',
+  dispute: 'dsp',
+  plan: 'pln',
+  subscription: 'sub',
+  adSlot: 'ads',
+  insurancePartner: 'ins',
 };
 
 export function newId(kind) {

@@ -135,7 +135,9 @@ and `commission_amount` — the platform's cut of the fare, computed and stored
 at the moment of payment using the `PLATFORM_COMMISSION_PCT` config value
 *at that time*. The rider always pays the full `amount`; commission is
 deducted from the driver's payout, never added on top. `PLATFORM_COMMISSION_PCT`
-defaults to `0` for the early-bird period — raising it later only affects
+is `10` in production. If the journey's driver holds a current Pro Driver
+subscription, the plan's lower `commission_rate_pct` is used instead (never
+higher than the platform rate). Changing the rate later only affects
 payments made after the change, since each payment's rate is fixed at
 creation, not recomputed from current config. See
 [Monetization & marketplace integrity](../README.md#monetization--marketplace-integrity)
@@ -264,3 +266,22 @@ authenticated user (see `governance/audit-events` for the same pattern).
 Works with zero configuration using deterministic, transparent rule-based
 answers. If `ANTHROPIC_API_KEY` is set, responses are enriched by the
 Anthropic API with a graceful fallback on any failure.
+
+## Pro Driver subscriptions (`/api/pro`)
+
+Self-serve, prepaid driver plans. Each verified payment buys one billing
+period; paying again extends it. Nothing auto-renews.
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | `/api/pro/plans` | — | Active paid plans, platform commission %, which checkout methods are live |
+| GET | `/api/pro/me` | user | Current subscription (if any) + last 20 subscription payments |
+| POST | `/api/pro/checkout/stripe` | user | `{ planId }` → `{ paymentId, clientSecret }` for Stripe Elements |
+| POST | `/api/pro/checkout/stripe/:paymentId/confirm` | user | Re-checks the PaymentIntent with Stripe; activates on `succeeded` |
+| POST | `/api/pro/checkout/mpesa` | user | `{ planId, phone }` → STK Push; KES plans only |
+| GET | `/api/pro/checkout/mpesa/:paymentId/status` | user | Polls Safaricom; activates on success |
+| POST | `/api/pro/mpesa/callback?paymentId=` | — | Safaricom callback |
+| GET | `/api/admin/revenue` | admin | Captured subscription revenue + ride commission, per currency, all-time and last 30 days |
+
+Two launch plans are seeded into an empty plans table: Monthly (KES 500)
+and Yearly (KES 5,000), both at 5% commission.

@@ -4,6 +4,8 @@ import { requireAuth, signToken } from '../lib/auth.js';
 import { newId } from '../lib/ids.js';
 import { BadRequest, Conflict, NotFound, Unauthorized } from '../lib/errors.js';
 import { recordAuditEvent } from '../lib/audit.js';
+import { recordFunnelEvent } from '../lib/funnelEvents.js';
+import { recordSignupAttribution } from '../lib/referrals.js';
 import { generateResetToken, hashResetToken } from '../lib/resetToken.js';
 import { sendEmail, resetPasswordEmailHtml, confirmDeletionEmailHtml } from '../lib/resend.js';
 import { loginLimiter, registerLimiter, forgotPasswordLimiter, deletionRequestLimiter } from '../lib/rateLimit.js';
@@ -111,7 +113,15 @@ users.post('/register', registerLimiter, async (c) => {
   const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
   const profile = await getProfile(db, id);
 
+  // Attribution (referral code, campaign source) must never block signup.
+  try {
+    await recordSignupAttribution(db, id, body.attribution);
+  } catch (err) {
+    console.error('[register] attribution failed:', err.message);
+  }
+
   await recordAuditEvent(db, { actorId: id, eventType: 'user.registered', entityType: 'user', entityId: id });
+  await recordFunnelEvent(db, { eventType: 'signup_completed', userId: id });
 
   const token = await signToken(c.env, user);
   return c.json({ token, user: publicUser(user, profile) }, 201);

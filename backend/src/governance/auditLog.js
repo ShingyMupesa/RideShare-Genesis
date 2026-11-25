@@ -25,17 +25,20 @@ export function recordAuditEvent({ actorId = null, eventType, entityType, entity
 }
 
 export function listAuditEvents({ entityType, entityId, limit = 100 } = {}) {
-  if (entityType && entityId) {
-    return db
-      .prepare(
-        `SELECT * FROM audit_events WHERE entity_type = ? AND entity_id = ? ORDER BY created_at DESC LIMIT ?`
-      )
-      .all(entityType, entityId, limit)
-      .map(deserialize);
+  const clauses = [];
+  const params = [];
+  if (entityType) {
+    clauses.push('entity_type = ?');
+    params.push(entityType);
   }
+  if (entityId) {
+    clauses.push('entity_id = ?');
+    params.push(entityId);
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   return db
-    .prepare(`SELECT * FROM audit_events ORDER BY created_at DESC LIMIT ?`)
-    .all(limit)
+    .prepare(`SELECT * FROM audit_events ${where} ORDER BY created_at DESC LIMIT ?`)
+    .all(...params, limit)
     .map(deserialize);
 }
 

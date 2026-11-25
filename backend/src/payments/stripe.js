@@ -72,3 +72,25 @@ export async function createPaymentIntent({ amount, currency, bookingId, secretK
 export async function retrievePaymentIntent(id, { secretKey }) {
   return stripeRequest(`/payment_intents/${id}`, { method: 'GET', secretKey });
 }
+
+/**
+ * Issues a real Stripe refund against a captured PaymentIntent (sandbox or
+ * live, depending on which secretKey is configured) — called from the
+ * dispute-resolution flow when an admin resolves a dispute as
+ * resolved_refunded against a payment made via Stripe. `paymentIntentId` is
+ * the same id stored as the payment's `reference` column. Omitting `amount`
+ * refunds the PaymentIntent in full; when given, it's converted through the
+ * same zero-decimal-currency-aware toStripeAmount() used to create the
+ * intent in the first place, so a partial refund in a currency like UGX
+ * isn't accidentally multiplied by 100.
+ */
+export async function refundPayment({ paymentIntentId, amount, currency, secretKey }) {
+  return stripeRequest('/refunds', {
+    method: 'POST',
+    secretKey,
+    body: {
+      payment_intent: paymentIntentId,
+      ...(amount != null && currency ? { amount: toStripeAmount(amount, currency) } : {}),
+    },
+  });
+}

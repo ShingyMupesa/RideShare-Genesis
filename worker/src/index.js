@@ -13,14 +13,48 @@ import { safety } from './routes/safety.js';
 import { governance } from './routes/governance.js';
 import { ai } from './routes/ai.js';
 import { tracking } from './routes/tracking.js';
-import { admin } from './routes/admin.js';
+import { admin } from './routes/admin/index.js';
 import { feedback } from './routes/feedback.js';
 import { push } from './routes/push.js';
 import { driverVerification } from './routes/driverVerification.js';
+import { platformSettings } from './routes/platformSettings.js';
+import { disputes } from './routes/disputes.js';
+import { liveLocations } from './routes/liveLocations.js';
+import { monetizationPublic, subscriptionPlans, subscriptions } from './routes/monetization.js';
+import { driverBilling, revenueAdmin } from './routes/driverBilling.js';
+import { adminTeam } from './routes/adminTeam.js';
+import { referrals, growthAdmin } from './routes/referrals.js';
+import { landingMeta } from './routes/landingMeta.js';
+import { adSlots } from './routes/adSlots.js';
+import { insurancePartners } from './routes/insurancePartners.js';
+import { adminUsers } from './routes/adminUsers.js';
+import { adminRides } from './routes/adminRides.js';
+import { adminUserLocations } from './routes/adminUserLocations.js';
+import { adminPayments } from './routes/adminPayments.js';
+import { funnelStats } from './routes/funnelStats.js';
 
 export { BookingRoom } from './durable-objects/BookingRoom.js';
 
 const app = new Hono();
+
+const CANONICAL_HOST = 'ridesharegenesis.app';
+
+// www.ridesharegenesis.app served the exact same pages as the bare domain,
+// which Search Console reported as "Duplicate without user-selected
+// canonical". Send page loads on www to the one real address. Only GET/HEAD
+// are redirected: a 301 would turn a POST into a GET and drop its body.
+app.use('*', async (c, next) => {
+  const method = c.req.method;
+  if (method === 'GET' || method === 'HEAD') {
+    const url = new URL(c.req.url);
+    if (url.hostname === `www.${CANONICAL_HOST}`) {
+      url.hostname = CANONICAL_HOST;
+      url.protocol = 'https:';
+      return c.redirect(url.toString(), 301);
+    }
+  }
+  return next();
+});
 
 app.use('*', async (c, next) => {
   const corsMiddleware = cors({ origin: c.env.CLIENT_ORIGIN || '*' });
@@ -42,7 +76,26 @@ app.route('/api/tracking', tracking);
 app.route('/api/feedback', feedback);
 app.route('/api/push', push);
 app.route('/api/driver-verification', driverVerification);
+app.route('/api/admin/platform-settings', platformSettings);
+app.route('/api/disputes', disputes);
+app.route('/api/admin/live-map', liveLocations);
+app.route('/api/monetization', monetizationPublic);
+app.route('/api/pro', driverBilling);
+app.route('/api/admin-team', adminTeam);
+app.route('/api/referrals', referrals);
+app.route('/api/admin/growth', growthAdmin);
+app.route('/api/admin/revenue', revenueAdmin);
+app.route('/api/admin/subscription-plans', subscriptionPlans);
+app.route('/api/admin/subscriptions', subscriptions);
+app.route('/api/admin/ad-slots', adSlots);
+app.route('/api/admin/insurance-partners', insurancePartners);
+app.route('/api/admin/users', adminUsers);
+app.route('/api/admin/user-locations', adminUserLocations);
+app.route('/api/admin/rides', adminRides);
+app.route('/api/admin/payments', adminPayments);
+app.route('/api/admin/funnel-stats', funnelStats);
 app.route('/admin', admin);
+app.route('/', landingMeta);
 
 // Real-time messaging: browsers can't set custom headers on a WebSocket
 // handshake, so the token travels as a query param here instead of an
@@ -74,7 +127,21 @@ app.get('/ws/booking/:id', async (c) => {
   return stub.fetch(url.toString(), c.req.raw);
 });
 
-app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: `No route for ${c.req.method} ${c.req.path}` } }, 404));
+// The Worker now runs first for every page (so the www redirect above can
+// see every request — see run_worker_first in wrangler.toml). Anything it
+// doesn't handle itself is a page or file of the app: hand it to the static
+// assets, which still fall back to index.html for client-side routes.
+const isApiPath = (p) => p === '/api' || p.startsWith('/api/') || p.startsWith('/ws/') || p.startsWith('/admin');
+
+app.notFound(async (c) => {
+  const method = c.req.method;
+  if (!isApiPath(c.req.path) && (method === 'GET' || method === 'HEAD') && c.env.ASSETS) {
+    // Re-wrap so the headers are mutable for middleware (e.g. CORS) that runs after.
+    const res = await c.env.ASSETS.fetch(c.req.raw);
+    return new Response(res.body, res);
+  }
+  return c.json({ error: { code: 'NOT_FOUND', message: `No route for ${method} ${c.req.path}` } }, 404);
+});
 
 app.onError((err, c) => {
   if (err instanceof ApiError) {

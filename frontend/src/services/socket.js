@@ -68,6 +68,9 @@ function createNativeSocket(bookingId) {
       if (event === 'message:send' && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'message:send', body: payload.body }));
       }
+      if (event === 'location:ping' && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'location:ping', lat: payload.lat, lng: payload.lng, heading: payload.heading }));
+      }
     },
     _ws: ws,
   };

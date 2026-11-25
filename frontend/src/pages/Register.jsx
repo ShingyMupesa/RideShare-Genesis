@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import PasswordField from '../components/PasswordField.jsx';
+import { api } from '../services/api.js';
 
 export default function Register() {
   const { register } = useAuth();
@@ -10,9 +11,17 @@ export default function Register() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Fires once, on this user's first submit attempt — the simplest honest
+  // signal that they've actually started trying to register, rather than
+  // just having loaded the page.
+  const startedTrackedRef = useRef(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!startedTrackedRef.current) {
+      startedTrackedRef.current = true;
+      api.trackFunnelEvent('signup_started');
+    }
     if (!acceptedTerms) {
       setError('You must accept the Terms & Conditions to create an account');
       return;

@@ -22,9 +22,15 @@ import BrowseJourneys from './pages/BrowseJourneys.jsx';
 import MatchResults from './pages/MatchResults.jsx';
 import JourneyDetails from './pages/JourneyDetails.jsx';
 import Booking from './pages/Booking.jsx';
+import FileDispute from './pages/FileDispute.jsx';
+import MyDisputes from './pages/MyDisputes.jsx';
 import MyJourneys from './pages/MyJourneys.jsx';
 import BookingThread from './pages/BookingThread.jsx';
 import SafetyCentre from './pages/SafetyCentre.jsx';
+import DriverPro from './pages/DriverPro.jsx';
+import Landing from './pages/Landing.jsx';
+import ReferralRedirect from './pages/ReferralRedirect.jsx';
+import Poster from './pages/Poster.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 export default function App() {
@@ -36,6 +42,11 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Welcome />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/matatu" element={<Landing audience="matatu" />} />
+          <Route path="/taxi" element={<Landing audience="taxi" />} />
+          <Route path="/ride" element={<Landing audience="ride" />} />
+          <Route path="/r/:code" element={<ReferralRedirect />} />
+          <Route path="/poster" element={<Poster />} />
           <Route path="/register" element={<Register />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -81,10 +92,34 @@ export default function App() {
             }
           />
           <Route
+            path="/bookings/:id/dispute"
+            element={
+              <ProtectedRoute>
+                <FileDispute />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/my-journeys"
             element={
               <ProtectedRoute>
                 <MyJourneys />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-disputes"
+            element={
+              <ProtectedRoute>
+                <MyDisputes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pro"
+            element={
+              <ProtectedRoute>
+                <DriverPro />
               </ProtectedRoute>
             }
           />

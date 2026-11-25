@@ -30,7 +30,7 @@ const INTENTS = [
     name: 'payments',
     test: /payment|pay(ing)?|refund|card|mobile money|cash|\bcost\b|\bprice\b|currency|\bkes\b|shilling|commission|platform fee|take a cut/i,
     reply: () =>
-      'You can pay by card, mobile money, wallet balance, or arrange cash directly with your driver — pick whichever suits you at checkout. Every price is shown in the currency its owner actually chose, never assumed. Genesis currently takes 0% commission during the early-bird period; whatever rate applies is fixed at the moment of payment, so it never changes retroactively.',
+      'You can pay by card, mobile money, wallet balance, or arrange cash directly with your driver — pick whichever suits you at checkout. Every price is shown in the currency its owner actually chose, never assumed. Genesis takes a 10% commission from the driver\'s share (Pro Driver subscribers pay less); whatever rate applies is fixed at the moment of payment, so it never changes retroactively.',
   },
   {
     name: 'safety',
@@ -98,7 +98,13 @@ const INTENTS = [
     name: 'not_yet_wallet',
     test: /wallet transfer|send money to (a |the )?(driver|passenger)|transfer (money|funds)|internal transfer/i,
     reply: () =>
-      "That's not built yet — there's no in-app wallet or peer-to-peer transfer system for refunds or disputes right now. It's on the roadmap; for now, disputes go through the Safety Centre.",
+      "There's no in-app wallet or peer-to-peer transfer system for sending money directly between users yet — that part's still on the roadmap. If this is about a charge you want reversed, file a dispute from the booking's page (look for the \"Dispute\" button) — pick a category, describe what happened, and an admin reviews it from there.",
+  },
+  {
+    name: 'disputes',
+    test: /\bdispute\b|disagree (with|about) (the )?(fare|charge|price)|wrong(ly)? charged|wrongly billed|overcharged/i,
+    reply: () =>
+      'You can file a dispute right from the booking\'s page once a payment has been made (or the trip is completed/cancelled) — look for the "Dispute" button next to Message. Pick a category (fare dispute, no-show, property damage, conduct, or other), describe what happened, and an admin will review and resolve it, including issuing a refund where that applies. Track the status of anything you\'ve filed under "My Disputes".',
   },
   {
     name: 'not_yet_verification',

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /profile
+Disallow: /bookings/
+
+Sitemap: https://ridesharegenesis.app/sitemap.xml

@@ -21,7 +21,7 @@ const SECTIONS = [
   },
   {
     title: '6. Payments, Fees & Commission',
-    body: 'Prices are set by the journey owner or requester and always shown with an explicit currency. Genesis may charge a commission on completed, paid bookings; the rate that applied to a given payment is fixed at the moment it is captured and will not change retroactively. The commission rate is currently 0% during an early-bird pilot period. As of this version of the Terms, real-money payment processing is in test/sandbox mode only.',
+    body: 'Prices are set by the journey owner or requester and always shown with an explicit currency. Genesis may charge a commission on completed, paid bookings; the rate that applied to a given payment is fixed at the moment it is captured and will not change retroactively. The standard commission rate is 10% of the fare, deducted from the driver\'s share and never added to the passenger\'s price. Drivers with a current Genesis Pro Driver subscription pay the lower rate stated on their plan. Pro Driver plans are one-off prepaid payments for a fixed period (for example one month), do not renew automatically, and activate only once the payment provider confirms the payment.',
   },
   {
     title: '7. Cancellations & Refunds',

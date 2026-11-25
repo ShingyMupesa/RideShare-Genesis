@@ -8,6 +8,7 @@ import { recordAuditEvent } from '../governance/auditLog.js';
 import { createPaymentIntent, retrievePaymentIntent } from './stripe.js';
 import { initiateStkPush, queryStkPushStatus, parseCallbackMetadata } from './mpesa.js';
 import { mpesaLimiter } from '../middleware/rateLimit.js';
+import { getSetting } from '../governance/platformSettings.js';
 
 export const router = Router();
 
@@ -36,11 +37,16 @@ function callbackOrigin(req) {
 
 // The rider always pays the full fare; commission is the platform's cut of
 // that fare, deducted from the driver's payout rather than added on top.
-// Defaults to 0% (see .env.example) for the early-bird period — flipping
-// PLATFORM_COMMISSION_PCT later applies only to payments made after the
-// change, since the rate actually charged is stored per-payment.
-function commissionRateFromEnv() {
-  const pct = Number(process.env.PLATFORM_COMMISSION_PCT ?? 0);
+// Reads the admin-configurable `commission_rate_pct` platform setting first
+// (takes effect immediately, no restart needed); falls back to the
+// PLATFORM_COMMISSION_PCT env var (see .env.example) — 0% by default for
+// the early-bird period — when nothing has been explicitly stored yet.
+// Either way, flipping the rate later applies only to payments made after
+// the change, since the rate actually charged is stored per-payment.
+function commissionRateFromSettings() {
+  const stored = getSetting('commission_rate_pct');
+  const storedPct = stored !== null ? Number(stored) : NaN;
+  const pct = Number.isFinite(storedPct) ? storedPct : Number(process.env.PLATFORM_COMMISSION_PCT ?? 0);
   return Number.isFinite(pct) && pct > 0 ? pct / 100 : 0;
 }
 
@@ -80,7 +86,7 @@ router.post(
       method,
       amount: booking.totalPrice,
       currency: booking.currency,
-      commissionRate: commissionRateFromEnv(),
+      commissionRate: commissionRateFromSettings(),
     });
 
     const authResult = await provider.authorize({ amount: booking.totalPrice, currency: booking.currency });
@@ -130,7 +136,7 @@ router.post(
       method: 'card_stripe',
       amount: booking.totalPrice,
       currency: booking.currency,
-      commissionRate: commissionRateFromEnv(),
+      commissionRate: commissionRateFromSettings(),
     });
 
     let intent;
@@ -214,7 +220,7 @@ router.post(
       method: 'mpesa',
       amount: booking.totalPrice,
       currency: booking.currency,
-      commissionRate: commissionRateFromEnv(),
+      commissionRate: commissionRateFromSettings(),
     });
 
     let stk;

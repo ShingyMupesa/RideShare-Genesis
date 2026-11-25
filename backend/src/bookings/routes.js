@@ -8,6 +8,8 @@ import { getMatchById } from '../matching/engine.js';
 import { recordAuditEvent } from '../governance/auditLog.js';
 import { estimateBookingImpact } from '../utils/impact.js';
 import { notifyUser } from '../push/notify.js';
+import { db } from '../db/connection.js';
+import { recordFunnelEvent } from '../tracking/funnelEvents.js';
 
 export const router = Router();
 
@@ -32,6 +34,12 @@ router.post(
       if (match.requestJourney.ownerId !== req.user.id) throw Forbidden('This match does not belong to you');
     }
 
+    // Funnel instrumentation: "first booking made" is a one-time milestone
+    // — checked before the insert so the count reflects bookings this
+    // passenger had *before* this one.
+    const { n: priorBookingCount } = db.prepare('SELECT COUNT(*) AS n FROM bookings WHERE passenger_id = ?').get(req.user.id);
+    const isFirstBooking = priorBookingCount === 0;
+
     const booking = Bookings.createBooking({
       journeyId,
       passengerId: req.user.id,
@@ -41,6 +49,10 @@ router.post(
       currency: journey.currency,
       initialStatus: match ? 'MATCHED' : 'REQUESTED',
     });
+
+    if (isFirstBooking) {
+      recordFunnelEvent({ eventType: 'first_booking_made', userId: req.user.id });
+    }
 
     recordAuditEvent({
       actorId: req.user.id,
@@ -125,6 +137,10 @@ function transitionHandler(nextStatus, { requireOwner = false, requirePassenger 
         vehicleType: journey.vehicleType,
       });
       updated = Bookings.setBookingImpact(booking.id, impact);
+
+      // "booking_completed" tracks a repeatable funnel step (every
+      // completion, not just the passenger's first).
+      recordFunnelEvent({ eventType: 'booking_completed', userId: booking.passengerId });
     }
 
     recordAuditEvent({

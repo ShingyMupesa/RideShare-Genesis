@@ -12,6 +12,17 @@ import { router as aiRouter } from './ai/routes.js';
 import { router as feedbackRouter } from './feedback/routes.js';
 import { router as pushRouter } from './push/routes.js';
 import { router as driverVerificationRouter } from './driverVerification/routes.js';
+import { router as disputesRouter } from './disputes/routes.js';
+import { router as liveLocationsRouter } from './liveLocations/routes.js';
+import { publicRouter as monetizationPublicRouter, plansRouter as subscriptionPlansRouter, subscriptionsRouter } from './monetization/routes.js';
+import { router as adSlotsRouter } from './adSlots/routes.js';
+import { router as insurancePartnersRouter } from './insurancePartners/routes.js';
+import { router as trackingRouter } from './tracking/routes.js';
+import { router as adminUsersRouter } from './adminUsers/routes.js';
+import { router as adminUserLocationsRouter } from './adminUserLocations/routes.js';
+import { router as adminRidesRouter } from './adminRides/routes.js';
+import { router as adminPaymentsRouter } from './adminPayments/routes.js';
+import { router as funnelStatsRouter } from './funnelStats/routes.js';
 import { ApiError } from './utils/errors.js';
 
 export function createApp() {
@@ -47,6 +58,19 @@ export function createApp() {
   app.use('/api/feedback', feedbackRouter);
   app.use('/api/push', pushRouter);
   app.use('/api/driver-verification', driverVerificationRouter);
+  app.use('/api/disputes', disputesRouter);
+  app.use('/api/admin/live-map', liveLocationsRouter);
+  app.use('/api/monetization', monetizationPublicRouter);
+  app.use('/api/admin/subscription-plans', subscriptionPlansRouter);
+  app.use('/api/admin/subscriptions', subscriptionsRouter);
+  app.use('/api/admin/ad-slots', adSlotsRouter);
+  app.use('/api/admin/insurance-partners', insurancePartnersRouter);
+  app.use('/api/tracking', trackingRouter);
+  app.use('/api/admin/users', adminUsersRouter);
+  app.use('/api/admin/user-locations', adminUserLocationsRouter);
+  app.use('/api/admin/rides', adminRidesRouter);
+  app.use('/api/admin/payments', adminPaymentsRouter);
+  app.use('/api/admin/funnel-stats', funnelStatsRouter);
 
   app.use((req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: `No route for ${req.method} ${req.path}` } });

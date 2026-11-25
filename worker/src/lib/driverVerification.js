@@ -1,4 +1,5 @@
 import { newId } from './ids.js';
+import { ensurePlatformSettingsTable } from './platformSettings.js';
 
 // Self-provisions the same way notify.js/users.js do for their own
 // tables/columns — no separate `wrangler d1 migrations apply` step needed
@@ -20,7 +21,7 @@ export async function ensureDriverVerificationSchema(db) {
   await db.exec(
     `CREATE TABLE IF NOT EXISTS driver_verifications (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, full_legal_name TEXT NOT NULL, license_number TEXT NOT NULL, license_expiry TEXT, vehicle_make_model TEXT, vehicle_plate TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', submitted_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP), reviewed_at TEXT, reviewed_by TEXT, review_note TEXT, created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP))`
   );
-  await db.exec(`CREATE TABLE IF NOT EXISTS platform_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP))`);
+  await ensurePlatformSettingsTable(db);
   for (const column of [
     'license_photo_key TEXT',
     'license_photo_mime TEXT',

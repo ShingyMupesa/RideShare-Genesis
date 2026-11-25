@@ -53,6 +53,47 @@ export default function Welcome() {
         </div>
       </section>
 
+      <section className="audience-tiles">
+        <Link to="/matatu" className="principle-card audience-tile">
+          <div className="icon">🚐</div>
+          <h3 style={{ margin: '8px 0 4px' }}>Matatu &amp; PSV drivers</h3>
+          <p className="muted">Fill empty seats. Keep 90% of every fare.</p>
+        </Link>
+        <Link to="/taxi" className="principle-card audience-tile">
+          <div className="icon">🚕</div>
+          <h3 style={{ margin: '8px 0 4px' }}>Airport &amp; taxi drivers</h3>
+          <p className="muted">Get booked before you reach the rank.</p>
+        </Link>
+        <Link to="/ride" className="principle-card audience-tile">
+          <div className="icon">🧍</div>
+          <h3 style={{ margin: '8px 0 4px' }}>Riders &amp; commuters</h3>
+          <p className="muted">Find a driver going your way.</p>
+        </Link>
+      </section>
+
+      <section className="cofounder-banner" id="invest">
+        <p className="eyebrow">{t('cofounder.eyebrow')}</p>
+        <h2>{t('cofounder.headline')}</h2>
+        <p className="muted">{t('cofounder.body')}</p>
+        <div className="cofounder-banner__actions">
+          <a
+            className="btn btn-primary"
+            href="mailto:founder@ridesharegenesis.app?subject=RideShare%20Genesis%20%E2%80%94%20investor%20%2F%20co-founder%20conversation"
+          >
+            {t('cofounder.ctaContact')}
+          </a>
+          <a
+            className="btn btn-secondary"
+            href="https://wa.me/447449494405?text=Hi%20Shingy%2C%20I%27m%20interested%20in%20RideShare%20Genesis%20as%20an%20investor%20or%20co-founder."
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            WhatsApp
+          </a>
+        </div>
+        <p className="muted" style={{ fontSize: '0.85rem', marginTop: 10 }}>founder@ridesharegenesis.app</p>
+      </section>
+
       <section>
         <h2 style={{ textAlign: 'center' }}>{t('welcome.principlesHeading')}</h2>
         <div className="principles-grid">
@@ -71,7 +112,7 @@ export default function Welcome() {
         <ol style={{ paddingLeft: 20, lineHeight: 1.9 }}>
           <li>Tell Genesis where you're headed — as a rider requesting a seat, or a driver offering one.</li>
           <li>Genesis's matching engine scores candidates against your Decision DNA and shows its reasoning.</li>
-          <li>Book your seat, choose how to pay, and message your match directly.</li>
+          <li>Book your seat — cash is available now, with mobile money (M-Pesa) and card coming soon — and message your match directly.</li>
           <li>Travel with the Safety Centre one tap away, and every step logged for accountability.</li>
         </ol>
       </section>

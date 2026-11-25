@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
 import { requireAuth, optionalAuth } from '../lib/auth.js';
 import { newId } from '../lib/ids.js';
-import { ApiError, BadRequest, Forbidden, NotFound } from '../lib/errors.js';
+import { ApiError, BadRequest, Conflict, Forbidden, NotFound } from '../lib/errors.js';
 import { generateMatchesForJourney } from '../lib/matching.js';
 import { VEHICLE_TYPES } from '../lib/impact.js';
 import * as DriverVerification from '../lib/driverVerification.js';
+import { estimateDemand } from '../lib/surge.js';
+import { recordFunnelEvent } from '../lib/funnelEvents.js';
 
 export const journeys = new Hono();
 
@@ -72,27 +74,43 @@ export async function listJourneys(db, { type, status = 'active', ownerId } = {}
   return results.map(deserialize);
 }
 
+// The seats_available update is a single conditional UPDATE, not a
+// read-then-write, so two concurrent bookings for the same journey can't
+// both pass a seats-available check before either decrements (which would
+// silently overbook the journey). The `AND seats_available >= ?` guard
+// makes the DB itself the source of truth for whether seats were actually
+// available at the moment of the write.
 export async function decrementSeats(db, journeyId, seats) {
-  const journey = await getJourneyById(db, journeyId);
-  if (!journey) return null;
-  const nextAvailable = Math.max(journey.seatsAvailable - seats, 0);
-  const nextStatus = nextAvailable <= 0 ? 'full' : journey.status;
-  await db
-    .prepare('UPDATE journeys SET seats_available = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-    .bind(nextAvailable, nextStatus, journeyId)
+  const result = await db
+    .prepare(
+      `UPDATE journeys
+       SET seats_available = seats_available - ?,
+           status = CASE WHEN seats_available - ? <= 0 THEN 'full' ELSE status END,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND seats_available >= ?`
+    )
+    .bind(seats, seats, journeyId, seats)
     .run();
+  if (!result.meta.rows_written) {
+    const journey = await getJourneyById(db, journeyId);
+    if (!journey) return null;
+    throw Conflict('Not enough seats available');
+  }
   return getJourneyById(db, journeyId);
 }
 
 export async function restoreSeats(db, journeyId, seats) {
-  const journey = await getJourneyById(db, journeyId);
-  if (!journey) return null;
-  const nextAvailable = Math.min(journey.seatsTotal, journey.seatsAvailable + seats);
-  const nextStatus = nextAvailable > 0 && journey.status === 'full' ? 'active' : journey.status;
-  await db
-    .prepare('UPDATE journeys SET seats_available = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-    .bind(nextAvailable, nextStatus, journeyId)
+  const result = await db
+    .prepare(
+      `UPDATE journeys
+       SET seats_available = MIN(seats_total, seats_available + ?),
+           status = CASE WHEN MIN(seats_total, seats_available + ?) > 0 AND status = 'full' THEN 'active' ELSE status END,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`
+    )
+    .bind(seats, seats, journeyId)
     .run();
+  if (!result.meta.rows_written) return null;
   return getJourneyById(db, journeyId);
 }
 
@@ -145,6 +163,12 @@ journeys.post('/', requireAuth, async (c) => {
     }
   }
 
+  // Funnel instrumentation: "first journey posted" is a one-time milestone,
+  // of any journey type (offer or request) — checked before the insert so
+  // the count reflects journeys this user had *before* this one.
+  const priorJourneyCount = await db.prepare('SELECT COUNT(*) AS n FROM journeys WHERE owner_id = ?').bind(authUser.id).first();
+  const isFirstJourney = (priorJourneyCount?.n || 0) === 0;
+
   const id = newId('journey');
   await db
     .prepare(
@@ -173,6 +197,10 @@ journeys.post('/', requireAuth, async (c) => {
       body.type === 'offer' ? body.vehicleType ?? null : null
     )
     .run();
+
+  if (isFirstJourney) {
+    await recordFunnelEvent(db, { eventType: 'first_journey_posted', userId: authUser.id });
+  }
 
   const journey = await getJourneyById(db, id);
   let matches = [];
@@ -206,6 +234,29 @@ journeys.get('/', optionalAuth, async (c) => {
 
   const results = await listJourneys(c.env.DB, { type, status, ownerId });
   return c.json({ journeys: results.map((j) => redactIfPrivateRequest(j, authUser?.id)) });
+});
+
+// Public, read-only, informational only — no auth required, matching the
+// other read-only lookups in this file. This route must NEVER be wired to
+// write journeys.price_per_seat, now or in the future: Genesis's product
+// promise is a driver-set, known-upfront flat price, and this endpoint only
+// ever suggests a price to the driver before they publish; it never
+// changes one. Placed before the GET '/:id' route so '/surge-suggestion'
+// isn't swallowed by the ':id' param match.
+journeys.get('/surge-suggestion', async (c) => {
+  const lat = Number(c.req.query('lat'));
+  const lng = Number(c.req.query('lng'));
+  const departureTime = c.req.query('departureTime');
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    throw BadRequest('lat and lng are required and must be numbers');
+  }
+  if (!departureTime || Number.isNaN(Date.parse(departureTime))) {
+    throw BadRequest('departureTime must be a valid ISO date string');
+  }
+
+  const result = await estimateDemand(c.env.DB, { lat, lng, departureTime });
+  return c.json(result);
 });
 
 journeys.get('/:id', optionalAuth, async (c) => {

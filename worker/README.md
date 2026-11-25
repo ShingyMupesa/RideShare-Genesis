@@ -33,6 +33,11 @@ npx wrangler d1 migrations apply DB --remote
 # every request if it's unset (no insecure default, see src/lib/auth.js).
 npx wrangler secret put JWT_SECRET
 npx wrangler secret put ANTHROPIC_API_KEY   # optional
+
+# Required for /admin and /api/tracking/stats, /api/feedback/list, and the
+# driver-verification review endpoints — without it they all 500 with
+# "ADMIN_TOKEN is not set on this Worker" (see src/lib/adminAuth.js).
+npx wrangler secret put ADMIN_TOKEN
 ```
 
 ## Deploy

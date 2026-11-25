@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { requireAuth, signToken } from '../middleware/auth.js';
 import { asyncHandler, BadRequest, Conflict, NotFound, Unauthorized } from '../utils/errors.js';
 import { recordAuditEvent } from '../governance/auditLog.js';
+import { recordFunnelEvent } from '../tracking/funnelEvents.js';
 import * as Users from './repository.js';
 import { generateResetToken, hashResetToken } from './resetToken.js';
 import { sendEmail, resetPasswordEmailHtml, confirmDeletionEmailHtml } from '../email/resend.js';
@@ -49,6 +50,7 @@ router.post(
       entityType: 'user',
       entityId: user.id,
     });
+    recordFunnelEvent({ eventType: 'signup_completed', userId: user.id });
 
     const token = signToken(user);
     res.status(201).json({ token, user: Users.publicUser(user, profile) });

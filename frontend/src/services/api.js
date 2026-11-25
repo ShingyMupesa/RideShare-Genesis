@@ -102,6 +102,21 @@ export const api = {
   mpesaStkPush: (bookingId, phone) => request('/payments/mpesa/stk-push', { method: 'POST', body: { bookingId, phone } }),
   mpesaPaymentStatus: (paymentId) => request(`/payments/mpesa/${paymentId}/status`),
 
+  // Referrals
+  myReferrals: () => request('/referrals/me'),
+
+  // Admin Team
+  adminTeamStatus: () => request('/admin-team/status'),
+  requestAdminAccess: (reason) => request('/admin-team/request', { method: 'POST', body: { reason } }),
+
+  // Pro Driver subscriptions
+  proPlans: () => request('/pro/plans', { auth: false }),
+  proMe: () => request('/pro/me'),
+  proStripeCheckout: (planId) => request('/pro/checkout/stripe', { method: 'POST', body: { planId } }),
+  proStripeConfirm: (paymentId) => request(`/pro/checkout/stripe/${paymentId}/confirm`, { method: 'POST' }),
+  proMpesaCheckout: (planId, phone) => request('/pro/checkout/mpesa', { method: 'POST', body: { planId, phone } }),
+  proMpesaStatus: (paymentId) => request(`/pro/checkout/mpesa/${paymentId}/status`),
+
   // Messaging
   listMessages: (bookingId) => request(`/messages/booking/${bookingId}`),
   sendMessage: (bookingId, body) => request(`/messages/booking/${bookingId}`, { method: 'POST', body: { body } }),
@@ -128,6 +143,30 @@ export const api = {
   myDriverVerification: () => request('/driver-verification/me'),
   submitDriverVerification: (payload) => request('/driver-verification', { method: 'POST', body: payload }),
   driverVerificationPhotoBlob: (submissionId, which) => requestBlob(`/driver-verification/${submissionId}/photo/${which}`),
+
+  // Disputes
+  fileDispute: (bookingId, payload) => request('/disputes', { method: 'POST', body: { bookingId, ...payload } }),
+  myDisputes: () => request('/disputes/mine'),
+
+  // Surge advisory — purely informational (see worker/src/lib/surge.js);
+  // never allowed to send a token-gated request, since it's a public,
+  // read-only lookup a driver can call before even signing in to publish.
+  surgeSuggestion: ({ lat, lng, departureTime }) =>
+    request(`/journeys/surge-suggestion?${new URLSearchParams({ lat, lng, departureTime }).toString()}`, { auth: false }),
+
+  // Funnel instrumentation — fire-and-forget. Never throws and never blocks
+  // the calling code: a failed beacon (offline, ad-blocker, server hiccup)
+  // must not break the real feature it's attached to. Most funnel events
+  // are recorded server-side where a "first time?" check already needs a DB
+  // query anyway (see worker/src/routes/journeys.js, bookings.js); this is
+  // used for "signup_started", which has no natural server-side moment.
+  trackFunnelEvent: (eventType, visitorId) => {
+    try {
+      request('/tracking/funnel', { method: 'POST', body: { eventType, visitorId }, auth: true }).catch(() => {});
+    } catch {
+      // swallow — instrumentation must never break the calling flow
+    }
+  },
 };
 
 export { ApiError };
