@@ -25,6 +25,12 @@ export const translations = {
     'welcome.ctaOffer': 'Offer a Journey',
     'welcome.principlesHeading': 'Human-centred principles',
     'welcome.howItWorks': 'How it works',
+    'cofounder.eyebrow': 'Building something bigger',
+    'cofounder.headline': "We're looking for a technical co-founder and early-bird investors",
+    'cofounder.body':
+      'Join us in scaling Genesis — as a technical co-founder helping build what\'s next, or as a pre-seed investor backing the Nairobi pilot.',
+    'cofounder.ctaLearnMore': 'Learn more →',
+    'cofounder.ctaContact': 'Get in touch',
   },
   sw: {
     'nav.browse': 'Angalia Safari',
@@ -48,5 +54,11 @@ export const translations = {
     'welcome.ctaOffer': 'Toa Safari',
     'welcome.principlesHeading': 'Misingi inayoweka binadamu mbele',
     'welcome.howItWorks': 'Jinsi inavyofanya kazi',
+    'cofounder.eyebrow': 'Tunajenga kitu kikubwa zaidi',
+    'cofounder.headline': 'Tunatafuta co-founder wa kiufundi na wawekezaji wa mapema',
+    'cofounder.body':
+      'Jiunge nasi kukuza Genesis — kama co-founder wa kiufundi unayesaidia kujenga kinachofuata, au kama mwekezaji wa pre-seed unayeunga mkono pilot ya Nairobi.',
+    'cofounder.ctaLearnMore': 'Jifunze zaidi →',
+    'cofounder.ctaContact': 'Wasiliana nasi',
   },
 };
