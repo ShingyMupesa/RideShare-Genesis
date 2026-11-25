@@ -48,6 +48,7 @@ function publicUser(user, profile) {
     fullName: user.full_name,
     phone: user.phone,
     role: user.role,
+    travelIntent: user.travel_intent || null,
     createdAt: user.created_at,
     profile: profile
       ? {
@@ -83,9 +84,23 @@ async function ensureTermsColumn(db) {
   termsColumnEnsured = true;
 }
 
+// travel_intent predates this route in existing production databases; same
+// self-provisioning as ensureTermsColumn above.
+const TRAVEL_INTENTS = new Set(['driver', 'passenger', 'both']);
+let travelIntentColumnEnsured = false;
+async function ensureTravelIntentColumn(db) {
+  if (travelIntentColumnEnsured) return;
+  try {
+    await db.exec('ALTER TABLE users ADD COLUMN travel_intent TEXT');
+  } catch (err) {
+    if (!/duplicate column/i.test(err.message || '')) throw err;
+  }
+  travelIntentColumnEnsured = true;
+}
+
 users.post('/register', registerLimiter, async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  const { email, password, fullName, phone, acceptedTerms } = body;
+  const { email, password, fullName, phone, acceptedTerms, travelIntent } = body;
   if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');
   if (!password || password.length < 8) throw BadRequest('Password must be at least 8 characters');
   if (!fullName || !fullName.trim()) throw BadRequest('Full name is required');
@@ -93,6 +108,7 @@ users.post('/register', registerLimiter, async (c) => {
 
   const db = c.env.DB;
   await ensureTermsColumn(db);
+  await ensureTravelIntentColumn(db);
   const normalizedEmail = email.toLowerCase();
   const existing = await db.prepare('SELECT id FROM users WHERE email = ?').bind(normalizedEmail).first();
   if (existing) throw Conflict('An account with this email already exists');
@@ -100,8 +116,10 @@ users.post('/register', registerLimiter, async (c) => {
   const passwordHash = await bcrypt.hash(password, 10);
   const id = newId('user');
   await db
-    .prepare('INSERT INTO users (id, email, password_hash, full_name, phone, accepted_terms_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
-    .bind(id, normalizedEmail, passwordHash, fullName.trim(), phone || null)
+    .prepare(
+      'INSERT INTO users (id, email, password_hash, full_name, phone, accepted_terms_at, travel_intent) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)'
+    )
+    .bind(id, normalizedEmail, passwordHash, fullName.trim(), phone || null, TRAVEL_INTENTS.has(travelIntent) ? travelIntent : null)
     .run();
   await db
     .prepare('INSERT INTO profiles (user_id, preferences_json, decision_dna_json) VALUES (?, ?, ?)')

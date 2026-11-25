@@ -24,7 +24,7 @@ router.post(
   '/register',
   registerLimiter,
   asyncHandler(async (req, res) => {
-    const { email, password, fullName, phone, acceptedTerms } = req.body || {};
+    const { email, password, fullName, phone, acceptedTerms, travelIntent } = req.body || {};
     if (!email || !EMAIL_RE.test(email)) throw BadRequest('A valid email is required');
     if (!password || password.length < 8) throw BadRequest('Password must be at least 8 characters');
     if (!fullName || !fullName.trim()) throw BadRequest('Full name is required');
@@ -40,6 +40,7 @@ router.post(
       passwordHash,
       fullName: fullName.trim(),
       phone,
+      travelIntent,
     });
     const profile = Users.getProfile(user.id);
 
