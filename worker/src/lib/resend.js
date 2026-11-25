@@ -32,6 +32,18 @@ export function resetPasswordEmailHtml({ resetUrl, fullName }) {
   `;
 }
 
+export function verifyEmailHtml({ verifyUrl, fullName }) {
+  return `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1c1b2e;">
+      <h2 style="color:#5b4cff;">RideShare Genesis</h2>
+      <p>Hi ${fullName || 'there'},</p>
+      <p>Welcome to Genesis! Confirm this is your email address — this link expires in 24 hours.</p>
+      <p><a href="${verifyUrl}" style="display:inline-block;background:#5b4cff;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:600;">Verify my email</a></p>
+      <p style="color:#6a6883;font-size:0.85rem;">If you didn't create a Genesis account, you can safely ignore this email.</p>
+    </div>
+  `;
+}
+
 export function confirmDeletionEmailHtml({ confirmUrl, fullName }) {
   return `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1c1b2e;">

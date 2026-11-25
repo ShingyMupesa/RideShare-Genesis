@@ -61,6 +61,8 @@ export const api = {
   requestDataDeletion: (email) => request('/users/deletion-requests', { method: 'POST', body: { email }, auth: false }),
   confirmDataDeletion: (token) =>
     request('/users/deletion-requests/confirm', { method: 'POST', body: { token }, auth: false }),
+  verifyEmail: (token) => request('/users/verify-email', { method: 'POST', body: { token }, auth: false }),
+  resendVerificationEmail: () => request('/users/verify-email/resend', { method: 'POST' }),
 
   // Journeys
   createJourney: (payload) => request('/journeys', { method: 'POST', body: payload }),

@@ -20,6 +20,21 @@ export default function Profile() {
   const [emergencyPhone, setEmergencyPhone] = useState(profile?.emergencyContactPhone || '');
   const [status, setStatus] = useState('');
   const [saving, setSaving] = useState(false);
+  const [verifyStatus, setVerifyStatus] = useState('');
+  const [resendingVerification, setResendingVerification] = useState(false);
+
+  async function resendVerification() {
+    setResendingVerification(true);
+    setVerifyStatus('');
+    try {
+      const { message } = await api.resendVerificationEmail();
+      setVerifyStatus(message);
+    } catch (err) {
+      setVerifyStatus(err.message || 'Could not send a new verification email');
+    } finally {
+      setResendingVerification(false);
+    }
+  }
 
   async function save(e) {
     e.preventDefault();
@@ -75,6 +90,16 @@ export default function Profile() {
       <p className="eyebrow">Your profile</p>
       <h1>{user.fullName}</h1>
       <p className="muted">{user.email}</p>
+
+      {!profile?.verifiedEmail && (
+        <div className="alert alert-info">
+          Verify your email so we know it's really you.{' '}
+          <button type="button" className="btn btn-ghost btn-sm" onClick={resendVerification} disabled={resendingVerification}>
+            {resendingVerification ? 'Sending…' : 'Resend verification email'}
+          </button>
+          {verifyStatus && <p className="muted" style={{ marginTop: 6 }}>{verifyStatus}</p>}
+        </div>
+      )}
 
       {status && <div className="alert alert-info">{status}</div>}
 

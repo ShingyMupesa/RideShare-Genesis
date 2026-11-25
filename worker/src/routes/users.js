@@ -5,8 +5,8 @@ import { newId } from '../lib/ids.js';
 import { BadRequest, Conflict, NotFound, Unauthorized } from '../lib/errors.js';
 import { recordAuditEvent } from '../lib/audit.js';
 import { generateResetToken, hashResetToken } from '../lib/resetToken.js';
-import { sendEmail, resetPasswordEmailHtml, confirmDeletionEmailHtml } from '../lib/resend.js';
-import { loginLimiter, registerLimiter, forgotPasswordLimiter, deletionRequestLimiter } from '../lib/rateLimit.js';
+import { sendEmail, resetPasswordEmailHtml, confirmDeletionEmailHtml, verifyEmailHtml } from '../lib/resend.js';
+import { loginLimiter, registerLimiter, forgotPasswordLimiter, deletionRequestLimiter, resendVerificationLimiter } from '../lib/rateLimit.js';
 import {
   deleteAccount,
   generateDeletionToken,
@@ -83,6 +83,51 @@ async function ensureTermsColumn(db) {
   termsColumnEnsured = true;
 }
 
+// email_verifications mirrors password_resets/deletion_requests — same
+// self-provisioning reasoning (see ensurePasswordResetsTable below).
+let emailVerificationsEnsured = false;
+async function ensureEmailVerificationsTable(db) {
+  if (emailVerificationsEnsured) return;
+  await db.exec(
+    `CREATE TABLE IF NOT EXISTS email_verifications (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, confirmed_at TEXT, created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP))`
+  );
+  emailVerificationsEnsured = true;
+}
+
+// Best-effort — a tester whose inbox doesn't get the email (or who has no
+// RESEND_API_KEY configured in a dev environment) can still use the app;
+// they just keep seeing the "verify your email" prompt until they do, or
+// use the resend endpoint below.
+async function sendVerificationEmail(c, db, user) {
+  await ensureEmailVerificationsTable(db);
+  const token = generateResetToken();
+  const tokenHash = await hashResetToken(token);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  await db
+    .prepare('INSERT INTO email_verifications (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)')
+    .bind(newId('everify'), user.id, tokenHash, expiresAt)
+    .run();
+
+  const origin = new URL(c.req.url).origin;
+  const verifyUrl = `${origin}/verify-email?token=${token}`;
+
+  if (c.env.RESEND_API_KEY) {
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Verify your RideShare Genesis email',
+        html: verifyEmailHtml({ verifyUrl, fullName: user.full_name }),
+        apiKey: c.env.RESEND_API_KEY,
+        from: c.env.EMAIL_FROM || 'RideShare Genesis <onboarding@resend.dev>',
+      });
+    } catch (err) {
+      console.error('[verify-email] failed to send email:', err.message);
+    }
+  } else {
+    console.warn('[verify-email] RESEND_API_KEY not configured — no email sent. Verify link:', verifyUrl);
+  }
+}
+
 users.post('/register', registerLimiter, async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { email, password, fullName, phone, acceptedTerms } = body;
@@ -112,6 +157,7 @@ users.post('/register', registerLimiter, async (c) => {
   const profile = await getProfile(db, id);
 
   await recordAuditEvent(db, { actorId: id, eventType: 'user.registered', entityType: 'user', entityId: id });
+  await sendVerificationEmail(c, db, user);
 
   const token = await signToken(c.env, user);
   return c.json({ token, user: publicUser(user, profile) }, 201);
@@ -216,6 +262,40 @@ users.post('/reset-password', async (c) => {
 
   const authToken = await signToken(c.env, user);
   return c.json({ token: authToken, user: publicUser(user, profile) });
+});
+
+users.post('/verify-email', async (c) => {
+  const db = c.env.DB;
+  const body = await c.req.json().catch(() => ({}));
+  const { token } = body;
+  if (!token) throw BadRequest('token is required');
+
+  await ensureEmailVerificationsTable(db);
+  const tokenHash = await hashResetToken(token);
+  const verification = await db
+    .prepare(`SELECT * FROM email_verifications WHERE token_hash = ? AND confirmed_at IS NULL AND expires_at > CURRENT_TIMESTAMP`)
+    .bind(tokenHash)
+    .first();
+  if (!verification) throw BadRequest('This verification link is invalid or has expired');
+
+  await db.prepare('UPDATE profiles SET verified_email = 1, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(verification.user_id).run();
+  await db.prepare('UPDATE email_verifications SET confirmed_at = CURRENT_TIMESTAMP WHERE id = ?').bind(verification.id).run();
+  await recordAuditEvent(db, { actorId: verification.user_id, eventType: 'user.email_verified', entityType: 'user', entityId: verification.user_id });
+
+  return c.json({ message: 'Your email is verified.' });
+});
+
+users.post('/verify-email/resend', requireAuth, resendVerificationLimiter, async (c) => {
+  const db = c.env.DB;
+  const authUser = c.get('user');
+  const profile = await getProfile(db, authUser.id);
+  if (profile?.verified_email) return c.json({ message: 'Your email is already verified.' });
+
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(authUser.id).first();
+  if (!user) throw NotFound('User not found');
+
+  await sendVerificationEmail(c, db, user);
+  return c.json({ message: "If email delivery is configured, we've sent a new verification link." });
 });
 
 users.get('/me', requireAuth, async (c) => {
